@@ -8,201 +8,61 @@ const links = {
   pypi: 'https://pypi.org/project/struphy/',
   tutorials: 'https://github.com/struphy-hub/struphy-tutorials',
 };
-
-const modelDocsUrl = (modelName) =>
-  `https://struphy-hub.github.io/struphy/sections/subsections/models-all.html#struphy.models.${modelName}`;
-
+const modelDocsUrl = (modelName) => `https://struphy-hub.github.io/struphy/sections/subsections/models-all.html#struphy.models.${modelName}`;
 const categories = [
-  {
-    name: 'Fluid',
-    description: 'Continuum field and fluid descriptions, including Maxwell, MHD, multi-fluid, variational fluid, and SPH formulations.',
-  },
-  {
-    name: 'Kinetic',
-    description: 'Particle-based Vlasov, drift-kinetic, guiding-center, and diffusion models.',
-  },
-  {
-    name: 'Hybrid',
-    description: 'Coupled fluid-field and kinetic-particle descriptions.',
-  },
-  {
-    name: 'Toy',
-    description: 'Compact reference models useful for examples and verification.',
-  },
-].map((category) => ({
-  ...category,
-  id: category.name.toLowerCase(),
-  models: catalogue.filter((model) => model.type === category.name),
-}));
+  { name: 'Fluid', description: 'Continuum field and fluid descriptions, including Maxwell, MHD, multi-fluid, variational fluid, and SPH formulations.' },
+  { name: 'Kinetic', description: 'Particle-based Vlasov, drift-kinetic, guiding-center, and diffusion models.' },
+  { name: 'Hybrid', description: 'Coupled fluid-field and kinetic-particle descriptions.' },
+  { name: 'Toy', description: 'Compact reference models useful for examples and verification.' },
+].map((category) => ({ ...category, id: category.name.toLowerCase(), models: catalogue.filter((model) => model.type === category.name) }));
+const initialModel = catalogue[0];
 ---
-
-<Layout
-  title="Models — Struphy"
-  description="The complete catalogue of fluid, kinetic, hybrid, and reference models available in Struphy."
->
+<Layout title="Models — Struphy" description="The complete catalogue of fluid, kinetic, hybrid, and reference models available in Struphy.">
   <header class="site-header">
     <a class="brand" href="/" aria-label="Struphy home">Struphy</a>
-    <nav aria-label="Primary navigation">
-      <a class="current" href="/models/" aria-current="page">Models</a>
-      <a href="/domains/">Domains</a>
-      <a href={links.docs}>Documentation</a>
-      <a href={links.github}>GitHub</a>
-      <a href={links.pypi}>PyPI</a>
-      <a href={links.tutorials}>Tutorials</a>
-    </nav>
+    <nav aria-label="Primary navigation"><a class="current" href="/models/" aria-current="page">Models</a><a href="/domains/">Domains</a><a href={links.docs}>Documentation</a><a href={links.github}>GitHub</a><a href={links.pypi}>PyPI</a><a href={links.tutorials}>Tutorials</a></nav>
   </header>
-
   <main>
     <section class="introduction" aria-labelledby="page-title">
       <h1 id="page-title">Models</h1>
-      <p>
-        Struphy provides fluid, kinetic, hybrid, and smaller toy and reference models
-        within a common simulation framework.
-      </p>
-      <nav class="category-index" aria-label="Model categories">
-        {categories.map((category) => (
-          <a href={`#${category.id}`}>{category.name} ({category.models.length})</a>
-        ))}
-      </nav>
+      <p>Struphy provides fluid, kinetic, hybrid, and smaller toy and reference models within a common simulation framework.</p>
+      <p class="instruction">Select a model to see its equations and description.</p>
+      <nav class="category-index" aria-label="Model categories">{categories.map((category) => <a href={`#${category.id}`}>{category.name} ({category.models.length})</a>)}</nav>
     </section>
-
-    {categories.map((category) => (
-      <section class="category" id={category.id} aria-labelledby={`${category.id}-title`}>
-        <div class="category-heading">
-          <h2 id={`${category.id}-title`}>{category.name} <span>{category.models.length}</span></h2>
-          <p>{category.description}</p>
-        </div>
-        <ul class="model-list">
-          {category.models.map((model) => (
-            <li>
-              <a class="model-name" href={modelDocsUrl(model.className)}>
-                <code>{model.className}</code>
-              </a>
-              <p>{model.description}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-    ))}
-
-    <p class="documentation-link">
-      See the <a href={links.docs}>full Struphy model documentation</a> for equations,
-      parameters, and usage.
-    </p>
+    <section class="model-browser" aria-label="Model catalogue">
+      <aside class="selector" aria-label="Select a model">
+        {categories.map((category) => <section class="selector-group" id={category.id} aria-labelledby={`${category.id}-title`}><div class="selector-heading"><h2 id={`${category.id}-title`}>{category.name}</h2><span>{category.models.length}</span></div><p>{category.description}</p><div class="model-list">{category.models.map((model) => <button type="button" class="model-option" data-model={model.className} aria-pressed={model.className === initialModel.className}><code>{model.className}</code></button>)}</div></section>)}
+      </aside>
+      <article class="detail" aria-live="polite">
+        <div class="detail-heading"><div><p class="eyebrow" id="detail-type">{initialModel.type}</p><h2 id="detail-name">{initialModel.className}</h2></div><a id="detail-docs" class="docs-link" href={modelDocsUrl(initialModel.className)} target="_blank" rel="noreferrer">Read the docs ↗</a></div>
+        <div class="tabs" role="tablist" aria-label="Model information"><button type="button" role="tab" id="tab-overview" aria-selected="true" aria-controls="panel-overview" tabindex="0">Overview</button><button type="button" role="tab" id="tab-pde" aria-selected="false" aria-controls="panel-pde" tabindex="-1">PDE</button><button type="button" role="tab" id="tab-about" aria-selected="false" aria-controls="panel-about" tabindex="-1">About this model</button></div>
+        <div id="panel-overview" class="tab-panel" role="tabpanel" aria-labelledby="tab-overview"><p id="detail-description">{initialModel.description}</p></div>
+        <div id="panel-pde" class="tab-panel generated-content" role="tabpanel" aria-labelledby="tab-pde" hidden set:html={initialModel.pdeHtml}></div>
+        <div id="panel-about" class="tab-panel generated-content" role="tabpanel" aria-labelledby="tab-about" hidden set:html={initialModel.longDescriptionHtml}></div>
+      </article>
+    </section>
+    <p class="documentation-link">See the <a href={links.docs}>full Struphy model documentation</a> for equations, parameters, and usage.</p>
   </main>
-
-  <footer>
-    <p>Struphy is open-source software released under the MIT License.</p>
-    <p>Built by the Struphy community.</p>
-  </footer>
+  <footer><p>Struphy is open-source software released under the MIT License.</p><p>Built by the Struphy community.</p></footer>
 </Layout>
-
+<script is:inline define:vars={{ catalogue }}>
+  const models = catalogue;
+  const docsUrl = (modelName) => `https://struphy-hub.github.io/struphy/sections/subsections/models-all.html#struphy.models.${modelName}`;
+  const options = [...document.querySelectorAll('.model-option')];
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  const panels = [...document.querySelectorAll('[role="tabpanel"]')];
+  const setTab = (tab) => { tabs.forEach((item) => { const active = item === tab; item.setAttribute('aria-selected', String(active)); item.tabIndex = active ? 0 : -1; }); panels.forEach((panel) => { panel.hidden = panel.getAttribute('aria-labelledby') !== tab.id; }); };
+  const selectModel = (className) => { const model = models.find((item) => item.className === className); if (!model) return; options.forEach((option) => option.setAttribute('aria-pressed', String(option.dataset.model === className))); document.querySelector('#detail-name').textContent = model.className; document.querySelector('#detail-type').textContent = model.type; document.querySelector('#detail-description').textContent = model.description; document.querySelector('#detail-docs').href = docsUrl(model.className); document.querySelector('#panel-pde').innerHTML = model.pdeHtml; document.querySelector('#panel-about').innerHTML = model.longDescriptionHtml; setTab(document.querySelector('#tab-overview')); };
+  options.forEach((option) => option.addEventListener('click', () => selectModel(option.dataset.model)));
+  tabs.forEach((tab, index) => { tab.addEventListener('click', () => setTab(tab)); tab.addEventListener('keydown', (event) => { if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return; event.preventDefault(); const next = tabs[(index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length]; next.focus(); setTab(next); }); });
+</script>
 <style>
-  :global(:root) {
-    --ink: #07131d;
-    --paper: #eeeadd;
-    --cyan: #63eee6;
-    --muted: #a9b7bb;
-    --rule: rgba(238, 234, 221, 0.2);
-    --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  }
-
-  :global(body) { color: var(--paper); font-family: var(--sans); line-height: 1.6; }
-
-  .site-header, main, footer {
-    width: min(1120px, calc(100% - 40px));
-    margin-inline: auto;
-  }
-
-  .site-header {
-    min-height: 72px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 28px;
-    border-bottom: 1px solid var(--rule);
-  }
-
-  .brand { color: var(--paper); font-size: 1.25rem; font-weight: 700; text-decoration: none; }
-  nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px 24px; }
-  nav a, .documentation-link a { color: var(--cyan); text-underline-offset: 0.2em; }
-  nav a { font-size: 0.925rem; text-decoration: none; }
-  nav a:hover, nav a.current, .documentation-link a:hover { text-decoration: underline; }
-  h1, h2, p { margin-top: 0; }
-
-  .introduction { padding-block: clamp(56px, 8vw, 92px); }
-  h1 {
-    margin-bottom: 18px;
-    font-size: clamp(2.35rem, 5vw, 4rem);
-    line-height: 1.08;
-    letter-spacing: -0.035em;
-  }
-
-  .introduction > p { max-width: 720px; margin-bottom: 26px; color: var(--muted); font-size: 1.1rem; }
-  .category-index { justify-content: flex-start; gap: 8px 24px; }
-  .category-index a { text-decoration: underline; }
-
-  .category {
-    scroll-margin-top: 24px;
-    border-top: 1px solid var(--rule);
-    padding-block: clamp(42px, 6vw, 66px);
-  }
-
-  .category-heading { max-width: 780px; margin-bottom: 28px; }
-  h2 { margin-bottom: 8px; font-size: clamp(1.55rem, 3vw, 2.1rem); line-height: 1.2; }
-  h2 span { color: var(--muted); font-size: 0.62em; font-weight: 500; vertical-align: 0.16em; }
-  .category-heading p { margin-bottom: 0; color: var(--muted); }
-  .model-list { margin: 0; padding: 0; border-top: 1px solid var(--rule); list-style: none; }
-  .model-list li {
-    display: grid;
-    grid-template-columns: minmax(220px, 0.38fr) minmax(0, 1fr);
-    gap: 28px;
-    padding-block: 17px;
-    border-bottom: 1px solid var(--rule);
-  }
-
-  .model-list code {
-    min-width: 0;
-    overflow-wrap: anywhere;
-    color: var(--paper);
-    font: 600 0.92rem/1.55 var(--mono);
-  }
-
-  .model-name {
-    min-width: 0;
-    color: var(--cyan);
-    text-decoration: underline;
-    text-decoration-color: transparent;
-    text-underline-offset: 0.2em;
-  }
-
-  .model-name:hover, .model-name:focus-visible { text-decoration-color: currentColor; }
-
-  .model-list p { margin-bottom: 0; color: var(--muted); }
-  .documentation-link { margin: 0; padding: 0 0 52px; color: var(--muted); }
-  footer {
-    display: flex;
-    justify-content: space-between;
-    gap: 24px;
-    padding-block: 26px 38px;
-    border-top: 1px solid var(--rule);
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-
-  footer p { margin-bottom: 0; }
-
-  @media (max-width: 760px) {
-    .site-header { align-items: flex-start; flex-direction: column; gap: 12px; padding-block: 18px; }
-    nav { justify-content: flex-start; }
-    .model-list li { grid-template-columns: 1fr; gap: 4px; padding-block: 18px; }
-    footer { flex-direction: column; gap: 6px; }
-  }
-
-  @media (max-width: 400px) {
-    .site-header, main, footer { width: min(100% - 28px, 1120px); }
-    nav { gap: 8px 16px; }
-    h1 { font-size: 2.15rem; }
-  }
+  :global(:root) { --paper:#eeeadd; --cyan:#63eee6; --muted:#a9b7bb; --rule:rgba(238,234,221,.2); --sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; --mono:ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",monospace; }
+  :global(body) { color:var(--paper); font-family:var(--sans); line-height:1.6; } .site-header,main,footer { width:min(1120px,calc(100% - 40px)); margin-inline:auto; } .site-header { min-height:72px; display:flex; align-items:center; justify-content:space-between; gap:28px; border-bottom:1px solid var(--rule); } .brand { color:var(--paper); font-size:1.25rem; font-weight:700; text-decoration:none; } nav { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px 24px; } nav a,.documentation-link a,.docs-link { color:var(--cyan); text-underline-offset:.2em; } nav a { font-size:.925rem; text-decoration:none; } nav a:hover,nav a.current,.documentation-link a:hover { text-decoration:underline; } h1,h2,p { margin-top:0; }
+  .introduction { padding-block:clamp(56px,8vw,92px); } h1 { margin-bottom:18px; font-size:clamp(2.35rem,5vw,4rem); line-height:1.08; letter-spacing:-.035em; } .introduction>p { max-width:720px; margin-bottom:26px; color:var(--muted); font-size:1.1rem; } .introduction>.instruction { margin-top:-14px; margin-bottom:26px; font-size:.95rem; } .category-index { justify-content:flex-start; gap:8px 24px; } .category-index a { text-decoration:underline; }
+  .model-browser { display:grid; grid-template-columns:minmax(230px,.38fr) minmax(0,1fr); gap:48px; border-top:1px solid var(--rule); padding-block:clamp(38px,5vw,58px); } .selector-group+.selector-group { margin-top:34px; } .selector-heading { display:flex; align-items:baseline; gap:10px; border-bottom:1px solid var(--rule); padding-bottom:8px; } .selector-heading h2 { margin:0; font-size:1.2rem; } .selector-heading span { color:var(--muted); font-size:.82rem; } .selector-group>p { margin:10px 0 14px; color:var(--muted); font-size:.86rem; line-height:1.45; } .model-list { border-bottom:1px solid var(--rule); } .model-option { display:block; width:100%; padding:8px 6px; border:0; border-bottom:1px solid var(--rule); background:none; color:var(--cyan); text-align:left; cursor:pointer; } .model-option:last-child { border-bottom:0; } .model-option:hover,.model-option:focus-visible { background:rgba(99,238,230,.08); } .model-option[aria-pressed="true"] { background:rgba(99,238,230,.14); color:var(--paper); border-left:2px solid var(--cyan); padding-left:4px; } code { overflow-wrap:anywhere; font:600 .87rem/1.45 var(--mono); } button:focus-visible,a:focus-visible { outline:2px solid var(--cyan); outline-offset:3px; }
+  .detail { min-width:0; } .detail-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; padding-bottom:24px; border-bottom:1px solid var(--rule); } .eyebrow { margin-bottom:6px; color:var(--muted); font:600 .76rem/1.4 var(--mono); text-transform:uppercase; letter-spacing:.08em; } .detail h2 { margin:0; font-size:clamp(1.7rem,3vw,2.35rem); overflow-wrap:anywhere; } .docs-link { padding-top:7px; font-size:.9rem; white-space:nowrap; } .tabs { display:flex; flex-wrap:wrap; gap:0 24px; border-bottom:1px solid var(--rule); } .tabs button { padding:13px 0 10px; border:0; border-bottom:2px solid transparent; background:none; color:var(--muted); cursor:pointer; font:inherit; font-size:.9rem; } .tabs button[aria-selected="true"] { border-bottom-color:var(--cyan); color:var(--paper); } .tab-panel { padding-top:24px; } .tab-panel>p { color:var(--muted); max-width:72ch; } .generated-content { max-height:560px; overflow:auto; overflow-wrap:anywhere; color:var(--muted); font-size:.94rem; } .generated-content :global(p),.generated-content :global(ul),.generated-content :global(ol),.generated-content :global(h3),.generated-content :global(h4) { margin-block:0 12px; } .generated-content :global(ul),.generated-content :global(ol) { padding-left:1.25rem; } .generated-content :global(h3),.generated-content :global(h4) { color:var(--paper); font-size:.98rem; } .generated-content :global(a) { color:var(--cyan); } .generated-content :global([style*="display:block"]) { max-width:100%; overflow-x:auto; overflow-y:hidden; }
+  .documentation-link { margin:0; padding:0 0 52px; color:var(--muted); } footer { display:flex; justify-content:space-between; gap:24px; padding-block:26px 38px; border-top:1px solid var(--rule); color:var(--muted); font-size:.85rem; } footer p { margin-bottom:0; }
+  @media (max-width:760px) { .site-header { align-items:flex-start; flex-direction:column; gap:12px; padding-block:18px; } nav { justify-content:flex-start; } .model-browser { grid-template-columns:1fr; gap:44px; } .selector { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:30px 24px; } .selector-group+.selector-group { margin-top:0; } .detail-heading { flex-direction:column; gap:6px; } footer { flex-direction:column; gap:6px; } }
+  @media (max-width:400px) { .site-header,main,footer { width:min(100% - 28px,1120px); } nav { gap:8px 16px; } h1 { font-size:2.15rem; } .selector { display:block; } .selector-group+.selector-group { margin-top:30px; } .tabs { gap:0 15px; } .tabs button { font-size:.83rem; } }
 </style>
