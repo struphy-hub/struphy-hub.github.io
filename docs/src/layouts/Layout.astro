@@ -7,14 +7,14 @@ const { title = 'Struphy — Structure-preserving plasma physics', description =
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#07131d" />
+    <meta name="theme-color" content="#f5f2e8" />
     <script is:inline>
       (() => {
         let storedTheme = null;
         try { storedTheme = localStorage.getItem('struphy-theme'); } catch {}
         const theme = storedTheme === 'light' || storedTheme === 'dark'
           ? storedTheme
-          : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          : 'light';
         document.documentElement.dataset.theme = theme;
         document.querySelector('meta[name="theme-color"]')?.setAttribute(
           'content',
@@ -77,18 +77,6 @@ const { title = 'Struphy — Structure-preserving plasma physics', description =
 </html>
 <style is:global>
   :root {
-    color-scheme: dark;
-    --ink: #07131d;
-    --paper: #eeeadd;
-    --cyan: #63eee6;
-    --muted: #a9b7bb;
-    --rule: rgba(238, 234, 221, 0.2);
-    --accent-wash: rgba(99, 238, 230, 0.12);
-    --code-bg: #0b1a25;
-    --plot-bg: #112c34;
-  }
-
-  html[data-theme='light'] {
     color-scheme: light;
     --ink: #f5f2e8;
     --paper: #10222d;
@@ -98,6 +86,18 @@ const { title = 'Struphy — Structure-preserving plasma physics', description =
     --accent-wash: rgba(8, 127, 123, 0.1);
     --code-bg: #e8e5dc;
     --plot-bg: #e9ede8;
+  }
+
+  html[data-theme='dark'] {
+    color-scheme: dark;
+    --ink: #07131d;
+    --paper: #eeeadd;
+    --cyan: #63eee6;
+    --muted: #a9b7bb;
+    --rule: rgba(238, 234, 221, 0.2);
+    --accent-wash: rgba(99, 238, 230, 0.12);
+    --code-bg: #0b1a25;
+    --plot-bg: #112c34;
   }
 
   * { box-sizing: border-box; }

@@ -5,6 +5,9 @@ from __future__ import annotations
 import argparse
 import inspect
 import json
+import math
+import re
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import numpy as np
@@ -22,6 +25,52 @@ TORUS_MAPPINGS = {
     "IGAPolarTorus",
     "HollowTorus",
 }
+
+
+def json_safe(value):
+    """Return a JSON-safe representation of a domain parameter value."""
+    if isinstance(value, np.generic):
+        return json_safe(value.item())
+    if isinstance(value, np.ndarray):
+        return json_safe(value.tolist())
+    if isinstance(value, Mapping):
+        return {str(key): json_safe(item) for key, item in value.items()}
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [json_safe(item) for item in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
+def parameter_descriptions(cls: type[Domain]) -> dict[str, str]:
+    """Extract NumPy-style parameter descriptions from a domain docstring."""
+    doc = inspect.getdoc(cls) or ""
+    match = re.search(
+        r"(?:^|\n)Parameters\n-+\n(?P<body>.*?)(?=\n(?:Note|Notes|Returns|Attributes|Examples|References|Raises|See Also)\n-+|\Z)",
+        doc,
+        re.S,
+    )
+    if not match:
+        return {}
+
+    descriptions: dict[str, str] = {}
+    current: list[str] = []
+    for line in match.group("body").splitlines():
+        # NumPy parameter headers are unindented after ``inspect.getdoc``;
+        # requiring that distinction avoids treating description text such as
+        # ``Epsilon: inverse aspect ratio`` as another parameter.
+        header = re.match(r"^([A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*)\s*:\s*.+$", line)
+        if header:
+            current = [name.strip() for name in header.group(1).split(",") if name.strip() != "self"]
+            for name in current:
+                descriptions[name] = ""
+        elif current and line.strip():
+            text = line.strip()
+            for name in current:
+                descriptions[name] = f"{descriptions[name]} {text}".strip()
+    return descriptions
 
 
 def _grid(
@@ -139,19 +188,31 @@ def export_domains(output_dir: Path, *, strict: bool = False) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     classes = domain_classes()
     failures: list[tuple[str, BaseException]] = []
+    catalogue: dict[str, dict[str, object]] = {}
 
     for name, domain_class in classes:
         output_file = output_dir / f"{name}.vtp"
         print(f"Exporting {name} -> {output_file}")
 
         try:
-            domain_class().export_geometry(filename=str(output_file))
+            domain = domain_class()
+            domain.export_geometry(filename=str(output_file))
             for plane in ('xy', 'xz', 'yz'):
-                export_grid(domain_class(), name, output_dir, plane)
+                export_grid(domain, name, output_dir, plane)
+            catalogue[name] = {
+                "parameters": json_safe(getattr(domain, "params", {})),
+                "parameter_descriptions": parameter_descriptions(domain_class),
+            }
         except (Exception, SystemExit) as error:
             failures.append((name, error))
             detail = str(error) or type(error).__name__
             print(f"  Skipped {name}: {detail}")
+
+    catalogue_file = output_dir / "catalogue.json"
+    catalogue_file.write_text(
+        json.dumps({"domains": catalogue}, separators=(",", ":"), allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
 
     generated = len(classes) - len(failures)
     print(f"\nGenerated {generated} domain file(s) in {output_dir}.")
