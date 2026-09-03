@@ -7,6 +7,7 @@ __pycache__/
 /*.vtp
 /docs/public/domains/
 /docs/src/data/equilibria/*.json
+/docs/src/data/perturbations/*.json
 *.log
 
 # Editors and operating systems
