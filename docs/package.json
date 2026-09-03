@@ -12,9 +12,15 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^7.3.0"
+    "@kitware/vtk.js": "^36.11.0",
+    "astro": "^7.3.0",
+    "events": "^3.3.0",
+    "url": "^0.11.4"
   },
   "allowScripts": {
     "esbuild": true
+  },
+  "devDependencies": {
+    "@rolldown/plugin-node-polyfills": "^1.0.3"
   }
 }
