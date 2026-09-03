@@ -2,13 +2,6 @@
 import Layout from '../../layouts/Layout.astro';
 import VtkDomainViewer from '../../components/VtkDomainViewer.astro';
 
-const links = {
-  docs: 'https://struphy-hub.github.io/struphy',
-  github: 'https://github.com/struphy-hub/struphy',
-  pypi: 'https://pypi.org/project/struphy/',
-  tutorials: 'https://github.com/struphy-hub/struphy-tutorials',
-};
-
 const domainNames = [
   'Colella', 'Cuboid', 'DESCunit', 'GVECunit', 'HollowCylinder', 'HollowTorus',
   'IGAPolarCylinder', 'IGAPolarTorus', 'Orthogonal', 'PoweredEllipticCylinder',
@@ -32,18 +25,6 @@ const domains = domainNames.map((name) => name === 'DESCunit'
   title="Domains — Struphy"
   description="An introduction to logical and physical domains in Struphy simulations."
 >
-  <header class="site-header">
-    <a class="brand" href="/" aria-label="Struphy home">Struphy</a>
-    <nav aria-label="Primary navigation">
-      <a href="/models/">Models</a>
-      <a class="current" href="/domains/" aria-current="page">Domains</a><a href="/equilibria/">Equilibria</a>
-      <a href={links.docs}>Documentation</a>
-      <a href={links.github}>GitHub</a>
-      <a href={links.pypi}>PyPI</a>
-      <a href={links.tutorials}>Tutorials</a>
-    </nav>
-  </header>
-
   <main>
     <section class="intro" aria-labelledby="page-title">
       <p class="eyebrow">Mapped geometries</p>
@@ -72,67 +53,9 @@ const domains = domainNames.map((name) => name === 'DESCunit'
       </dl>
     </section>
   </main>
-
-  <footer>
-    <p>Struphy is open-source software released under the MIT License.</p>
-    <p>Built by the Struphy community.</p>
-  </footer>
 </Layout>
 
 <style>
-  :global(:root) {
-    --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  }
-
-  :global(body) {
-    color: var(--paper);
-    font-family: var(--sans);
-    line-height: 1.6;
-  }
-
-  .site-header,
-  main,
-  footer {
-    width: min(1120px, calc(100% - 40px));
-    margin-inline: auto;
-  }
-
-  .site-header {
-    min-height: 72px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 28px;
-    border-bottom: 1px solid var(--rule);
-  }
-
-  .brand {
-    color: var(--paper);
-    font-size: 1.25rem;
-    font-weight: 700;
-    text-decoration: none;
-  }
-
-  nav {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 10px 24px;
-  }
-
-  nav a {
-    color: var(--cyan);
-    font-size: 0.925rem;
-    text-decoration: none;
-  }
-
-  nav a:hover,
-  nav a.current {
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-  }
-
   .intro {
     padding-block: clamp(56px, 8vw, 92px);
     max-width: 760px;
@@ -201,32 +124,7 @@ const domains = domainNames.map((name) => name === 'DESCunit'
     color: var(--muted);
   }
 
-  footer {
-    display: flex;
-    justify-content: space-between;
-    gap: 24px;
-    padding-block: 26px 38px;
-    border-top: 1px solid var(--rule);
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-
-  footer p {
-    margin: 0;
-  }
-
   @media (max-width: 760px) {
-    .site-header {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 12px;
-      padding-block: 18px;
-    }
-
-    nav {
-      justify-content: flex-start;
-    }
-
     dl {
       grid-template-columns: 1fr;
     }
@@ -237,22 +135,11 @@ const domains = domainNames.map((name) => name === 'DESCunit'
       border-left: 0;
       border-bottom: 1px solid var(--rule);
     }
-
-    footer {
-      flex-direction: column;
-      gap: 6px;
-    }
   }
 
   @media (max-width: 400px) {
-    .site-header,
-    main,
-    footer {
+    main {
       width: min(100% - 28px, 1120px);
-    }
-
-    nav {
-      gap: 8px 16px;
     }
 
     h1 {

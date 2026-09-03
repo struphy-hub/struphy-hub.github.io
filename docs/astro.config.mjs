@@ -4,6 +4,7 @@ import nodePolyfills from '@rolldown/plugin-node-polyfills';
 
 // https://astro.build/config
 export default defineConfig({
+  site: 'https://struphy-hub.github.io',
   vite: {
     plugins: [nodePolyfills()],
     resolve: {

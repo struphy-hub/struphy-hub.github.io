@@ -7,7 +7,9 @@ const { domains, initialDomain } = Astro.props;
 <div class="domain-browser" data-domain-browser data-domains={JSON.stringify(domains)} data-initial-domain={initialDomain}>
   <aside class="domain-index" aria-label="Available Struphy domains">
     <p class="eyebrow">Select a domain</p>
-    <ul>{domains.map((domain) => <li><button type="button" class="domain-option" data-domain-name={domain.name} aria-label={`View ${domain.name} geometry`} aria-pressed={domain.name === initialDomain ? 'true' : 'false'} disabled={!domain.url} title={domain.unavailableReason}><code>{domain.name}</code></button></li>)}</ul>
+    <input type="search" class="domain-filter" data-domain-filter placeholder="Filter domains…" aria-label="Filter domains" />
+    <ul data-domain-list>{domains.map((domain) => <li data-domain-item={domain.name}><button type="button" class="domain-option" data-domain-name={domain.name} aria-label={`View ${domain.name} geometry`} aria-pressed={domain.name === initialDomain ? 'true' : 'false'} disabled={!domain.url} title={domain.unavailableReason}><code>{domain.name}</code></button></li>)}</ul>
+    <p class="empty-filter" data-domain-filter-empty hidden>No domains match "<span data-domain-filter-query></span>".</p>
   </aside>
   <figure class="card" aria-labelledby="domain-caption">
     <div class="card-heading">
@@ -59,6 +61,10 @@ const { domains, initialDomain } = Astro.props;
     const caption = root.querySelector<HTMLElement>('[data-domain-caption]');
     const docsLink = root.querySelector<HTMLAnchorElement>('[data-domain-docs]');
     const options = [...root.querySelectorAll<HTMLButtonElement>('[data-domain-name]')];
+    const filterInput = root.querySelector<HTMLInputElement>('[data-domain-filter]');
+    const filterEmpty = root.querySelector<HTMLElement>('[data-domain-filter-empty]');
+    const filterQuery = root.querySelector<HTMLElement>('[data-domain-filter-query]');
+    const listItems = [...root.querySelectorAll<HTMLLIElement>('[data-domain-item]')];
     const sliceTabs = [...root.querySelectorAll<HTMLButtonElement>('[data-slice-plane]')];
     const view3d = root.querySelector<HTMLButtonElement>('[data-view-mode="3d"]');
     const sliceView = root.querySelector<HTMLElement>('[data-slice-view]');
@@ -237,6 +243,7 @@ const { domains, initialDomain } = Astro.props;
       options.forEach((option) => option.setAttribute('aria-pressed', String(option.dataset.domainName === name)));
       caption.textContent = name;
       docsLink.href = domain.docsUrl;
+      if (history.replaceState) history.replaceState(null, '', `#${name}`);
       container.setAttribute('aria-label', `Interactive ${name} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`);
       aborter?.abort(); aborter = new AbortController();
       const current = ++serial;
@@ -273,12 +280,32 @@ const { domains, initialDomain } = Astro.props;
     const modeHandler = () => show3d(); view3d?.addEventListener('click', modeHandler);
     const observer = new ResizeObserver(() => { if (!disposed) { grw.resize(); renderWindow.render(); } });
     observer.observe(container);
-    await Promise.all([load(root.dataset.initialDomain || domains.find((d) => d.url)?.name || ''), metadataReady]);
+
+    const applyFilter = () => {
+      const query = (filterInput?.value || '').trim().toLowerCase();
+      let visibleCount = 0;
+      listItems.forEach((item) => {
+        const matches = !query || (item.dataset.domainItem || '').toLowerCase().includes(query);
+        item.hidden = !matches;
+        if (matches) visibleCount += 1;
+      });
+      if (filterEmpty) filterEmpty.hidden = visibleCount > 0;
+      if (filterQuery) filterQuery.textContent = query;
+    };
+    const filterHandler = () => applyFilter();
+    filterInput?.addEventListener('input', filterHandler);
+
+    const hashName = decodeURIComponent(location.hash.replace(/^#/, ''));
+    const initialName = (hashName && byName.get(hashName)?.url)
+      ? hashName
+      : (root.dataset.initialDomain || domains.find((d) => d.url)?.name || '');
+    await Promise.all([load(initialName), metadataReady]);
     return () => {
       disposed = true; aborter?.abort(); observer.disconnect(); reset.removeEventListener('click', resetView);
       handlers.forEach(([o, h]) => o.removeEventListener('click', h));
       sliceHandlers.forEach(([tab, handler]) => tab.removeEventListener('click', handler));
       view3d?.removeEventListener('click', modeHandler);
+      filterInput?.removeEventListener('input', filterHandler);
       if (actorAdded) renderer.removeActor(actor);
       reader?.delete(); actor.delete(); cutter.delete(); plane.delete(); mapper.delete(); grw.delete();
     };
@@ -297,6 +324,9 @@ const { domains, initialDomain } = Astro.props;
   .domain-browser { display:grid; grid-template-columns:minmax(250px,300px) minmax(0,1fr); gap:48px; align-items:start; }
   .domain-index { position:sticky; top:24px; min-width:0; }
   .eyebrow { margin:0 0 7px; color:var(--muted); font:600 .76rem/1.4 var(--mono); letter-spacing:.08em; text-transform:uppercase; }
+  .domain-filter { width:100%; margin-bottom:10px; padding:8px 10px; border:1px solid var(--rule); background:var(--ink); color:var(--paper); font:inherit; font-size:.87rem; }
+  .domain-filter:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+  .empty-filter { margin:14px 0 0; color:var(--muted); font-size:.85rem; }
   ul { max-height:600px; margin:0; padding:0; overflow:auto; border-top:1px solid var(--rule); list-style:none; }
   li { margin:0; padding:0; }
   .domain-option { display:block; width:100%; padding:11px 8px; border:0; border-bottom:1px solid var(--rule); background:none; color:var(--cyan); text-align:left; cursor:pointer; }
