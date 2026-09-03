@@ -11,10 +11,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import numpy as np
-
 from struphy import domains
 from struphy.geometry.base import Domain
-
 
 DEFAULT_OUTPUT_DIR = Path(__file__).parent / "docs" / "public" / "domains"
 
@@ -63,7 +61,11 @@ def parameter_descriptions(cls: type[Domain]) -> dict[str, str]:
         # ``Epsilon: inverse aspect ratio`` as another parameter.
         header = re.match(r"^([A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*)\s*:\s*.+$", line)
         if header:
-            current = [name.strip() for name in header.group(1).split(",") if name.strip() != "self"]
+            current = [
+                name.strip()
+                for name in header.group(1).split(",")
+                if name.strip() != "self"
+            ]
             for name in current:
                 descriptions[name] = ""
         elif current and line.strip():
@@ -164,7 +166,9 @@ def export_grid(domain, name, output_dir, plane, n1=16, n2=65):
         "grids": grids,
     }
     output_file = output_dir / f"{name}-{plane}.json"
-    output_file.write_text(json.dumps(data, separators=(",", ":")) + "\n", encoding="utf-8")
+    output_file.write_text(
+        json.dumps(data, separators=(",", ":")) + "\n", encoding="utf-8"
+    )
 
 
 def domain_classes() -> list[tuple[str, type[Domain]]]:
@@ -197,7 +201,7 @@ def export_domains(output_dir: Path, *, strict: bool = False) -> int:
         try:
             domain = domain_class()
             domain.export_geometry(filename=str(output_file))
-            for plane in ('xy', 'xz', 'yz'):
+            for plane in ("xy", "xz", "yz"):
                 export_grid(domain, name, output_dir, plane)
             catalogue[name] = {
                 "parameters": json_safe(getattr(domain, "params", {})),
@@ -210,7 +214,8 @@ def export_domains(output_dir: Path, *, strict: bool = False) -> int:
 
     catalogue_file = output_dir / "catalogue.json"
     catalogue_file.write_text(
-        json.dumps({"domains": catalogue}, separators=(",", ":"), allow_nan=False) + "\n",
+        json.dumps({"domains": catalogue}, separators=(",", ":"), allow_nan=False)
+        + "\n",
         encoding="utf-8",
     )
 
