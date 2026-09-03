@@ -6,17 +6,24 @@ const { domains, initialDomain } = Astro.props;
 
 <div class="domain-browser" data-domain-browser data-domains={JSON.stringify(domains)} data-initial-domain={initialDomain}>
   <aside class="domain-index" aria-label="Available Struphy domains">
-    <p>Domain classes</p>
+    <p class="eyebrow">Select a domain</p>
     <ul>{domains.map((domain) => <li><button type="button" class="domain-option" data-domain-name={domain.name} aria-label={`View ${domain.name} geometry`} aria-pressed={domain.name === initialDomain ? 'true' : 'false'} disabled={!domain.url} title={domain.unavailableReason}><code>{domain.name}</code></button></li>)}</ul>
   </aside>
-  <figure aria-labelledby="domain-caption">
+  <figure class="card" aria-labelledby="domain-caption">
+    <div class="card-heading">
+      <div>
+        <p class="eyebrow">Domain</p>
+        <h2 id="domain-caption" data-domain-caption>{initialDomain}</h2>
+      </div>
+      <a class="docs-link" data-domain-docs href={domains.find((domain) => domain.name === initialDomain)?.docsUrl} target="_blank" rel="noreferrer">Documentation ↗</a>
+    </div>
     <div class="slice-tabs" role="tablist" aria-label="Domain view"><button type="button" role="tab" aria-selected="true" data-view-mode="3d">3D</button><button type="button" role="tab" aria-selected="false" data-slice-plane="xy">XY</button><button type="button" role="tab" aria-selected="false" data-slice-plane="xz">XZ</button><button type="button" role="tab" aria-selected="false" data-slice-plane="yz">YZ</button></div>
     <div class="viewer" data-vtk-viewer role="img" aria-label={`Interactive ${initialDomain} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`}>
       <p class="status" data-vtk-status role="status" aria-live="polite">Loading {initialDomain}…</p>
     </div>
     <div class="slice-view" data-slice-view hidden role="img" aria-label="2D domain grid slice"><svg viewBox="0 0 600 420" preserveAspectRatio="xMidYMid meet"><g data-grid-lines></g></svg></div>
     <div class="viewer-details">
-      <figcaption id="domain-caption"><strong data-domain-caption>{initialDomain}</strong> — generated and exported by Struphy. <a data-domain-docs href={domains.find((domain) => domain.name === initialDomain)?.docsUrl} target="_blank" rel="noreferrer">Read the docs ↗</a><span>Drag to rotate · Scroll to zoom · Shift-drag to pan</span></figcaption>
+      <figcaption>Generated and exported by Struphy.<span>Drag to rotate · Scroll to zoom · Shift-drag to pan</span></figcaption>
       <button type="button" class="reset" data-vtk-reset disabled>Reset view</button>
     </div>
     <section class="parameters" aria-labelledby="domain-parameters-heading">
@@ -287,60 +294,64 @@ const { domains, initialDomain } = Astro.props;
 </script>
 
 <style>
-  .domain-browser { display:grid; grid-template-columns:minmax(210px,.34fr) minmax(0,1fr); gap:clamp(28px,5vw,56px); align-items:start; }
-  .slice-tabs { display:flex; gap:0 24px; margin-bottom:12px; border-bottom:1px solid var(--rule); }
-  .slice-tabs button { padding:9px 0 7px; border:0; border-bottom:2px solid transparent; background:none; color:var(--muted); cursor:pointer; font:inherit; font-size:.82rem; }
+  .domain-browser { display:grid; grid-template-columns:minmax(250px,300px) minmax(0,1fr); gap:48px; align-items:start; }
+  .domain-index { position:sticky; top:24px; min-width:0; }
+  .eyebrow { margin:0 0 7px; color:var(--muted); font:600 .76rem/1.4 var(--mono); letter-spacing:.08em; text-transform:uppercase; }
+  ul { max-height:600px; margin:0; padding:0; overflow:auto; border-top:1px solid var(--rule); list-style:none; }
+  li { margin:0; padding:0; }
+  .domain-option { display:block; width:100%; padding:11px 8px; border:0; border-bottom:1px solid var(--rule); background:none; color:var(--cyan); text-align:left; cursor:pointer; }
+  .domain-option code { display:block; color:inherit; font:600 .87rem/1.45 var(--mono); }
+  .domain-option:hover:not(:disabled), .domain-option:focus-visible, .domain-option[aria-pressed="true"] { background:var(--accent-wash); color:var(--paper); }
+  .domain-option:disabled { color:var(--muted); cursor:not-allowed; opacity:.62; }
+  button:focus-visible, .docs-link:focus-visible { outline:2px solid var(--paper); outline-offset:3px; }
+  .card { min-width:0; margin:0; padding:20px; border:1px solid var(--rule); }
+  .card-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+  .card-heading h2 { margin:0 0 18px; font-size:1.45rem; line-height:1.3; overflow-wrap:anywhere; }
+  .docs-link { flex:none; margin-top:22px; color:var(--cyan); font-size:.84rem; text-decoration:none; }
+  .docs-link:hover { text-decoration:underline; text-underline-offset:.2em; }
+  .slice-tabs { display:flex; gap:0 24px; margin:4px 0 18px; border-bottom:1px solid var(--rule); }
+  .slice-tabs button { padding:10px 0 8px; border:0; border-bottom:2px solid transparent; background:none; color:var(--muted); cursor:pointer; font:inherit; font-size:.9rem; }
   .slice-tabs button[aria-selected="true"] { border-bottom-color:var(--cyan); color:var(--paper); }
-  .domain-index p { margin:0 0 10px; color:var(--muted); font-size:.82rem; }
-  ul { margin:0; padding:0; border-top:1px solid var(--rule); list-style:none; }
-  li { border-bottom:1px solid var(--rule); }
-  .domain-index li { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; padding:9px 0; }
-  .domain-index a { min-width:0; overflow-wrap:anywhere; color:var(--cyan); font-size:.88rem; }
-  .domain-index a:hover { color:var(--paper); text-decoration-thickness:2px; text-underline-offset:.2em; }
-  .domain-index a:focus-visible { outline:2px solid var(--paper); outline-offset:3px; }
-  .domain-index button { padding:3px 7px; border:1px solid var(--cyan); border-radius:0; background:transparent; color:var(--cyan); font:inherit; font-size:.72rem; cursor:pointer; }
-  .domain-index button:hover:not(:disabled), .domain-index button[aria-pressed="true"] { background:var(--cyan); color:var(--ink); }
-  button:focus-visible { outline:2px solid var(--paper); outline-offset:3px; }
-  .domain-index button:disabled { color:var(--muted); cursor:not-allowed; opacity:.62; }
-  .domain-index small { grid-column:1 / -1; margin-top:-5px; font-size:.7rem; }
-  figure { min-width:0; margin:0; }
-  .viewer { position:relative; width:100%; height:clamp(400px,46vw,520px); overflow:hidden; border:1px solid var(--rule); background:#07131d; touch-action:none; }
+  .viewer, .slice-view { width:100%; height:clamp(400px,42vw,500px); border:1px solid var(--rule); }
+  .viewer { position:relative; overflow:hidden; background:#07131d; touch-action:none; }
   .viewer :global(canvas) { display:block; width:100%; height:100%; }
-  .status { position:absolute; inset:0; z-index:1; display:grid; place-items:center; margin:0; padding:24px; color:#a9b7bb; text-align:center; pointer-events:none; }
-  .status.error { color:#eeeadd; } .status[hidden] { display:none; }
-  .viewer-details { display:flex; align-items:start; justify-content:space-between; gap:24px; margin-top:12px; }
-  figcaption { color:var(--muted); font-size:.85rem; } figcaption strong { color:var(--paper); } figcaption span { display:block; margin-top:3px; }
-  .reset { flex:none; padding:7px 12px; border:1px solid var(--cyan); border-radius:0; background:transparent; color:var(--cyan); font:inherit; font-size:.82rem; cursor:pointer; }
-  .reset:hover:not(:disabled) { background:var(--cyan); color:var(--ink); } .reset:disabled { opacity:.45; cursor:wait; }
-  @media(max-width:760px) { .domain-browser { grid-template-columns:1fr; } .domain-index ul { columns:2; column-gap:24px; } .domain-index li { break-inside:avoid; } .viewer { height:clamp(320px,92vw,400px); } }
-  @media(max-width:440px) { .domain-index ul { columns:1; } .viewer-details { align-items:stretch; flex-direction:column; gap:12px; } .reset { align-self:flex-start; } }
-</style>
-<style>
-  .slice-view { width:100%; height:clamp(400px,46vw,520px); border:1px solid var(--rule); background:var(--ink); }
-  .slice-view svg { width:100%; height:100%; }
+  .slice-view { background:var(--plot-bg); }
+  .slice-view svg { display:block; width:100%; height:100%; }
   .slice-view[hidden] { display:none; }
-</style>
-<style>
-  .domain-index ul { max-height: 600px; overflow: auto; }
-  .domain-index li { display: block; padding: 0; }
-  .domain-index .domain-option { display: block; width: 100%; padding: 11px 8px; border: 0; border-bottom: 1px solid var(--rule); background: none; color: var(--cyan); text-align: left; cursor: pointer; }
-  .domain-option code { display: block; color: inherit; font: 600 .87rem/1.45 var(--mono); }
-  .domain-option small { display: block; margin-top: 2px; color: var(--muted); font: .72rem var(--mono); }
-  .domain-option:hover:not(:disabled), .domain-option:focus-visible, .domain-option[aria-pressed="true"] { background: var(--accent-wash); color: var(--paper); }
-  .domain-option[aria-pressed="true"] { border-left: 2px solid var(--cyan); padding-left: 6px; }
-  .domain-option:disabled { color: var(--muted); cursor: not-allowed; opacity: .62; }
-  .domain-index .domain-option + small { display: none; }
-  figcaption a { color: var(--cyan); }
-  .parameters { margin-top:30px; border-top:1px solid var(--rule); padding-top:20px; }
+  .status { position:absolute; inset:0; z-index:1; display:grid; place-items:center; margin:0; padding:24px; color:#a9b7bb; text-align:center; pointer-events:none; }
+  .status.error { color:#eeeadd; }
+  .status[hidden] { display:none; }
+  .viewer-details { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-top:12px; }
+  figcaption { color:var(--muted); font-size:.85rem; }
+  figcaption span { display:block; margin-top:3px; }
+  .reset { flex:none; padding:7px 12px; border:1px solid var(--cyan); border-radius:0; background:transparent; color:var(--cyan); font:inherit; font-size:.82rem; cursor:pointer; }
+  .reset:hover:not(:disabled) { background:var(--cyan); color:var(--ink); }
+  .reset:disabled { opacity:.45; cursor:wait; }
+  .parameters { margin-top:30px; padding-top:20px; border-top:1px solid var(--rule); }
   .parameters h3 { margin:0 0 12px; font-size:1.05rem; }
   .parameter-table-wrap { width:100%; overflow-x:auto; }
-  .parameter-table-wrap table { width:100%; min-width:600px; border-collapse:collapse; font-size:.84rem; }
+  .parameter-table-wrap table { width:100%; border-collapse:collapse; font-size:.84rem; }
   .parameter-table-wrap th, .parameter-table-wrap td { padding:9px 12px; border-bottom:1px solid var(--rule); text-align:left; vertical-align:top; }
   .parameter-table-wrap thead th { color:var(--paper); font:600 .72rem var(--mono); letter-spacing:.06em; text-transform:uppercase; }
   .parameter-table-wrap tbody th { width:22%; font-weight:400; }
   .parameter-table-wrap tbody td:nth-child(2) { width:24%; color:var(--paper); font-family:var(--mono); overflow-wrap:anywhere; }
   .parameter-table-wrap tbody td:nth-child(3) { color:var(--muted); }
   .parameter-table-wrap .parameter-status { color:var(--muted); font-family:inherit; }
-  @media(max-width:760px) { .domain-index ul { columns: 2; max-height: none; } .domain-index li { break-inside: avoid; } }
-  @media(max-width:440px) { .domain-index ul { columns: 1; } }
+  @media(max-width:600px) {
+    .domain-browser { grid-template-columns:1fr; gap:28px; }
+    .domain-index { position:static; }
+    .domain-index ul { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-height:none; }
+    .domain-option { height:100%; border-right:1px solid var(--rule); }
+    .card { padding:16px; }
+    .viewer, .slice-view { height:clamp(300px,84vw,400px); }
+    .viewer-details { align-items:stretch; flex-direction:column; gap:12px; }
+    .reset { align-self:flex-start; }
+  }
+  @media(max-width:400px) {
+    .domain-index ul { grid-template-columns:1fr; }
+    .slice-tabs { gap:0 20px; }
+    .docs-link { margin-top:0; }
+    .card-heading { flex-direction:column; gap:0; }
+    .parameter-table-wrap table { min-width:600px; }
+  }
 </style>
