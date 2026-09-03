@@ -1,0 +1,145 @@
+---
+interface DomainEntry { name: string; url?: string; unavailableReason?: string; }
+interface Props { domains: DomainEntry[]; initialDomain: string; }
+const { domains, initialDomain } = Astro.props;
+---
+
+<div class="domain-browser" data-domain-browser data-domains={JSON.stringify(domains)} data-initial-domain={initialDomain}>
+  <aside class="domain-index" aria-label="Available Struphy domains">
+    <p>Domain classes</p>
+    <ul>{domains.map((domain) => <li><button type="button" data-domain-name={domain.name} aria-pressed={domain.name === initialDomain ? 'true' : 'false'} disabled={!domain.url} title={domain.unavailableReason}><span>{domain.name}</span>{!domain.url && <small>Requires equilibrium data</small>}</button></li>)}</ul>
+  </aside>
+  <figure aria-labelledby="domain-caption">
+    <div class="viewer" data-vtk-viewer role="img" aria-label={`Interactive ${initialDomain} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`}>
+      <p class="status" data-vtk-status role="status" aria-live="polite">Loading {initialDomain}…</p>
+    </div>
+    <div class="viewer-details">
+      <figcaption id="domain-caption"><strong data-domain-caption>{initialDomain}</strong> — generated and exported by Struphy.<span>Drag to rotate · Scroll to zoom · Shift-drag to pan</span></figcaption>
+      <button type="button" class="reset" data-vtk-reset disabled>Reset view</button>
+    </div>
+  </figure>
+</div>
+
+<script>
+  import '@kitware/vtk.js/Rendering/Profiles/Geometry';
+  import vtkGenericRenderWindow from '@kitware/vtk.js/Rendering/Misc/GenericRenderWindow';
+  import vtkActor from '@kitware/vtk.js/Rendering/Core/Actor';
+  import vtkMapper from '@kitware/vtk.js/Rendering/Core/Mapper';
+  import vtkXMLPolyDataReader from '@kitware/vtk.js/IO/XML/XMLPolyDataReader';
+
+  type DomainEntry = { name: string; url?: string };
+  type Cleanup = () => void;
+  const cleanups = new Map<HTMLElement, Cleanup>();
+
+  async function setup(root: HTMLElement): Promise<Cleanup> {
+    const container = root.querySelector<HTMLElement>('[data-vtk-viewer]');
+    const status = root.querySelector<HTMLElement>('[data-vtk-status]');
+    const reset = root.querySelector<HTMLButtonElement>('[data-vtk-reset]');
+    const caption = root.querySelector<HTMLElement>('[data-domain-caption]');
+    const options = [...root.querySelectorAll<HTMLButtonElement>('[data-domain-name]')];
+    if (!container || !status || !reset || !caption) return () => {};
+    const domains = JSON.parse(root.dataset.domains || '[]') as DomainEntry[];
+    const byName = new Map(domains.map((d) => [d.name, d]));
+    const grw = vtkGenericRenderWindow.newInstance({ background: [0.027, 0.075, 0.114] });
+    grw.setContainer(container); grw.resize();
+    const renderer = grw.getRenderer();
+    const renderWindow = grw.getRenderWindow();
+    const mapper = vtkMapper.newInstance();
+    const actor = vtkActor.newInstance();
+    actor.setMapper(mapper);
+    actor.getProperty().setColor(0.39, 0.93, 0.9);
+    actor.getProperty().setOpacity(0.9);
+    actor.getProperty().setEdgeVisibility(true);
+    actor.getProperty().setEdgeColor(0.39, 0.93, 0.9);
+    actor.getProperty().setLineWidth(1.2);
+    let actorAdded = false;
+    let reader: ReturnType<typeof vtkXMLPolyDataReader.newInstance> | undefined;
+    let cameraState: any;
+    let aborter: AbortController | undefined;
+    let serial = 0;
+    let disposed = false;
+
+    const resetView = () => {
+      if (!cameraState) return;
+      const c = renderer.getActiveCamera();
+      c.setPosition(...cameraState.position); c.setFocalPoint(...cameraState.focalPoint);
+      c.setViewUp(...cameraState.viewUp); c.setParallelProjection(cameraState.parallelProjection);
+      c.setParallelScale(cameraState.parallelScale); c.setViewAngle(cameraState.viewAngle);
+      renderer.resetCameraClippingRange(); renderWindow.render();
+    };
+    const load = async (name: string) => {
+      const domain = byName.get(name);
+      if (!domain?.url || disposed) return;
+      aborter?.abort(); aborter = new AbortController();
+      const current = ++serial;
+      status.hidden = false; status.classList.remove('error'); status.textContent = `Loading ${name}…`; reset.disabled = true;
+      try {
+        const response = await fetch(domain.url, { signal: aborter.signal });
+        if (!response.ok) throw new Error(`Domain file returned ${response.status}`);
+        const nextReader = vtkXMLPolyDataReader.newInstance();
+        nextReader.parseAsArrayBuffer(await response.arrayBuffer());
+        const data = nextReader.getOutputData(0);
+        if (!data || data.getNumberOfPoints() === 0) { nextReader.delete(); throw new Error('No renderable points'); }
+        if (disposed || current !== serial) { nextReader.delete(); return; }
+        mapper.setInputData(data); reader?.delete(); reader = nextReader;
+        if (!actorAdded) { renderer.addActor(actor); actorAdded = true; }
+        const c = renderer.getActiveCamera();
+        renderer.resetCamera(); c.zoom(1.15); renderer.resetCameraClippingRange(); renderWindow.render();
+        cameraState = { position: [...c.getPosition()], focalPoint: [...c.getFocalPoint()], viewUp: [...c.getViewUp()], parallelProjection: c.getParallelProjection(), parallelScale: c.getParallelScale(), viewAngle: c.getViewAngle() };
+        options.forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.domainName === name)));
+        caption.textContent = name;
+        container.setAttribute('aria-label', `Interactive ${name} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`);
+        status.hidden = true; reset.disabled = false;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        console.error(`Unable to load ${name}:`, error);
+        status.textContent = `${name} could not be loaded. Try selecting it again.`; status.classList.add('error');
+      }
+    };
+    const handlers = options.map((option) => {
+      const handler = () => load(option.dataset.domainName || '');
+      option.addEventListener('click', handler); return [option, handler] as const;
+    });
+    reset.addEventListener('click', resetView);
+    const observer = new ResizeObserver(() => { if (!disposed) { grw.resize(); renderWindow.render(); } });
+    observer.observe(container);
+    await load(root.dataset.initialDomain || domains.find((d) => d.url)?.name || '');
+    return () => {
+      disposed = true; aborter?.abort(); observer.disconnect(); reset.removeEventListener('click', resetView);
+      handlers.forEach(([o, h]) => o.removeEventListener('click', h));
+      if (actorAdded) renderer.removeActor(actor);
+      reader?.delete(); actor.delete(); mapper.delete(); grw.delete();
+    };
+  }
+  function initialise() {
+    document.querySelectorAll<HTMLElement>('[data-domain-browser]').forEach((root) => {
+      if (!cleanups.has(root)) setup(root).then((cleanup) => cleanups.set(root, cleanup));
+    });
+  }
+  initialise();
+  document.addEventListener('astro:page-load', initialise);
+  document.addEventListener('astro:before-swap', () => { cleanups.forEach((c) => c()); cleanups.clear(); });
+</script>
+
+<style>
+  .domain-browser { display:grid; grid-template-columns:minmax(210px,.34fr) minmax(0,1fr); gap:clamp(28px,5vw,56px); align-items:start; }
+  .domain-index p { margin:0 0 10px; color:var(--muted); font-size:.82rem; }
+  ul { margin:0; padding:0; border-top:1px solid var(--rule); list-style:none; }
+  li { border-bottom:1px solid var(--rule); }
+  .domain-index button { width:100%; padding:9px 0; border:0; background:transparent; color:var(--cyan); font:inherit; font-size:.88rem; text-align:left; cursor:pointer; }
+  .domain-index button:hover:not(:disabled), .domain-index button[aria-pressed="true"] { color:var(--paper); text-decoration:underline; text-underline-offset:.2em; }
+  button:focus-visible { outline:2px solid var(--paper); outline-offset:3px; }
+  .domain-index button:disabled { color:var(--muted); cursor:not-allowed; opacity:.62; }
+  .domain-index small { display:block; margin-top:1px; font-size:.7rem; }
+  figure { min-width:0; margin:0; }
+  .viewer { position:relative; width:100%; height:clamp(400px,46vw,520px); overflow:hidden; border:1px solid var(--rule); background:var(--ink); touch-action:none; }
+  .viewer :global(canvas) { display:block; width:100%; height:100%; }
+  .status { position:absolute; inset:0; z-index:1; display:grid; place-items:center; margin:0; padding:24px; color:var(--muted); text-align:center; pointer-events:none; }
+  .status.error { color:var(--paper); } .status[hidden] { display:none; }
+  .viewer-details { display:flex; align-items:start; justify-content:space-between; gap:24px; margin-top:12px; }
+  figcaption { color:var(--muted); font-size:.85rem; } figcaption strong { color:var(--paper); } figcaption span { display:block; margin-top:3px; }
+  .reset { flex:none; padding:7px 12px; border:1px solid var(--cyan); border-radius:0; background:transparent; color:var(--cyan); font:inherit; font-size:.82rem; cursor:pointer; }
+  .reset:hover:not(:disabled) { background:var(--cyan); color:var(--ink); } .reset:disabled { opacity:.45; cursor:wait; }
+  @media(max-width:760px) { .domain-browser { grid-template-columns:1fr; } .domain-index ul { columns:2; column-gap:24px; } .domain-index li { break-inside:avoid; } .viewer { height:clamp(320px,92vw,400px); } }
+  @media(max-width:440px) { .domain-index ul { columns:1; } .viewer-details { align-items:stretch; flex-direction:column; gap:12px; } .reset { align-self:flex-start; } }
+</style>
