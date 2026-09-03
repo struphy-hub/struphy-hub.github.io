@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Generated data and logs
+/*.vtp
+*.log
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
