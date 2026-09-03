@@ -30,6 +30,12 @@ jobs:
       - name: Install Struphy
         run: python -m pip install --upgrade pip struphy==3.2.0 # gvec desc
 
+      - name: Generate equilibrium slices
+        run: python generate_equilibrium_slices.py
+
+      - name: Verify generated equilibrium slices
+        run: test -n "$(find docs/src/data/equilibria -maxdepth 1 -name '*.json' -print -quit)"
+
       - name: Generate domain geometries
         run: python generate_domains.py docs/public/domains
 

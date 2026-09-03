@@ -1,0 +1,59 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const imported = import.meta.glob('../../data/equilibria/*.json', { eager: true, import: 'default' });
+const equilibria = [...new Map(Object.entries(imported).map(([path, value]) => {
+  const data = value as any;
+  return { ...data, slug: path.split('/').pop()?.replace(/\.json$/, '') ?? data.name };
+}).map((data) => [data.type, data])).values()].sort((a, b) => a.type.localeCompare(b.type));
+
+function cells(values: number[][], size = 28) {
+  const rows = values.length;
+  const cols = rows ? values[0].length : 0;
+  const flat = values.flat();
+  const min = Math.min(...flat), max = Math.max(...flat), span = max - min || 1;
+  return Array.from({ length: size * size }, (_, index) => {
+    const x = index % size, y = Math.floor(index / size);
+    const row = values[Math.min(rows - 1, Math.floor(y * rows / size))];
+    const value = row?.[Math.min(cols - 1, Math.floor(x * cols / size))] ?? 0;
+    return { x, y, value, intensity: (value - min) / span, min, max };
+  });
+}
+
+function jet(intensity: number) {
+  const stops = [[0, 30, 70, 190], [0.25, 0, 190, 255], [0.5, 0, 210, 80], [0.75, 255, 230, 0], [1, 210, 20, 30]];
+  const i = Math.max(0, Math.min(1, intensity));
+  const right = stops.findIndex((stop) => i <= stop[0]) || stops.length - 1;
+  const left = stops[Math.max(0, right - 1)], upper = stops[right], ratio = (i - left[0]) / (upper[0] - left[0] || 1);
+  return `rgb(${Math.round(left[1] + (upper[1] - left[1]) * ratio)},${Math.round(left[2] + (upper[2] - left[2]) * ratio)},${Math.round(left[3] + (upper[3] - left[3]) * ratio)})`;
+}
+---
+<Layout title="Equilibria — Struphy" description="Equilibrium fields and slices available in Struphy.">
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Struphy home">Struphy</a>
+    <nav aria-label="Primary navigation"><a href="/models/">Models</a><a href="/domains/">Domains</a><a class="current" href="/equilibria/" aria-current="page">Equilibria</a><a href="https://struphy.readthedocs.io/en/latest/">Documentation</a><a href="https://github.com/struphy-hub/struphy">GitHub</a></nav>
+  </header>
+  <main>
+    <section class="intro"><p class="eyebrow">Background fields</p><h1>Equilibria</h1><p>Explore the reference equilibria used to initialize Struphy simulations. Each slice is generated from the corresponding Struphy equilibrium class during the site build.</p></section>
+    {equilibria.length ? <section class="browser" aria-label="Available equilibria"><aside class="selector"><p class="eyebrow">Select an equilibrium</p><div class="equilibrium-list">{equilibria.map((equilibrium, index) => <button type="button" class="equilibrium-option" data-equilibrium={equilibrium.slug} aria-pressed={index === 0}><code>{equilibrium.type}</code><small>{equilibrium.slice.plane} slice</small></button>)}</div></aside><div class="grid" aria-label="Selected equilibrium">
+      {equilibria.map((equilibrium, index) => <article class="card" id={equilibrium.slug} data-equilibrium-card={equilibrium.slug} hidden={index !== 0}>
+        <div class="card-heading"><div><p class="eyebrow">Equilibrium</p><h2>{equilibrium.type}</h2></div><span class="badge">{equilibrium.slice.plane} slice</span></div>
+        <div class="plots">{(['p', 'n'] as const).filter((field) => equilibrium.slice.fields[field]?.values).map((field) => { const data = cells(equilibrium.slice.fields[field].values); const min = data[0]?.min ?? 0; const max = data[0]?.max ?? 0; return <figure><div class="plot-wrap"><svg viewBox="0 0 340 300" role="img" aria-label={`${equilibrium.type} ${field} slice`}><g transform="translate(38 10)">{data.map((cell) => <rect x={cell.x * 8.6} y={cell.y * 8.6} width="8.7" height="8.7" fill={jet(cell.intensity)} />)}<line x1="0" y1="241" x2="241" y2="241" /><line x1="0" y1="0" x2="0" y2="241" /><text x="120" y="265" text-anchor="middle">{equilibrium.slice.axes[0]}</text><text x="-24" y="120" text-anchor="middle" transform="rotate(-90 -24 120)">{equilibrium.slice.axes[1]}</text><text x="0" y="255">{equilibrium.slice.coordinates[equilibrium.slice.axes[0]][0].toFixed(1)}</text><text x="241" y="255" text-anchor="end">{equilibrium.slice.coordinates[equilibrium.slice.axes[0]].at(-1)?.toFixed(1)}</text><text x="-6" y="8" text-anchor="end">{equilibrium.slice.coordinates[equilibrium.slice.axes[1]].at(-1)?.toFixed(1)}</text><text x="-6" y="241" text-anchor="end">{equilibrium.slice.coordinates[equilibrium.slice.axes[1]][0].toFixed(1)}</text></g><defs><linearGradient id={`jet-${equilibrium.slug}-${field}`} x1="0" x2="0" y1="1" y2="0"><stop offset="0%" stop-color={jet(0)} /><stop offset="25%" stop-color={jet(.25)} /><stop offset="50%" stop-color={jet(.5)} /><stop offset="75%" stop-color={jet(.75)} /><stop offset="100%" stop-color={jet(1)} /></linearGradient></defs><rect x="294" y="10" width="14" height="241" fill={`url(#jet-${equilibrium.slug}-${field})`} /><text x="314" y="17">{max.toExponential(1)}</text><text x="314" y="250">{min.toExponential(1)}</text></svg></div><figcaption>{field === 'p' ? 'Pressure' : 'Density'} <code>{field}</code> · jet scale</figcaption></figure>})}</div>
+        <p class="meta">Plane: {equilibrium.slice.axes.join('–')} · coordinate {equilibrium.slice.value}</p>
+      </article>)}
+    </div></section> : <p class="empty">No equilibrium slices are available yet. They are generated automatically in CI.</p>}
+  </main>
+  <footer><p>Struphy is open-source software released under the MIT License.</p><p>Built by the Struphy community.</p></footer>
+</Layout>
+<script is:inline>
+  const options = [...document.querySelectorAll('.equilibrium-option')];
+  const cards = [...document.querySelectorAll('[data-equilibrium-card]')];
+  options.forEach((option) => option.addEventListener('click', () => {
+    const selected = option.dataset.equilibrium;
+    options.forEach((item) => item.setAttribute('aria-pressed', String(item === option)));
+    cards.forEach((card) => { card.hidden = card.dataset.equilibriumCard !== selected; });
+  }));
+</script>
+<style>
+  :global(:root){--paper:#eeeadd;--cyan:#63eee6;--muted:#a9b7bb;--rule:rgba(238,234,221,.2);--ink:#08191f;--sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--mono:ui-monospace,"SFMono-Regular",Consolas,monospace} :global(body){color:var(--paper);font-family:var(--sans);line-height:1.6}.site-header,main,footer{width:min(1120px,calc(100% - 40px));margin-inline:auto}.site-header{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:28px;border-bottom:1px solid var(--rule)}.brand{color:var(--paper);font-size:1.25rem;font-weight:700;text-decoration:none}nav{display:flex;flex-wrap:wrap;gap:10px 24px}nav a,.equilibrium-option{color:var(--cyan);font-size:.925rem;text-decoration:none}nav a:hover,nav a.current{text-decoration:underline}.intro{padding-block:clamp(56px,8vw,92px);max-width:760px}h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow){color:var(--muted);font-size:1.1rem}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}.browser{display:grid;grid-template-columns:minmax(250px,300px) minmax(0,1fr);gap:48px;border-top:1px solid var(--rule);padding-block:40px 64px}.selector{position:sticky;top:24px;align-self:start;min-width:0}.equilibrium-list{max-height:600px;overflow:auto;border-top:1px solid var(--rule)}.equilibrium-option{display:block;width:100%;padding:11px 8px;border:0;border-bottom:1px solid var(--rule);background:none;text-align:left;cursor:pointer}.equilibrium-option small{display:block;margin-top:2px;color:var(--muted);font:.72rem var(--mono)}.equilibrium-option:hover,.equilibrium-option:focus-visible,.equilibrium-option[aria-pressed="true"]{background:rgba(99,238,230,.12);color:var(--paper)}.grid{min-width:0}.card{border:1px solid var(--rule);padding:20px}.card-heading{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.card h2{margin:0 0 18px;font-size:1.45rem;overflow-wrap:anywhere}.badge{border:1px solid var(--cyan);padding:3px 7px;color:var(--cyan);font:600 .72rem var(--mono);white-space:nowrap}.plots{display:grid;grid-template-columns:1fr 1fr;gap:12px}.plots figure{margin:0}.plots svg{display:block;width:100%;height:auto;border:1px solid var(--rule);background:#112c34}.plots line{stroke:var(--paper);stroke-width:.7}.plots text{fill:var(--muted);font:7px var(--mono)}figcaption{margin-top:7px;color:var(--muted);font-size:.86rem}code{font-family:var(--mono);color:var(--paper)}.meta{margin:18px 0 0;color:var(--muted);font:.78rem var(--mono)}.empty{padding:40px 0 64px;color:var(--muted)}footer{display:flex;justify-content:space-between;gap:24px;padding-block:26px 38px;border-top:1px solid var(--rule);color:var(--muted);font-size:.85rem}footer p{margin:0}@media(max-width:600px){.site-header{align-items:flex-start;flex-direction:column;gap:12px;padding-block:18px}.site-header,main,footer{width:calc(100% - 28px)}nav{gap:8px 16px}.browser{grid-template-columns:1fr;gap:28px}.selector{position:static}.equilibrium-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:none}.equilibrium-option{border-right:1px solid var(--rule)}.grid{grid-template-columns:1fr}.plots{gap:8px}footer{flex-direction:column;gap:6px}}
+</style>
