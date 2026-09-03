@@ -1,5 +1,6 @@
 import json
 import inspect
+import re
 from pathlib import Path
 
 import numpy as np
@@ -80,6 +81,7 @@ def export_equilibrium(name, eq, output_dir=OUTPUT_DIR, **slice_options):
         "slice": slices["xy"],
         "slices": slices,
         "parameters": _json_parameters(getattr(eq, "params", {})),
+        "parameter_descriptions": parameter_descriptions(type(eq)),
     }
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -103,6 +105,24 @@ def _json_parameters(parameters):
             return value
         return str(value)
     return convert(parameters)
+
+
+def parameter_descriptions(cls) -> dict[str, str]:
+    """Extract NumPy-style ``Parameters`` descriptions from an equilibrium docstring."""
+    doc = inspect.getdoc(cls) or ""
+    match = re.search(r"\nParameters\n-+\n(?P<body>.*?)(?:\n\n(?:Note|Notes|Returns|Attributes)\n-+|\Z)", doc, re.S)
+    if not match:
+        return {}
+    descriptions: dict[str, str] = {}
+    current: str | None = None
+    for line in match.group("body").splitlines():
+        header = re.match(r"^\s*([A-Za-z_]\w*)\s*:\s*.+$", line)
+        if header:
+            current = header.group(1)
+            descriptions[current] = ""
+        elif current and line.strip():
+            descriptions[current] = f"{descriptions[current]} {line.strip()}".strip()
+    return descriptions
 
 
 def available_equilibria() -> list[tuple[str, object]]:
