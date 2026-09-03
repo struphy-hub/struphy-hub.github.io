@@ -36,6 +36,12 @@ jobs:
       - name: Verify generated equilibrium slices
         run: test -n "$(find docs/src/data/equilibria -maxdepth 1 -name '*.json' -print -quit)"
 
+      - name: Generate perturbation plots
+        run: python generate_perturbations.py
+
+      - name: Verify generated perturbation plots
+        run: test -n "$(find docs/src/data/perturbations -maxdepth 1 -name '*.json' -print -quit)"
+
       - name: Generate domain geometries
         run: python generate_domains.py docs/public/domains
 
