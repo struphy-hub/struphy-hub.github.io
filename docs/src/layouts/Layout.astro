@@ -1,5 +1,41 @@
 ---
-const { title = 'Struphy — Structure-preserving plasma physics', description = 'An open-source Python package for structure-preserving simulations of plasma physics PDEs.' } = Astro.props;
+const {
+  title = 'Struphy — Structure-preserving plasma physics',
+  description = 'An open-source Python package for structure-preserving simulations of plasma physics PDEs.',
+  image = '/images/gvec-domain.webp',
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const ogImageURL = new URL(image, Astro.site);
+
+const navLinks = [
+  { href: '/models/', label: 'Models' },
+  { href: '/domains/', label: 'Domains' },
+  { href: '/equilibria/', label: 'Equilibria' },
+  { href: 'https://struphy-hub.github.io/struphy', label: 'Documentation' },
+  { href: 'https://github.com/struphy-hub/struphy', label: 'GitHub' },
+  { href: 'https://pypi.org/project/struphy/', label: 'PyPI' },
+  { href: 'https://github.com/struphy-hub/struphy-tutorials', label: 'Tutorials' },
+];
+
+const path = Astro.url.pathname;
+const isCurrent = (href: string) => href === path || (href !== '/' && path.startsWith(href));
+
+const pageName = navLinks.find((link) => link.href.startsWith('/') && isCurrent(link.href))?.label;
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Struphy',
+  applicationCategory: 'ScienceApplication',
+  operatingSystem: 'Linux, macOS',
+  description: 'Structure-preserving simulations of fluid, kinetic, and hybrid plasma physics models in Python.',
+  url: String(canonicalURL),
+  downloadUrl: 'https://pypi.org/project/struphy/',
+  codeRepository: 'https://github.com/struphy-hub/struphy',
+  license: 'https://opensource.org/licenses/MIT',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+};
 ---
 <!doctype html>
 <html lang="en">
@@ -24,12 +60,67 @@ const { title = 'Struphy — Structure-preserving plasma physics', description =
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
+    <link rel="canonical" href={canonicalURL} />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Struphy" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={ogImageURL} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
   </head>
   <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Struphy home">Struphy</a>
+      <button class="nav-toggle" type="button" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="primary-nav">
+        <span></span>
+      </button>
+      <nav id="primary-nav" aria-label="Primary navigation">
+        {navLinks.map((link) => (
+          <a
+            href={link.href}
+            class={isCurrent(link.href) ? 'current' : ''}
+            aria-current={isCurrent(link.href) ? 'page' : undefined}
+          >
+            {link.label}
+          </a>
+        ))}
+        <button class="theme-toggle" type="button" aria-label="Switch color theme"></button>
+      </nav>
+    </header>
+
+    {pageName && (
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Home</a></li>
+          <li aria-current="page">{pageName}</li>
+        </ol>
+      </nav>
+    )}
+
     <slot />
-    <button class="theme-toggle" type="button" aria-label="Switch color theme"></button>
+
+    <footer class="site-footer">
+      <p>Struphy is open-source software released under the MIT License.</p>
+      <nav aria-label="Footer">
+        <a href="https://struphy-hub.github.io/struphy">Documentation</a>
+        <a href="https://github.com/struphy-hub/struphy">GitHub</a>
+        <a href="https://github.com/struphy-hub/struphy/issues">Issues</a>
+        <a href="https://github.com/struphy-hub/struphy/blob/main/CONTRIBUTING.md">Contributing</a>
+        <a href="https://github.com/struphy-hub/struphy/blob/main/LICENSE">License</a>
+      </nav>
+      <p>Built by the Struphy community.</p>
+    </footer>
+
     <script>
       const THEME_KEY = 'struphy-theme';
 
@@ -57,9 +148,7 @@ const { title = 'Struphy — Structure-preserving plasma physics', description =
 
       function mountThemeToggle() {
         const toggle = document.querySelector<HTMLButtonElement>('.theme-toggle');
-        const nav = document.querySelector<HTMLElement>('.site-header nav');
         if (!toggle) return;
-        if (nav && toggle.parentElement !== nav) nav.append(toggle);
 
         const theme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
         setTheme(theme);
@@ -69,8 +158,25 @@ const { title = 'Struphy — Structure-preserving plasma physics', description =
         };
       }
 
+      function mountNavToggle() {
+        const toggle = document.querySelector<HTMLButtonElement>('.nav-toggle');
+        const nav = document.querySelector<HTMLElement>('#primary-nav');
+        if (!toggle || !nav) return;
+
+        toggle.onclick = () => {
+          const open = nav.classList.toggle('open');
+          toggle.setAttribute('aria-expanded', String(open));
+        };
+        nav.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => {
+          nav.classList.remove('open');
+          toggle.setAttribute('aria-expanded', 'false');
+        }));
+      }
+
       mountThemeToggle();
+      mountNavToggle();
       document.addEventListener('astro:page-load', mountThemeToggle);
+      document.addEventListener('astro:page-load', mountNavToggle);
       document.addEventListener('astro:after-swap', mountThemeToggle);
     </script>
   </body>
@@ -86,6 +192,9 @@ const { title = 'Struphy — Structure-preserving plasma physics', description =
     --accent-wash: rgba(8, 127, 123, 0.1);
     --code-bg: #e8e5dc;
     --plot-bg: #e9ede8;
+
+    --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   }
 
   html[data-theme='dark'] {
@@ -102,10 +211,80 @@ const { title = 'Struphy — Structure-preserving plasma physics', description =
 
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  body { margin: 0; min-width: 320px; background: var(--ink); }
+  body { margin: 0; min-width: 320px; background: var(--ink); color: var(--paper); font-family: var(--sans); line-height: 1.6; }
   a, button { -webkit-tap-highlight-color: transparent; }
   :focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
   ::selection { color: var(--ink); background: var(--cyan); }
+
+  main, .site-header, .breadcrumb, .site-footer {
+    width: min(1120px, calc(100% - 40px));
+    margin-inline: auto;
+  }
+
+  .site-header {
+    position: relative;
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .brand {
+    color: var(--paper);
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .nav-toggle {
+    display: none;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+
+  .nav-toggle span,
+  .nav-toggle span::before,
+  .nav-toggle span::after {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--paper);
+    content: '';
+  }
+
+  .nav-toggle span {
+    position: relative;
+    margin-inline: auto;
+  }
+
+  .nav-toggle span::before { position: absolute; top: -7px; }
+  .nav-toggle span::after { position: absolute; top: 7px; }
+
+  nav[aria-label="Primary navigation"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px 24px;
+  }
+
+  nav a {
+    color: var(--cyan);
+    font-size: 0.925rem;
+    text-decoration: none;
+    text-underline-offset: 0.2em;
+  }
+
+  nav a:hover,
+  nav a.current {
+    text-decoration: underline;
+  }
 
   .theme-toggle {
     flex: none;
@@ -123,8 +302,90 @@ const { title = 'Struphy — Structure-preserving plasma physics', description =
   .theme-toggle:hover { color: var(--paper); }
   .theme-toggle:focus-visible { outline-color: var(--cyan); outline-offset: 3px; }
 
+  .breadcrumb {
+    padding-top: 18px;
+    font-size: 0.82rem;
+  }
+
+  .breadcrumb ol {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--muted);
+  }
+
+  .breadcrumb a {
+    color: var(--cyan);
+    text-decoration: none;
+  }
+
+  .breadcrumb a:hover { text-decoration: underline; }
+
+  .breadcrumb li:not(:last-child)::after {
+    margin-left: 8px;
+    content: '/';
+  }
+
+  .breadcrumb li[aria-current="page"] { color: var(--paper); }
+
+  .site-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px 24px;
+    padding-block: 26px 38px;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .site-footer p { margin: 0; }
+
+  .site-footer nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    order: 3;
+    width: 100%;
+    padding-top: 4px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .site-footer nav a {
+    color: var(--cyan);
+    text-decoration: none;
+  }
+
+  .site-footer nav a:hover { text-decoration: underline; }
+
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     *, *:before, *:after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  }
+
+  @media (max-width: 760px) {
+    .site-header {
+      flex-wrap: wrap;
+      padding-block: 14px;
+    }
+
+    .nav-toggle { display: block; }
+
+    nav[aria-label="Primary navigation"] {
+      display: none;
+      width: 100%;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+      order: 3;
+      padding-top: 6px;
+    }
+
+    nav[aria-label="Primary navigation"].open { display: flex; }
+
+    .theme-toggle { margin-top: 4px; }
   }
 </style>

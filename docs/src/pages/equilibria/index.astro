@@ -1,13 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 
-const links = {
-  docs: 'https://struphy-hub.github.io/struphy/',
-  github: 'https://github.com/struphy-hub/struphy',
-  pypi: 'https://pypi.org/project/struphy/',
-  tutorials: 'https://github.com/struphy-hub/struphy-tutorials',
-};
-
 const imported = import.meta.glob('../../data/equilibria/*.json', { eager: true, import: 'default' });
 const equilibria = [...new Map(Object.entries(imported).map(([path, value]) => {
   const data = value as any;
@@ -40,41 +33,73 @@ function linePoints(values: number[], width = 280, height = 150) {
 }
 ---
 <Layout title="Equilibria — Struphy" description="Equilibrium fields and slices available in Struphy.">
-  <header class="site-header">
-    <a class="brand" href="/" aria-label="Struphy home">Struphy</a>
-    <nav aria-label="Primary navigation"><a href="/models/">Models</a><a href="/domains/">Domains</a><a class="current" href="/equilibria/" aria-current="page">Equilibria</a><a href={links.docs}>Documentation</a><a href={links.github}>GitHub</a><a href={links.pypi}>PyPI</a><a href={links.tutorials}>Tutorials</a></nav>
-  </header>
   <main>
     <section class="intro"><p class="eyebrow">Background fields</p><h1>Equilibria</h1><p>Explore the reference equilibria used to initialize Struphy simulations. Each slice is generated from the corresponding Struphy equilibrium class during the site build.</p></section>
     {equilibria.length ? <section class="browser" aria-label="Available equilibria"><aside class="selector"><p class="eyebrow">Select an equilibrium</p><div class="equilibrium-list">{equilibria.map((equilibrium, index) => <button type="button" class="equilibrium-option" data-equilibrium={equilibrium.slug} aria-pressed={index === 0}><code>{equilibrium.type}</code></button>)}</div></aside><div class="grid" aria-label="Selected equilibrium">
       {equilibria.map((equilibrium, index) => <article class="card" id={equilibrium.slug} data-equilibrium-card={equilibrium.slug} hidden={index !== 0}>
         <div class="card-heading"><div><p class="eyebrow">Equilibrium</p><h2>{equilibrium.type}</h2></div></div>
-        <div class="slice-tabs" role="tablist" aria-label={`${equilibrium.type} slice planes`}>{(['xy', 'xz', 'yz'] as const).map((plane, index) => <button type="button" role="tab" aria-selected={index === 0} aria-controls={`${equilibrium.slug}-${plane}`} data-slice-tab={`${equilibrium.slug}-${plane}`}>{plane.toUpperCase()}</button>)}</div>
+        <div class="slice-tabs" role="tablist" aria-label={`${equilibrium.type} slice planes`}>{(['xy', 'xz', 'yz'] as const).map((plane, index) => <button type="button" role="tab" aria-selected={index === 0} tabindex={index === 0 ? 0 : -1} aria-controls={`${equilibrium.slug}-${plane}`} data-slice-tab={`${equilibrium.slug}-${plane}`}>{plane.toUpperCase()}</button>)}</div>
         {(['xy', 'xz', 'yz'] as const).map((plane, planeIndex) => { const slice = equilibrium.slices?.[plane] ?? equilibrium.slice; return <div id={`${equilibrium.slug}-${plane}`} class="slice-panel" role="tabpanel" hidden={planeIndex !== 0}><div class="plots">{(['p', 'n'] as const).filter((field) => slice.fields[field]?.values).map((field) => { const data = cells(slice.fields[field].values); const min = data[0]?.min ?? 0; const max = data[0]?.max ?? 0; return <figure><div class="plot-wrap"><svg viewBox="0 0 340 300" role="img" aria-label={`${equilibrium.type} ${field} ${plane} plot`}><g transform="translate(38 10)">{data.map((cell) => <rect x={cell.x * 8.6} y={cell.y * 8.6} width="8.7" height="8.7" fill={jet(cell.intensity)} />)}<line x1="0" y1="241" x2="241" y2="241" /><line x1="0" y1="0" x2="0" y2="241" /><text x="120" y="265" text-anchor="middle">{slice.axes[0]}</text><text x="-24" y="120" text-anchor="middle" transform="rotate(-90 -24 120)">{slice.axes[1]}</text><text x="0" y="255">{slice.coordinates[slice.axes[0]][0].toFixed(1)}</text><text x="241" y="255" text-anchor="end">{slice.coordinates[slice.axes[0]].at(-1)?.toFixed(1)}</text><text x="-6" y="8" text-anchor="end">{slice.coordinates[slice.axes[1]].at(-1)?.toFixed(1)}</text><text x="-6" y="241" text-anchor="end">{slice.coordinates[slice.axes[1]][0].toFixed(1)}</text></g><defs><linearGradient id={`jet-${equilibrium.slug}-${plane}-${field}`} x1="0" x2="0" y1="1" y2="0"><stop offset="0%" stop-color={jet(0)} /><stop offset="25%" stop-color={jet(.25)} /><stop offset="50%" stop-color={jet(.5)} /><stop offset="75%" stop-color={jet(.75)} /><stop offset="100%" stop-color={jet(1)} /></linearGradient></defs><rect x="294" y="10" width="14" height="241" fill={`url(#jet-${equilibrium.slug}-${plane}-${field})`} /><text x="314" y="17">{max.toExponential(1)}</text><text x="314" y="250">{min.toExponential(1)}</text></svg></div><figcaption>{field === 'p' ? 'Pressure' : 'Density'} <code>{field}</code></figcaption></figure>})}</div><p class="meta">Coordinates: {slice.axes.join('–')} · value {slice.value}</p></div>})}
         {equilibrium.centerlines && <section class="centerline" aria-labelledby={`${equilibrium.slug}-centerline`}><h3 id={`${equilibrium.slug}-centerline`}>Coordinate-line profiles</h3><p class="meta">Each line varies one coordinate while the other two remain zero.</p><div class="line-plots">{(['x', 'y', 'z'] as const).map((axis) => { const line = equilibrium.centerlines[axis]; return <figure><figcaption><strong>{axis.toUpperCase()}-line</strong> <span>(other coordinates = 0)</span></figcaption><svg viewBox="0 0 330 190" role="img" aria-label={`${equilibrium.type} ${axis}-line pressure and density profiles`}><g transform="translate(30 12)"><rect width="280" height="150" fill="none" stroke="var(--rule)" />{(['p', 'n'] as const).filter((field) => line.fields?.[field]).map((field) => { const values = line.fields[field]; const min = Math.min(...values), max = Math.max(...values); return <polyline points={linePoints(values)} fill="none" stroke={field === 'p' ? 'var(--cyan)' : '#f2b35d'} stroke-width="2" />})}<text x="140" y="178" text-anchor="middle">{axis}</text><text x="0" y="174">{line.coordinates[0].toFixed(1)}</text><text x="280" y="174" text-anchor="end">{line.coordinates.at(-1)?.toFixed(1)}</text><text x="-18" y="12">max</text><text x="-18" y="162">min</text></g></svg><div class="line-legend"><span class="pressure">Pressure <code>p</code></span><span class="density">Density <code>n</code></span></div></figure>})}</div></section>}
         <section class="parameters" aria-labelledby={`${equilibrium.slug}-parameters`}><h3 id={`${equilibrium.slug}-parameters`}>Parameters</h3><div class="parameter-table-wrap"><table><thead><tr><th scope="col">Parameter</th><th scope="col">Value</th><th scope="col">Description</th></tr></thead><tbody>{Object.entries(equilibrium.parameters ?? {}).map(([key, value]) => <tr><th scope="row"><code>{key}</code></th><td>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</td><td>{equilibrium.parameter_descriptions?.[key] ?? '—'}</td></tr>)}</tbody></table></div></section>
       </article>)}
     </div></section> : <p class="empty">No equilibrium slices are available yet. They are generated automatically in CI.</p>}
   </main>
-  <footer><p>Struphy is open-source software released under the MIT License.</p><p>Built by the Struphy community.</p></footer>
 </Layout>
 <script is:inline>
   const options = [...document.querySelectorAll('.equilibrium-option')];
   const cards = [...document.querySelectorAll('[data-equilibrium-card]')];
-  options.forEach((option) => option.addEventListener('click', () => {
-    const selected = option.dataset.equilibrium;
+
+  const selectEquilibrium = (slug, { updateHash = true } = {}) => {
+    const option = options.find((item) => item.dataset.equilibrium === slug);
+    if (!option) return;
     options.forEach((item) => item.setAttribute('aria-pressed', String(item === option)));
-    cards.forEach((card) => { card.hidden = card.dataset.equilibriumCard !== selected; });
-  }));
-  document.querySelectorAll('[data-slice-tab]').forEach((tab) => tab.addEventListener('click', () => {
+    cards.forEach((card) => { card.hidden = card.dataset.equilibriumCard !== slug; });
+    if (updateHash && history.replaceState) history.replaceState(null, '', `#${slug}`);
+  };
+
+  options.forEach((option, index) => {
+    option.addEventListener('click', () => selectEquilibrium(option.dataset.equilibrium));
+    option.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+      event.preventDefault();
+      const next = options[(index + (event.key === 'ArrowRight' ? 1 : -1) + options.length) % options.length];
+      next.focus();
+      selectEquilibrium(next.dataset.equilibrium);
+    });
+  });
+
+  const setSliceTab = (tab) => {
     const panelId = tab.getAttribute('aria-controls');
     const root = tab.closest('.card');
-    root?.querySelectorAll('[data-slice-tab]').forEach((item) => item.setAttribute('aria-selected', String(item === tab)));
+    root?.querySelectorAll('[data-slice-tab]').forEach((item) => {
+      const active = item === tab;
+      item.setAttribute('aria-selected', String(active));
+      item.tabIndex = active ? 0 : -1;
+    });
     root?.querySelectorAll('.slice-panel').forEach((panel) => { panel.hidden = panel.id !== panelId; });
-  }));
+  };
+  document.querySelectorAll('.slice-tabs').forEach((tablist) => {
+    const tabs = [...tablist.querySelectorAll('[data-slice-tab]')];
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => setSliceTab(tab));
+      tab.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+        event.preventDefault();
+        const next = tabs[(index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+        next.focus();
+        setSliceTab(next);
+      });
+    });
+  });
+
+  const hashSlug = decodeURIComponent(location.hash.replace(/^#/, ''));
+  if (hashSlug && options.some((option) => option.dataset.equilibrium === hashSlug)) {
+    selectEquilibrium(hashSlug, { updateHash: false });
+  }
 </script>
 <style>
-  :global(:root){--sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--mono:ui-monospace,"SFMono-Regular",Consolas,monospace} :global(body){color:var(--paper);font-family:var(--sans);line-height:1.6}.site-header,main,footer{width:min(1120px,calc(100% - 40px));margin-inline:auto}.site-header{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:28px;border-bottom:1px solid var(--rule)}.brand{color:var(--paper);font-size:1.25rem;font-weight:700;text-decoration:none}nav{display:flex;flex-wrap:wrap;gap:10px 24px}nav a,.equilibrium-option{color:var(--cyan);font-size:.925rem;text-decoration:none}nav a:hover,nav a.current{text-decoration:underline}.intro{padding-block:clamp(56px,8vw,92px);max-width:760px}h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow){color:var(--muted);font-size:1.1rem}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}.browser{display:grid;grid-template-columns:minmax(250px,300px) minmax(0,1fr);gap:48px;border-top:1px solid var(--rule);padding-block:40px 64px}.selector{position:sticky;top:24px;align-self:start;min-width:0}.equilibrium-list{max-height:600px;overflow:auto;border-top:1px solid var(--rule)}.equilibrium-option{display:block;width:100%;padding:11px 8px;border:0;border-bottom:1px solid var(--rule);background:none;text-align:left;cursor:pointer}.equilibrium-option small{display:block;margin-top:2px;color:var(--muted);font:.72rem var(--mono)}.equilibrium-option:hover,.equilibrium-option:focus-visible,.equilibrium-option[aria-pressed="true"]{background:var(--accent-wash);color:var(--paper)}.grid{min-width:0}.card{border:1px solid var(--rule);padding:20px}.card-heading{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.card h2{margin:0 0 18px;font-size:1.45rem;overflow-wrap:anywhere}.slice-tabs{display:flex;gap:0 24px;border-bottom:1px solid var(--rule);margin:4px 0 18px}.slice-tabs button{padding:10px 0 8px;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:.9rem}.slice-tabs button[aria-selected="true"]{border-bottom-color:var(--cyan);color:var(--paper)}.plots{display:grid;grid-template-columns:1fr 1fr;gap:12px}.plots figure{margin:0}.plots svg{display:block;width:100%;height:auto;border:1px solid var(--rule);background:var(--plot-bg)}.plots line{stroke:var(--paper);stroke-width:.7}.plots text{fill:var(--muted);font:7px var(--mono)}figcaption{margin-top:7px;color:var(--muted);font-size:.86rem}.parameters{margin-top:30px;border-top:1px solid var(--rule);padding-top:20px}.parameters h3{margin:0 0 12px;font-size:1.05rem}.parameters dl{display:grid;grid-template-columns:minmax(110px,.35fr) minmax(0,1fr);margin:0;font-size:.84rem}.parameters dt,.parameters dd{margin:0;padding:7px 0;border-bottom:1px solid var(--rule)}.parameters dd{color:var(--muted);overflow-wrap:anywhere}.empty{padding:40px 0 64px;color:var(--muted)}footer{display:flex;justify-content:space-between;gap:24px;padding-block:26px 38px;border-top:1px solid var(--rule);color:var(--muted);font-size:.85rem}footer p{margin:0}@media(max-width:600px){.site-header{align-items:flex-start;flex-direction:column;gap:12px;padding-block:18px}.site-header,main,footer{width:calc(100% - 28px)}nav{gap:8px 16px}.browser{grid-template-columns:1fr;gap:28px}.selector{position:static}.equilibrium-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:none}.equilibrium-option{border-right:1px solid var(--rule)}.grid{grid-template-columns:1fr}.plots{gap:8px}footer{flex-direction:column;gap:6px}}
+  .equilibrium-option{color:var(--cyan);font-size:.925rem;text-decoration:none}.intro{padding-block:clamp(56px,8vw,92px);max-width:760px}h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow){color:var(--muted);font-size:1.1rem}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}.browser{display:grid;grid-template-columns:minmax(250px,300px) minmax(0,1fr);gap:48px;border-top:1px solid var(--rule);padding-block:40px 64px}.selector{position:sticky;top:24px;align-self:start;min-width:0}.equilibrium-list{max-height:600px;overflow:auto;border-top:1px solid var(--rule)}.equilibrium-option{display:block;width:100%;padding:11px 8px;border:0;border-bottom:1px solid var(--rule);background:none;text-align:left;cursor:pointer}.equilibrium-option small{display:block;margin-top:2px;color:var(--muted);font:.72rem var(--mono)}.equilibrium-option:hover,.equilibrium-option:focus-visible,.equilibrium-option[aria-pressed="true"]{background:var(--accent-wash);color:var(--paper)}.grid{min-width:0}.card{border:1px solid var(--rule);padding:20px}.card-heading{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.card h2{margin:0 0 18px;font-size:1.45rem;overflow-wrap:anywhere}.slice-tabs{display:flex;gap:0 24px;border-bottom:1px solid var(--rule);margin:4px 0 18px}.slice-tabs button{padding:10px 0 8px;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:.9rem}.slice-tabs button[aria-selected="true"]{border-bottom-color:var(--cyan);color:var(--paper)}.plots{display:grid;grid-template-columns:1fr 1fr;gap:12px}.plots figure{margin:0}.plots svg{display:block;width:100%;height:auto;border:1px solid var(--rule);background:var(--plot-bg)}.plots line{stroke:var(--paper);stroke-width:.7}.plots text{fill:var(--muted);font:7px var(--mono)}figcaption{margin-top:7px;color:var(--muted);font-size:.86rem}.parameters{margin-top:30px;border-top:1px solid var(--rule);padding-top:20px}.parameters h3{margin:0 0 12px;font-size:1.05rem}.parameters dl{display:grid;grid-template-columns:minmax(110px,.35fr) minmax(0,1fr);margin:0;font-size:.84rem}.parameters dt,.parameters dd{margin:0;padding:7px 0;border-bottom:1px solid var(--rule)}.parameters dd{color:var(--muted);overflow-wrap:anywhere}.empty{padding:40px 0 64px;color:var(--muted)}@media(max-width:600px){main{width:calc(100% - 28px)}.browser{grid-template-columns:1fr;gap:28px}.selector{position:static}.equilibrium-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:none}.equilibrium-option{border-right:1px solid var(--rule)}.grid{grid-template-columns:1fr}.plots{gap:8px}}
 </style>
 <style>
   .centerline { margin-top: 32px; border-top: 1px solid var(--rule); padding-top: 20px; }

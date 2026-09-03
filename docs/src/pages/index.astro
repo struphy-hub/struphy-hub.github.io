@@ -4,7 +4,6 @@ import Layout from '../layouts/Layout.astro';
 const links = {
   docs: 'https://struphy-hub.github.io/struphy',
   github: 'https://github.com/struphy-hub/struphy',
-  pypi: 'https://pypi.org/project/struphy/',
   tutorials: 'https://github.com/struphy-hub/struphy-tutorials',
 };
 ---
@@ -13,19 +12,6 @@ const links = {
   title="Struphy — Structure-preserving plasma physics in Python"
   description="Struphy is an open-source Python package for structure-preserving simulations of fluid, kinetic, and hybrid plasma models."
 >
-  <header class="site-header">
-    <a class="brand" href="/" aria-label="Struphy home">Struphy</a>
-    <nav aria-label="Primary navigation">
-      <a href="/models/">Models</a>
-      <a href="/domains/">Domains</a>
-      <a href="/equilibria/">Equilibria</a>
-      <a href={links.docs}>Documentation</a>
-      <a href={links.github}>GitHub</a>
-      <a href={links.pypi}>PyPI</a>
-      <a href={links.tutorials}>Tutorials</a>
-    </nav>
-  </header>
-
   <main>
     <section class="hero" aria-labelledby="page-title">
       <div class="hero-copy">
@@ -49,6 +35,18 @@ const links = {
         />
         <figcaption>GVEC unit domain generated with Struphy.</figcaption>
       </figure>
+    </section>
+
+    <section class="explainer" aria-labelledby="explainer-title">
+      <h2 id="explainer-title">What "structure-preserving" means</h2>
+      <p class="intro">
+        Many plasma physics PDEs carry exact invariants: energy, mass, and the
+        divergence-free condition on magnetic fields among them. Standard discretizations
+        can violate these invariants over long simulations, letting numerical error
+        accumulate. Struphy instead builds its finite-element and particle discretizations
+        from a discrete de Rham complex, so these structural properties hold exactly at
+        the discrete level, not only in the limit of vanishing grid size.
+      </p>
     </section>
 
     <section class="overview" aria-labelledby="models-title">
@@ -82,79 +80,43 @@ const links = {
           <a href={links.tutorials}>tutorials</a>.
         </p>
       </div>
-      <pre aria-label="Struphy installation commands"><code><span>$</span> pip install struphy
+      <div class="code-block">
+        <button type="button" class="copy-button" data-copy-button aria-label="Copy installation commands">Copy</button>
+        <pre aria-label="Struphy installation commands"><code data-copy-source><span>$</span> pip install struphy
 <span>$</span> struphy compile</code></pre>
+      </div>
     </section>
 
     <aside class="next-page" aria-label="Domains">
       <strong>Geometry:</strong> <a href="/domains/">Explore domains</a> used by Struphy models.
     </aside>
   </main>
-
-  <footer>
-    <p>Struphy is open-source software released under the MIT License.</p>
-    <p>Built by the Struphy community.</p>
-  </footer>
 </Layout>
 
+<script>
+  function mountCopyButton() {
+    const button = document.querySelector<HTMLButtonElement>('[data-copy-button]');
+    const source = document.querySelector<HTMLElement>('[data-copy-source]');
+    if (!button || !source) return;
+
+    button.onclick = async () => {
+      const text = source.innerText.replace(/\$\s?/g, '').trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = 'Copied';
+        setTimeout(() => { button.textContent = 'Copy'; }, 1800);
+      } catch {
+        button.textContent = 'Copy failed';
+        setTimeout(() => { button.textContent = 'Copy'; }, 1800);
+      }
+    };
+  }
+
+  mountCopyButton();
+  document.addEventListener('astro:page-load', mountCopyButton);
+</script>
+
 <style>
-  :global(:root) {
-    --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  }
-
-  :global(body) {
-    color: var(--paper);
-    font-family: var(--sans);
-    line-height: 1.6;
-  }
-
-  .site-header,
-  main,
-  footer {
-    width: min(1120px, calc(100% - 40px));
-    margin-inline: auto;
-  }
-
-  .site-header {
-    min-height: 72px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 28px;
-    border-bottom: 1px solid var(--rule);
-  }
-
-  .brand {
-    color: var(--paper);
-    font-size: 1.25rem;
-    font-weight: 700;
-    text-decoration: none;
-  }
-
-  nav {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 10px 24px;
-  }
-
-  nav a,
-  .more a {
-    color: var(--cyan);
-    text-underline-offset: 0.2em;
-  }
-
-  nav a {
-    font-size: 0.925rem;
-    text-decoration: none;
-  }
-
-  nav a:hover,
-  .more a:hover {
-    text-decoration: underline;
-  }
-
   .hero {
     display: grid;
     grid-template-columns: minmax(0, 0.92fr) minmax(380px, 1.08fr);
@@ -227,6 +189,7 @@ const links = {
     font-size: 0.85rem;
   }
 
+  .explainer,
   .overview,
   .quick-start {
     border-top: 1px solid var(--rule);
@@ -242,6 +205,10 @@ const links = {
   .intro {
     max-width: 720px;
     color: var(--muted);
+  }
+
+  .explainer .intro {
+    font-size: 1.05rem;
   }
 
   .model-list {
@@ -286,6 +253,10 @@ const links = {
     font-size: 0.95rem;
   }
 
+  .code-block {
+    position: relative;
+  }
+
   pre {
     max-width: 100%;
     margin: 0;
@@ -300,6 +271,20 @@ const links = {
   code span {
     color: var(--cyan);
   }
+
+  .copy-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    border: 1px solid var(--rule);
+    background: var(--ink);
+    color: var(--muted);
+    cursor: pointer;
+    font: 600 0.75rem/1.4 var(--sans);
+  }
+
+  .copy-button:hover { color: var(--paper); border-color: var(--cyan); }
 
   .next-page {
     padding: 20px 0 48px;
@@ -316,32 +301,7 @@ const links = {
     text-underline-offset: 0.2em;
   }
 
-  footer {
-    display: flex;
-    justify-content: space-between;
-    gap: 24px;
-    padding-block: 26px 38px;
-    border-top: 1px solid var(--rule);
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-
-  footer p {
-    margin-bottom: 0;
-  }
-
   @media (max-width: 760px) {
-    .site-header {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 12px;
-      padding-block: 18px;
-    }
-
-    nav {
-      justify-content: flex-start;
-    }
-
     .hero {
       grid-template-columns: 1fr;
       padding-block: 56px;
@@ -366,24 +326,9 @@ const links = {
     .quick-start {
       gap: 24px;
     }
-
-    footer {
-      flex-direction: column;
-      gap: 6px;
-    }
   }
 
   @media (max-width: 400px) {
-    .site-header,
-    main,
-    footer {
-      width: min(100% - 28px, 1120px);
-    }
-
-    nav {
-      gap: 8px 16px;
-    }
-
     h1 {
       font-size: 2.15rem;
     }

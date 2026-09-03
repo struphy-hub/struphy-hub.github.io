@@ -1,0 +1,5 @@
+
+gUser-agent: *
+Allow: /
+
+Sitemap: https://struphy-hub.github.io/sitemap.xml
