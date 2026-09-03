@@ -37,7 +37,7 @@ def sample_slice(eq, plane="xy", value=0.0, extent=None, n=201):
         if method is not None:
             values = np.asarray(method(X, Y, Z))
             if values.ndim == 0:
-                values = np.full(X.shape, values.item())
+                values = np.full(U.shape, values.item())
             fields[field.removesuffix("_xyz")] = {
                 "kind": "scalar",
                 "values": np.nan_to_num(values, nan=0.0, posinf=0.0, neginf=0.0).tolist(),
@@ -79,6 +79,7 @@ def export_equilibrium(name, eq, output_dir=OUTPUT_DIR, **slice_options):
         "type": type(eq).__name__,
         "slice": slices["xy"],
         "slices": slices,
+        "parameters": _json_parameters(getattr(eq, "params", {})),
     }
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -87,6 +88,21 @@ def export_equilibrium(name, eq, output_dir=OUTPUT_DIR, **slice_options):
         json.dump(data, output_file, separators=(",", ":"), allow_nan=False)
         output_file.write("\n")
     return output_path
+
+
+def _json_parameters(parameters):
+    """Convert equilibrium parameters to JSON-safe values for the catalogue."""
+    def convert(value):
+        if isinstance(value, dict):
+            return {str(key): convert(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [convert(item) for item in value]
+        if isinstance(value, np.generic):
+            return value.item()
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        return str(value)
+    return convert(parameters)
 
 
 def available_equilibria() -> list[tuple[str, object]]:
