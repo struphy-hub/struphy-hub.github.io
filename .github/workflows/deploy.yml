@@ -43,7 +43,9 @@ jobs:
         run: test -n "$(find docs/public/domains -maxdepth 1 -name '*.vtp' -print -quit)"
 
       - name: Verify generated domain grids
-        run: test -n "$(find docs/public/domains -maxdepth 1 -name '*-xy.json' -print -quit)"
+        run: |
+          test -n "$(find docs/public/domains -maxdepth 1 -name '*-xy.json' -print -quit)"
+          test -s docs/public/domains/catalogue.json
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

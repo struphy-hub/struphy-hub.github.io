@@ -19,6 +19,15 @@ const { domains, initialDomain } = Astro.props;
       <figcaption id="domain-caption"><strong data-domain-caption>{initialDomain}</strong> — generated and exported by Struphy. <a data-domain-docs href={domains.find((domain) => domain.name === initialDomain)?.docsUrl} target="_blank" rel="noreferrer">Read the docs ↗</a><span>Drag to rotate · Scroll to zoom · Shift-drag to pan</span></figcaption>
       <button type="button" class="reset" data-vtk-reset disabled>Reset view</button>
     </div>
+    <section class="parameters" aria-labelledby="domain-parameters-heading">
+      <h3 id="domain-parameters-heading">Parameters</h3>
+      <div class="parameter-table-wrap">
+        <table>
+          <thead><tr><th scope="col">Parameter</th><th scope="col">Value</th><th scope="col">Description</th></tr></thead>
+          <tbody data-domain-parameters><tr><td colspan="3" class="parameter-status">Loading parameters…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
   </figure>
 </div>
 
@@ -32,6 +41,7 @@ const { domains, initialDomain } = Astro.props;
   import vtkCutter from '@kitware/vtk.js/Filters/Core/Cutter';
 
   type DomainEntry = { name: string; url?: string; docsUrl: string };
+  type DomainMetadata = { parameters?: Record<string, unknown>; parameter_descriptions?: Record<string, string> };
   type Cleanup = () => void;
   const cleanups = new Map<HTMLElement, Cleanup>();
 
@@ -46,7 +56,8 @@ const { domains, initialDomain } = Astro.props;
     const view3d = root.querySelector<HTMLButtonElement>('[data-view-mode="3d"]');
     const sliceView = root.querySelector<HTMLElement>('[data-slice-view]');
     const gridLines = root.querySelector<SVGGElement>('[data-grid-lines]');
-    if (!container || !status || !reset || !caption || !docsLink || !sliceView || !gridLines) return () => {};
+    const parameterBody = root.querySelector<HTMLTableSectionElement>('[data-domain-parameters]');
+    if (!container || !status || !reset || !caption || !docsLink || !sliceView || !gridLines || !parameterBody) return () => {};
     const domains = JSON.parse(root.dataset.domains || '[]') as DomainEntry[];
     const byName = new Map(domains.map((d) => [d.name, d]));
     const grw = vtkGenericRenderWindow.newInstance({ background: [0.027, 0.075, 0.114] });
@@ -71,6 +82,59 @@ const { domains, initialDomain } = Astro.props;
     let aborter: AbortController | undefined;
     let serial = 0;
     let disposed = false;
+    let metadata: Record<string, DomainMetadata> = {};
+
+    const valueText = (value: unknown) => value !== null && typeof value === 'object'
+      ? JSON.stringify(value)
+      : String(value);
+    const showParameterStatus = (message: string) => {
+      parameterBody.replaceChildren();
+      const row = parameterBody.insertRow();
+      const cell = row.insertCell();
+      cell.colSpan = 3;
+      cell.className = 'parameter-status';
+      cell.textContent = message;
+    };
+    const renderParameters = (name: string) => {
+      const entry = metadata[name];
+      if (!entry) {
+        showParameterStatus('Parameters are unavailable for this domain.');
+        return;
+      }
+      const parameters = Object.entries(entry.parameters ?? {}).filter(([key]) => key !== 'self');
+      parameterBody.replaceChildren();
+      if (!parameters.length) {
+        showParameterStatus('No parameters are used for this domain.');
+        return;
+      }
+      parameters.forEach(([key, value]) => {
+        const row = document.createElement('tr');
+        const heading = document.createElement('th');
+        const code = document.createElement('code');
+        const valueCell = document.createElement('td');
+        const descriptionCell = document.createElement('td');
+        heading.scope = 'row';
+        code.textContent = key;
+        valueCell.textContent = valueText(value);
+        descriptionCell.textContent = entry.parameter_descriptions?.[key] || '—';
+        heading.appendChild(code);
+        row.append(heading, valueCell, descriptionCell);
+        parameterBody.appendChild(row);
+      });
+    };
+    const metadataReady = fetch('/domains/catalogue.json')
+      .then((response) => {
+        if (!response.ok) throw new Error(`Domain catalogue returned ${response.status}`);
+        return response.json() as Promise<{ domains?: Record<string, DomainMetadata> }>;
+      })
+      .then((data) => {
+        metadata = data.domains ?? {};
+        if (!disposed) renderParameters(activeDomain);
+      })
+      .catch((error) => {
+        console.error('Unable to load domain parameters:', error);
+        if (!disposed) showParameterStatus('Parameters could not be loaded.');
+      });
 
     const resetView = () => {
       if (!cameraState) return;
@@ -160,6 +224,13 @@ const { domains, initialDomain } = Astro.props;
     const load = async (name: string) => {
       const domain = byName.get(name);
       if (!domain?.url || disposed) return;
+      activeDomain = name;
+      if (Object.keys(metadata).length) renderParameters(name);
+      else showParameterStatus('Loading parameters…');
+      options.forEach((option) => option.setAttribute('aria-pressed', String(option.dataset.domainName === name)));
+      caption.textContent = name;
+      docsLink.href = domain.docsUrl;
+      container.setAttribute('aria-label', `Interactive ${name} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`);
       aborter?.abort(); aborter = new AbortController();
       const current = ++serial;
       status.hidden = false; status.classList.remove('error'); status.textContent = `Loading ${name}…`; reset.disabled = true;
@@ -174,16 +245,11 @@ const { domains, initialDomain } = Astro.props;
         const bounds = data.getBounds();
         plane.setOrigin((bounds[0] + bounds[1]) / 2, (bounds[2] + bounds[3]) / 2, (bounds[4] + bounds[5]) / 2);
         cutter.setInputData(data); mapper.setInputData(data); cutter.update(); reader?.delete(); reader = nextReader;
-        activeDomain = name;
         if (!actorAdded) { renderer.addActor(actor); actorAdded = true; }
         const c = renderer.getActiveCamera();
         renderer.resetCamera(); c.zoom(1.15); renderer.resetCameraClippingRange();
         cameraState = { position: [...c.getPosition()], focalPoint: [...c.getFocalPoint()], viewUp: [...c.getViewUp()], parallelProjection: c.getParallelProjection(), parallelScale: c.getParallelScale(), viewAngle: c.getViewAngle() };
-        options.forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.domainName === name)));
         if (activeView === '3d') show3d(); else { container.hidden = true; sliceView.hidden = false; void drawGrid(activeDomain, activeView); }
-        caption.textContent = name;
-        docsLink.href = domain.docsUrl;
-        container.setAttribute('aria-label', `Interactive ${name} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`);
         status.hidden = true; reset.disabled = false;
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -200,7 +266,7 @@ const { domains, initialDomain } = Astro.props;
     const modeHandler = () => show3d(); view3d?.addEventListener('click', modeHandler);
     const observer = new ResizeObserver(() => { if (!disposed) { grw.resize(); renderWindow.render(); } });
     observer.observe(container);
-    await load(root.dataset.initialDomain || domains.find((d) => d.url)?.name || '');
+    await Promise.all([load(root.dataset.initialDomain || domains.find((d) => d.url)?.name || ''), metadataReady]);
     return () => {
       disposed = true; aborter?.abort(); observer.disconnect(); reset.removeEventListener('click', resetView);
       handlers.forEach(([o, h]) => o.removeEventListener('click', h));
@@ -265,6 +331,16 @@ const { domains, initialDomain } = Astro.props;
   .domain-option:disabled { color: var(--muted); cursor: not-allowed; opacity: .62; }
   .domain-index .domain-option + small { display: none; }
   figcaption a { color: var(--cyan); }
+  .parameters { margin-top:30px; border-top:1px solid var(--rule); padding-top:20px; }
+  .parameters h3 { margin:0 0 12px; font-size:1.05rem; }
+  .parameter-table-wrap { width:100%; overflow-x:auto; }
+  .parameter-table-wrap table { width:100%; min-width:600px; border-collapse:collapse; font-size:.84rem; }
+  .parameter-table-wrap th, .parameter-table-wrap td { padding:9px 12px; border-bottom:1px solid var(--rule); text-align:left; vertical-align:top; }
+  .parameter-table-wrap thead th { color:var(--paper); font:600 .72rem var(--mono); letter-spacing:.06em; text-transform:uppercase; }
+  .parameter-table-wrap tbody th { width:22%; font-weight:400; }
+  .parameter-table-wrap tbody td:nth-child(2) { width:24%; color:var(--paper); font-family:var(--mono); overflow-wrap:anywhere; }
+  .parameter-table-wrap tbody td:nth-child(3) { color:var(--muted); }
+  .parameter-table-wrap .parameter-status { color:var(--muted); font-family:inherit; }
   @media(max-width:760px) { .domain-index ul { columns: 2; max-height: none; } .domain-index li { break-inside: avoid; } }
   @media(max-width:440px) { .domain-index ul { columns: 1; } }
 </style>
