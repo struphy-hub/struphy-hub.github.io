@@ -9,6 +9,9 @@ const links = {
   tutorials: 'https://github.com/struphy-hub/struphy-tutorials',
 };
 
+const modelDocsUrl = (modelName) =>
+  `https://struphy-hub.github.io/struphy/sections/subsections/models-all.html#struphy.models.${modelName}`;
+
 const categories = [
   {
     name: 'Fluid',
@@ -72,7 +75,9 @@ const categories = [
         <ul class="model-list">
           {category.models.map((model) => (
             <li>
-              <code>{model.className}</code>
+              <a class="model-name" href={modelDocsUrl(model.className)}>
+                <code>{model.className}</code>
+              </a>
               <p>{model.description}</p>
             </li>
           ))}
@@ -163,6 +168,16 @@ const categories = [
     color: var(--paper);
     font: 600 0.92rem/1.55 var(--mono);
   }
+
+  .model-name {
+    min-width: 0;
+    color: var(--cyan);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.2em;
+  }
+
+  .model-name:hover, .model-name:focus-visible { text-decoration-color: currentColor; }
 
   .model-list p { margin-bottom: 0; color: var(--muted); }
   .documentation-link { margin: 0; padding: 0 0 52px; color: var(--muted); }
