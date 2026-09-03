@@ -75,7 +75,7 @@ function linePoints(values: number[], width = 280, height = 150) {
   .line-plots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
   .line-plots figure { margin: 0; }
   .line-plots svg { display: block; width: 100%; height: auto; background: #112c34; border: 1px solid var(--rule); }
-  .line-plots text { fill: var(--muted); font: 7px var(--mono); }
+  .line-plots text { fill: var(--paper); font: 10px var(--mono); }
   .line-plots figcaption { margin: 0 0 6px; }
   .line-plots figcaption span { color: var(--muted); font-size: .78rem; }
   .line-legend { display: flex; gap: 14px; margin-top: 6px; color: var(--muted); font-size: .78rem; }
@@ -84,6 +84,7 @@ function linePoints(values: number[], width = 280, height = 150) {
   @media (max-width: 600px) { .line-plots { grid-template-columns: 1fr; } }
 </style>
 <style>
+  .plots text { font-size: 10px; fill: var(--paper); }
   .parameter-table-wrap { overflow-x: auto; }
   .parameter-table-wrap table { width: 100%; border-collapse: collapse; font-size: .84rem; }
   .parameter-table-wrap th, .parameter-table-wrap td { padding: 9px 12px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
