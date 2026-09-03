@@ -5,7 +5,47 @@ const links = {
   docs: 'https://struphy-hub.github.io/struphy',
   github: 'https://github.com/struphy-hub/struphy',
   tutorials: 'https://github.com/struphy-hub/struphy-tutorials',
+  publications: 'https://nmpp.pages.mpcdf.de/codes/struphy/',
 };
+
+const publications = [
+  {
+    title: 'The linearized Vlasov–Maxwell system as a Hamiltonian system',
+    authors: 'Bell, Campos Pinto, Possanner, Sonnendrücker',
+    venue: 'Journal of Computational Physics (2026)',
+    url: 'https://doi.org/10.1016/j.jcp.2026.114765',
+  },
+  {
+    title: 'Variational discretizations of ideal magnetohydrodynamics in smooth regime using structure-preserving finite elements',
+    authors: 'Carlier, Campos-Pinto',
+    venue: 'Journal of Computational Physics (2025)',
+    url: 'https://doi.org/10.1016/j.jcp.2024.113647',
+  },
+  {
+    title: 'Geometric Particle-In-Cell discretizations of a plasma hybrid model with kinetic ions and mass-less fluid electrons',
+    authors: 'Li, Campos Pinto, Holderied, Possanner, Sonnendrücker',
+    venue: 'arXiv (2023)',
+    url: 'https://doi.org/10.48550/arxiv.2304.01891',
+  },
+  {
+    title: 'High-Order Structure-Preserving Algorithms for Plasma Hybrid Models',
+    authors: 'Possanner, Holderied, Li, Na, Bell, Hadjout, Güçlü',
+    venue: 'Lecture Notes in Computer Science (2023)',
+    url: 'https://doi.org/10.1007/978-3-031-38299-4_28',
+  },
+  {
+    title: 'Magneto-hydrodynamic eigenvalue solver for axisymmetric equilibria based on smooth polar splines',
+    authors: 'Holderied, Possanner',
+    venue: 'Journal of Computational Physics (2022)',
+    url: 'https://doi.org/10.1016/j.jcp.2022.111329',
+  },
+  {
+    title: 'MHD-kinetic hybrid code based on structure-preserving finite elements with particles-in-cell',
+    authors: 'Holderied, Possanner, Wang',
+    venue: 'Journal of Computational Physics (2021)',
+    url: 'https://doi.org/10.1016/j.jcp.2021.110143',
+  },
+];
 ---
 
 <Layout
@@ -47,6 +87,50 @@ const links = {
         from a discrete de Rham complex, so these structural properties hold exactly at
         the discrete level, not only in the limit of vanishing grid size.
       </p>
+
+      <figure class="derham">
+        <svg viewBox="0 0 780 140" role="img" aria-labelledby="derham-title derham-desc">
+          <title id="derham-title">The discrete de Rham complex</title>
+          <desc id="derham-desc">
+            Four compatible finite-element spaces are connected by the gradient, curl, and
+            divergence operators: H1 maps to H(curl) via grad, H(curl) maps to H(div) via curl,
+            and H(div) maps to L2 via div. Because these discrete spaces and operators commute
+            exactly with their continuous counterparts, identities such as curl grad equals zero
+            and div curl equals zero hold to machine precision, not just approximately.
+          </desc>
+          {[
+            { x: 20, label: 'H¹', sub: 'scalar potentials' },
+            { x: 220, label: 'H(curl)', sub: 'electric field' },
+            { x: 440, label: 'H(div)', sub: 'magnetic field' },
+            { x: 660, label: 'L²', sub: 'mass density' },
+          ].map((node) => (
+            <g transform={`translate(${node.x} 30)`}>
+              <rect width="100" height="60" rx="4" class="node" />
+              <text x="50" y="30" text-anchor="middle" class="node-label">{node.label}</text>
+              <text x="50" y="46" text-anchor="middle" class="node-sub">{node.sub}</text>
+            </g>
+          ))}
+          {[
+            { x1: 122, x2: 218, label: 'grad' },
+            { x1: 342, x2: 438, label: 'curl' },
+            { x1: 562, x2: 658, label: 'div' },
+          ].map((edge) => (
+            <g>
+              <line x1={edge.x1} y1="60" x2={edge.x2} y2="60" class="edge" marker-end="url(#arrow)" />
+              <text x={(edge.x1 + edge.x2) / 2} y="50" text-anchor="middle" class="edge-label">{edge.label}</text>
+            </g>
+          ))}
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0L10 5L0 10z" class="arrowhead" />
+            </marker>
+          </defs>
+        </svg>
+        <figcaption>
+          Discrete fields live in compatible finite-element spaces linked by exact discrete
+          operators, so identities like ∇·(∇×E) = 0 hold precisely, not just approximately.
+        </figcaption>
+      </figure>
     </section>
 
     <section class="overview" aria-labelledby="models-title">
@@ -85,6 +169,22 @@ const links = {
         <pre aria-label="Struphy installation commands"><code data-copy-source><span>$</span> pip install struphy
 <span>$</span> struphy compile</code></pre>
       </div>
+    </section>
+
+    <section class="publications" aria-labelledby="publications-title">
+      <h2 id="publications-title">Publications</h2>
+      <p class="intro">
+        A selection of papers describing the methods and algorithms behind Struphy. See the
+        <a href={links.publications}>full publication list</a> for more.
+      </p>
+      <ul class="publication-list">
+        {publications.map((pub) => (
+          <li>
+            <a href={pub.url}>{pub.title}</a>
+            <p class="pub-meta">{pub.authors} — {pub.venue}</p>
+          </li>
+        ))}
+      </ul>
     </section>
 
     <aside class="next-page" aria-label="Domains">
@@ -191,7 +291,8 @@ const links = {
 
   .explainer,
   .overview,
-  .quick-start {
+  .quick-start,
+  .publications {
     border-top: 1px solid var(--rule);
     padding-block: clamp(48px, 7vw, 76px);
   }
@@ -209,6 +310,84 @@ const links = {
 
   .explainer .intro {
     font-size: 1.05rem;
+  }
+
+  .derham {
+    margin: 32px 0 0;
+    max-width: 100%;
+  }
+
+  .derham svg {
+    display: block;
+    width: 100%;
+    max-width: 780px;
+    height: auto;
+  }
+
+  .derham .node {
+    fill: var(--accent-wash);
+    stroke: var(--cyan);
+    stroke-width: 1.2;
+  }
+
+  .derham .node-label {
+    fill: var(--paper);
+    font: 700 15px var(--mono);
+  }
+
+  .derham .node-sub {
+    fill: var(--muted);
+    font: 10px var(--sans);
+  }
+
+  .derham .edge {
+    stroke: var(--cyan);
+    stroke-width: 1.4;
+  }
+
+  .derham .edge-label {
+    fill: var(--muted);
+    font: italic 12px var(--sans);
+  }
+
+  .derham .arrowhead {
+    fill: var(--cyan);
+  }
+
+  .derham figcaption {
+    margin-top: 4px;
+  }
+
+  .publication-list {
+    display: grid;
+    gap: 0;
+    margin: 30px 0 0;
+    padding: 0;
+    border-top: 1px solid var(--rule);
+    list-style: none;
+  }
+
+  .publication-list li {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .publication-list a {
+    color: var(--paper);
+    font-weight: 600;
+    text-decoration: none;
+    text-underline-offset: 0.2em;
+  }
+
+  .publication-list a:hover {
+    color: var(--cyan);
+    text-decoration: underline;
+  }
+
+  .pub-meta {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
   }
 
   .model-list {
