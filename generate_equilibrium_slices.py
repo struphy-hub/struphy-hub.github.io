@@ -69,6 +69,27 @@ def sample_slice(eq, plane="xy", value=0.0, extent=None, n=201):
     }
 
 
+def sample_centerline(eq, axis="x", extent=None, n=401):
+    """Sample scalar equilibrium profiles along one Cartesian coordinate line."""
+    if extent is None:
+        a = eq.params.get("a", 1.0)
+        extent = (-a, a)
+    x = np.linspace(*extent, n)
+    zeros = np.zeros_like(x)
+    coordinates = {"x": (x, zeros, zeros), "y": (zeros, x, zeros), "z": (zeros, zeros, x)}
+    X, Y, Z = coordinates[axis]
+    fields = {}
+    for field in ("p_xyz", "n_xyz"):
+        method = getattr(eq, field, None)
+        if method is None:
+            continue
+        values = np.asarray(method(X, Y, Z))
+        if values.ndim == 0:
+            values = np.full(x.shape, values.item())
+        fields[field.removesuffix("_xyz")] = np.nan_to_num(values, nan=0.0, posinf=0.0, neginf=0.0).tolist()
+    return {"axis": axis, "coordinates": x.tolist(), "fields": fields}
+
+
 def export_equilibrium(name, eq, output_dir=OUTPUT_DIR, **slice_options):
     """Export one equilibrium slice as JSON for the documentation site."""
     slices = {
@@ -80,6 +101,8 @@ def export_equilibrium(name, eq, output_dir=OUTPUT_DIR, **slice_options):
         "type": type(eq).__name__,
         "slice": slices["xy"],
         "slices": slices,
+        "centerline": sample_centerline(eq),
+        "centerlines": {axis: sample_centerline(eq, axis=axis) for axis in ("x", "y", "z")},
         "parameters": _json_parameters(getattr(eq, "params", {})),
         "parameter_descriptions": parameter_descriptions(type(eq)),
     }
