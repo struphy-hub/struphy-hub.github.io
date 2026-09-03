@@ -67,6 +67,7 @@ const { domains, initialDomain } = Astro.props;
     let reader: ReturnType<typeof vtkXMLPolyDataReader.newInstance> | undefined;
     let cameraState: any;
     let activeView = '3d';
+    let activeDomain = root.dataset.initialDomain || '';
     let aborter: AbortController | undefined;
     let serial = 0;
     let disposed = false;
@@ -85,7 +86,7 @@ const { domains, initialDomain } = Astro.props;
       const focal = c.getFocalPoint(); const distance = Math.max(1, c.getDistance());
       const positions: Record<string, [number, number, number]> = { xy: [0, 0, 1], xz: [0, 1, 0], yz: [1, 0, 0] };
       const direction = positions[planeName] || positions.xy;
-      plane.setNormal(...direction); cutter.update(); mapper.setInputConnection(cutter.getOutputPort()); drawGrid(caption.textContent || '', planeName);
+      plane.setNormal(...direction); cutter.update(); mapper.setInputConnection(cutter.getOutputPort()); void drawGrid(activeDomain, planeName);
       container.hidden = true; sliceView.hidden = false;
       c.setPosition(focal[0] + direction[0] * distance, focal[1] + direction[1] * distance, focal[2] + direction[2] * distance);
       c.setViewUp(planeName === 'yz' ? [0, 0, 1] : [0, 1, 0]); renderer.resetCamera(); renderer.resetCameraClippingRange(); renderWindow.render();
@@ -93,7 +94,69 @@ const { domains, initialDomain } = Astro.props;
       view3d?.setAttribute('aria-selected', 'false');
     };
     const show3d = () => { if (!reader) return; activeView = '3d'; sliceView.hidden = true; container.hidden = false; mapper.setInputData(reader.getOutputData(0)); renderer.resetCamera(); renderWindow.render(); view3d?.setAttribute('aria-selected', 'true'); sliceTabs.forEach((tab) => tab.setAttribute('aria-selected', 'false')); };
-    const drawGrid = async (name: string, planeName: string) => { const response = await fetch(`/domains/${name}-${planeName}.json`); if (!response.ok) return; const data = await response.json(); const axis = planeName === 'xy' ? ['x', 'y'] : planeName === 'xz' ? ['x', 'z'] : ['y', 'z']; const a = data[axis[0]], b = data[axis[1]]; const minA = Math.min(...a.flat()), maxA = Math.max(...a.flat()), minB = Math.min(...b.flat()), maxB = Math.max(...b.flat()); const scale = Math.min(540 / (maxA - minA || 1), 360 / (maxB - minB || 1)); const sx = (v: number) => 30 + (v - minA) * scale, sy = (v: number) => 390 - (v - minB) * scale; gridLines.innerHTML = ''; const add = (points: string, highlight = false) => { const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline'); line.setAttribute('points', points); line.setAttribute('fill', 'none'); line.setAttribute('stroke', highlight ? '#e85d5d' : '#63eee6'); line.setAttribute('stroke-opacity', highlight ? '1' : '.55'); line.setAttribute('stroke-width', highlight ? '2' : '1'); gridLines.appendChild(line); }; const addDot = (x: number, y: number) => { const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dot.setAttribute('cx', String(sx(x))); dot.setAttribute('cy', String(sy(y))); dot.setAttribute('r', '4'); dot.setAttribute('fill', '#e85d5d'); gridLines.appendChild(dot); }; for (let j = 0; j < a.length; j++) add(a[j].map((v: number, i: number) => `${sx(v)},${sy(b[j][i])}`).join(' '), j === 0); for (let i = 0; i < a[0].length; i++) add(a.map((row: number[], j: number) => `${sx(row[i])},${sy(b[j][i])}`).join(' ')); addDot(a[0][0], b[0][0]); if (a.length > 1) addDot(a[0].at(-1), b[0].at(-1)); };
+    const drawGrid = async (name: string, planeName: string) => {
+      const requestedDomain = name;
+      const requestedView = planeName;
+      const response = await fetch(`/domains/${name}-${planeName}.json`);
+      if (!response.ok || requestedDomain !== activeDomain || requestedView !== activeView) return;
+      const data = await response.json() as {
+        grids: Array<{
+          a: number[][];
+          b: number[][];
+          highlight_rows: number[];
+          markers: Array<[number, number]>;
+          omit_last_column: boolean;
+        }>;
+      };
+      const valuesA = data.grids.flatMap((grid) => grid.a.flat());
+      const valuesB = data.grids.flatMap((grid) => grid.b.flat());
+      const minA = Math.min(...valuesA), maxA = Math.max(...valuesA);
+      const minB = Math.min(...valuesB), maxB = Math.max(...valuesB);
+      const width = maxA - minA || 1;
+      const height = maxB - minB || 1;
+      const scale = Math.min(540 / width, 360 / height);
+      const offsetX = (600 - width * scale) / 2;
+      const offsetY = (420 - height * scale) / 2;
+      const sx = (value: number) => offsetX + (value - minA) * scale;
+      const sy = (value: number) => 420 - offsetY - (value - minB) * scale;
+      gridLines.innerHTML = '';
+
+      const addDot = (a: number, b: number) => {
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', String(sx(a)));
+        dot.setAttribute('cy', String(sy(b)));
+        dot.setAttribute('r', '4');
+        dot.setAttribute('fill', '#e85d5d');
+        gridLines.appendChild(dot);
+      };
+      const addLine = (points: Array<[number, number]>, highlight = false) => {
+        const spanA = Math.max(...points.map(([a]) => a)) - Math.min(...points.map(([a]) => a));
+        const spanB = Math.max(...points.map(([, b]) => b)) - Math.min(...points.map(([, b]) => b));
+        if (highlight && Math.hypot(spanA, spanB) < 1e-12) {
+          addDot(points[0][0], points[0][1]);
+          return;
+        }
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        line.setAttribute('points', points.map(([a, b]) => `${sx(a)},${sy(b)}`).join(' '));
+        line.setAttribute('fill', 'none');
+        line.setAttribute('stroke', highlight ? '#e85d5d' : '#63eee6');
+        line.setAttribute('stroke-opacity', highlight ? '1' : '.55');
+        line.setAttribute('stroke-width', highlight ? '2' : '1');
+        gridLines.appendChild(line);
+      };
+
+      data.grids.forEach((grid) => {
+        const highlighted = new Set(grid.highlight_rows);
+        grid.a.forEach((row, rowIndex) => {
+          addLine(row.map((a, columnIndex) => [a, grid.b[rowIndex][columnIndex]]), highlighted.has(rowIndex));
+        });
+        const columnCount = grid.a[0].length - (grid.omit_last_column ? 1 : 0);
+        for (let columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
+          addLine(grid.a.map((row, rowIndex) => [row[columnIndex], grid.b[rowIndex][columnIndex]]));
+        }
+        grid.markers.forEach(([row, column]) => addDot(grid.a[row][column], grid.b[row][column]));
+      });
+    };
     const load = async (name: string) => {
       const domain = byName.get(name);
       if (!domain?.url || disposed) return;
@@ -111,12 +174,13 @@ const { domains, initialDomain } = Astro.props;
         const bounds = data.getBounds();
         plane.setOrigin((bounds[0] + bounds[1]) / 2, (bounds[2] + bounds[3]) / 2, (bounds[4] + bounds[5]) / 2);
         cutter.setInputData(data); mapper.setInputData(data); cutter.update(); reader?.delete(); reader = nextReader;
+        activeDomain = name;
         if (!actorAdded) { renderer.addActor(actor); actorAdded = true; }
         const c = renderer.getActiveCamera();
         renderer.resetCamera(); c.zoom(1.15); renderer.resetCameraClippingRange();
         cameraState = { position: [...c.getPosition()], focalPoint: [...c.getFocalPoint()], viewUp: [...c.getViewUp()], parallelProjection: c.getParallelProjection(), parallelScale: c.getParallelScale(), viewAngle: c.getViewAngle() };
         options.forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.domainName === name)));
-        if (activeView === '3d') show3d(); else { container.hidden = true; sliceView.hidden = false; drawGrid(name, activeView); }
+        if (activeView === '3d') show3d(); else { container.hidden = true; sliceView.hidden = false; void drawGrid(activeDomain, activeView); }
         caption.textContent = name;
         docsLink.href = domain.docsUrl;
         container.setAttribute('aria-label', `Interactive ${name} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`);
