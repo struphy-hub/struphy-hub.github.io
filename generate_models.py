@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 
 from struphy.models.utils import get_models
+from struphy.utils.docstring_converter import rst_to_html
 
 
 OUTPUT_FILE = Path(__file__).parent / "docs" / "src" / "data" / "models.json"
@@ -22,6 +23,12 @@ def short_description(model: type) -> str:
     return re.sub(r":class:`(?:~[^`]*\.)?([^`.]+)`", r"\1", introduction)
 
 
+def documentation_html(model: type, attribute: str, fallback: str) -> str:
+    """Convert a model's notebook documentation helper docstring to HTML."""
+    rst = inspect.getdoc(getattr(model, attribute, None)) or ""
+    return rst_to_html(rst, forced_heading_level=3).strip() if rst else fallback
+
+
 def generate(output_file: Path = OUTPUT_FILE) -> None:
     """Write models from Struphy's supported public catalogue API as JSON."""
     catalogue = []
@@ -33,6 +40,14 @@ def generate(output_file: Path = OUTPUT_FILE) -> None:
                     "name": model.name(),
                     "type": model.model_type(),
                     "description": short_description(model),
+                    "pdeHtml": documentation_html(
+                        model, "doc_pde", "<p>No PDE description is available.</p>"
+                    ),
+                    "longDescriptionHtml": documentation_html(
+                        model,
+                        "doc_long_description",
+                        "<p>No long description is available.</p>",
+                    ),
                 }
             )
 
