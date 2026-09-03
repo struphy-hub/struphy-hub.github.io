@@ -5,6 +5,7 @@ __pycache__/
 
 # Generated data and logs
 /*.vtp
+/docs/public/domains/
 *.log
 
 # Editors and operating systems

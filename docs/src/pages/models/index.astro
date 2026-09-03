@@ -1,0 +1,193 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import catalogue from '../../data/models.json';
+
+const links = {
+  docs: 'https://struphy.readthedocs.io/en/latest/',
+  github: 'https://github.com/struphy-hub/struphy',
+  pypi: 'https://pypi.org/project/struphy/',
+  tutorials: 'https://github.com/struphy-hub/struphy-tutorials',
+};
+
+const categories = [
+  {
+    name: 'Fluid',
+    description: 'Continuum field and fluid descriptions, including Maxwell, MHD, multi-fluid, variational fluid, and SPH formulations.',
+  },
+  {
+    name: 'Kinetic',
+    description: 'Particle-based Vlasov, drift-kinetic, guiding-center, and diffusion models.',
+  },
+  {
+    name: 'Hybrid',
+    description: 'Coupled fluid-field and kinetic-particle descriptions.',
+  },
+  {
+    name: 'Toy',
+    description: 'Compact reference models useful for examples and verification.',
+  },
+].map((category) => ({
+  ...category,
+  id: category.name.toLowerCase(),
+  models: catalogue.filter((model) => model.type === category.name),
+}));
+---
+
+<Layout
+  title="Models — Struphy"
+  description="The complete catalogue of fluid, kinetic, hybrid, and reference models available in Struphy."
+>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Struphy home">Struphy</a>
+    <nav aria-label="Primary navigation">
+      <a class="current" href="/models/" aria-current="page">Models</a>
+      <a href="/domains/">Domains</a>
+      <a href={links.docs}>Documentation</a>
+      <a href={links.github}>GitHub</a>
+      <a href={links.pypi}>PyPI</a>
+      <a href={links.tutorials}>Tutorials</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="introduction" aria-labelledby="page-title">
+      <h1 id="page-title">Models</h1>
+      <p>
+        Struphy provides fluid, kinetic, hybrid, and smaller toy and reference models
+        within a common simulation framework.
+      </p>
+      <nav class="category-index" aria-label="Model categories">
+        {categories.map((category) => (
+          <a href={`#${category.id}`}>{category.name} ({category.models.length})</a>
+        ))}
+      </nav>
+    </section>
+
+    {categories.map((category) => (
+      <section class="category" id={category.id} aria-labelledby={`${category.id}-title`}>
+        <div class="category-heading">
+          <h2 id={`${category.id}-title`}>{category.name} <span>{category.models.length}</span></h2>
+          <p>{category.description}</p>
+        </div>
+        <ul class="model-list">
+          {category.models.map((model) => (
+            <li>
+              <code>{model.className}</code>
+              <p>{model.description}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+
+    <p class="documentation-link">
+      See the <a href={links.docs}>full Struphy model documentation</a> for equations,
+      parameters, and usage.
+    </p>
+  </main>
+
+  <footer>
+    <p>Struphy is open-source software released under the MIT License.</p>
+    <p>Built by the Struphy community.</p>
+  </footer>
+</Layout>
+
+<style>
+  :global(:root) {
+    --ink: #07131d;
+    --paper: #eeeadd;
+    --cyan: #63eee6;
+    --muted: #a9b7bb;
+    --rule: rgba(238, 234, 221, 0.2);
+    --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
+
+  :global(body) { color: var(--paper); font-family: var(--sans); line-height: 1.6; }
+
+  .site-header, main, footer {
+    width: min(1120px, calc(100% - 40px));
+    margin-inline: auto;
+  }
+
+  .site-header {
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .brand { color: var(--paper); font-size: 1.25rem; font-weight: 700; text-decoration: none; }
+  nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px 24px; }
+  nav a, .documentation-link a { color: var(--cyan); text-underline-offset: 0.2em; }
+  nav a { font-size: 0.925rem; text-decoration: none; }
+  nav a:hover, nav a.current, .documentation-link a:hover { text-decoration: underline; }
+  h1, h2, p { margin-top: 0; }
+
+  .introduction { padding-block: clamp(56px, 8vw, 92px); }
+  h1 {
+    margin-bottom: 18px;
+    font-size: clamp(2.35rem, 5vw, 4rem);
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+  }
+
+  .introduction > p { max-width: 720px; margin-bottom: 26px; color: var(--muted); font-size: 1.1rem; }
+  .category-index { justify-content: flex-start; gap: 8px 24px; }
+  .category-index a { text-decoration: underline; }
+
+  .category {
+    scroll-margin-top: 24px;
+    border-top: 1px solid var(--rule);
+    padding-block: clamp(42px, 6vw, 66px);
+  }
+
+  .category-heading { max-width: 780px; margin-bottom: 28px; }
+  h2 { margin-bottom: 8px; font-size: clamp(1.55rem, 3vw, 2.1rem); line-height: 1.2; }
+  h2 span { color: var(--muted); font-size: 0.62em; font-weight: 500; vertical-align: 0.16em; }
+  .category-heading p { margin-bottom: 0; color: var(--muted); }
+  .model-list { margin: 0; padding: 0; border-top: 1px solid var(--rule); list-style: none; }
+  .model-list li {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.38fr) minmax(0, 1fr);
+    gap: 28px;
+    padding-block: 17px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .model-list code {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--paper);
+    font: 600 0.92rem/1.55 var(--mono);
+  }
+
+  .model-list p { margin-bottom: 0; color: var(--muted); }
+  .documentation-link { margin: 0; padding: 0 0 52px; color: var(--muted); }
+  footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    padding-block: 26px 38px;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  footer p { margin-bottom: 0; }
+
+  @media (max-width: 760px) {
+    .site-header { align-items: flex-start; flex-direction: column; gap: 12px; padding-block: 18px; }
+    nav { justify-content: flex-start; }
+    .model-list li { grid-template-columns: 1fr; gap: 4px; padding-block: 18px; }
+    footer { flex-direction: column; gap: 6px; }
+  }
+
+  @media (max-width: 400px) {
+    .site-header, main, footer { width: min(100% - 28px, 1120px); }
+    nav { gap: 8px 16px; }
+    h1 { font-size: 2.15rem; }
+  }
+</style>

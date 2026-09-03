@@ -1,0 +1,218 @@
+[
+  {
+    "className": "ColdPlasma",
+    "name": "ColdPlasma",
+    "type": "Fluid",
+    "description": "Cold plasma model: electron-fluid current coupled with Maxwell's equations via a cold-plasma Ohm's law."
+  },
+  {
+    "className": "HasegawaWakatani",
+    "name": "HasegawaWakatani",
+    "type": "Fluid",
+    "description": "Hasegawa-Wakatani equations in 2D for drift-wave turbulence."
+  },
+  {
+    "className": "IncompressibleNavierStokesSPH",
+    "name": "IncompressibleNavierStokesSPH",
+    "type": "Fluid",
+    "description": "Incompressible Navier-Stokes equations discretized with smoothed particle hydrodynamics (SPH)."
+  },
+  {
+    "className": "LinearExtendedMHDuniform",
+    "name": "LinearExtendedMHDuniform",
+    "type": "Fluid",
+    "description": "Linear extended MHD with zero-flow equilibrium, for uniform background conditions only."
+  },
+  {
+    "className": "LinearMHD",
+    "name": "LinearMHD",
+    "type": "Fluid",
+    "description": "Linear ideal MHD with zero-flow equilibrium for magnetohydrodynamic wave propagation."
+  },
+  {
+    "className": "Poisson",
+    "name": "Poisson",
+    "type": "Fluid",
+    "description": "Weak discretization of Poisson's equation with a diffusion matrix, stabilization and an optional time-dependent right-hand side."
+  },
+  {
+    "className": "PressureLessSPH",
+    "name": "PressureLessSPH",
+    "type": "Fluid",
+    "description": "Particle discretization of pressureless Euler flow with external forcing."
+  },
+  {
+    "className": "ShearAlfven",
+    "name": "ShearAlfven",
+    "type": "Fluid",
+    "description": "Shear-Alfv\u00e9n part of LinearMHD with zero-flow equilibrium."
+  },
+  {
+    "className": "TwoFluidQuasiNeutralToy",
+    "name": "TwoFluidQuasiNeutralToy",
+    "type": "Fluid",
+    "description": "Linearized, quasi-neutral two-fluid model with zero electron inertia."
+  },
+  {
+    "className": "VariationalBarotropicFluid",
+    "name": "VariationalBarotropicFluid",
+    "type": "Fluid",
+    "description": "Barotropic fluid equations discretized with a variational method."
+  },
+  {
+    "className": "VariationalCompressibleFluid",
+    "name": "VariationalCompressibleFluid",
+    "type": "Fluid",
+    "description": "Fully compressible fluid equations discretized with a variational method."
+  },
+  {
+    "className": "VariationalPressurelessFluid",
+    "name": "VariationalPressurelessFluid",
+    "type": "Fluid",
+    "description": "Pressure-less fluid equations discretized with a variational method."
+  },
+  {
+    "className": "ViscoResistiveDeltafMHD",
+    "name": "ViscoResistiveDeltafMHD",
+    "type": "Fluid",
+    "description": "Delta-f visco-resistive MHD equations discretized with a variational method."
+  },
+  {
+    "className": "ViscoResistiveDeltafMHD_with_q",
+    "name": "ViscoResistiveDeltafMHD_with_q",
+    "type": "Fluid",
+    "description": "Delta-f visco-resistive MHD equations, with the q variable (square root of the pressure), discretized with a variational method."
+  },
+  {
+    "className": "ViscoResistiveLinearMHD",
+    "name": "ViscoResistiveLinearMHD",
+    "type": "Fluid",
+    "description": "Linear visco-resistive MHD equations discretized with a variational method."
+  },
+  {
+    "className": "ViscoResistiveLinearMHD_with_q",
+    "name": "ViscoResistiveLinearMHD_with_q",
+    "type": "Fluid",
+    "description": "Linear visco-resistive MHD equations, with the q variable (square root of the pressure), discretized with a variational method."
+  },
+  {
+    "className": "ViscoResistiveMHD",
+    "name": "ViscoResistiveMHD",
+    "type": "Fluid",
+    "description": "Full (non-linear) visco-resistive MHD equations discretized with a variational method."
+  },
+  {
+    "className": "ViscoResistiveMHD_with_p",
+    "name": "ViscoResistiveMHD_with_p",
+    "type": "Fluid",
+    "description": "Full (non-linear) visco-resistive MHD equations, with the pressure variable, discretized with a variational method."
+  },
+  {
+    "className": "ViscoResistiveMHD_with_q",
+    "name": "ViscoResistiveMHD_with_q",
+    "type": "Fluid",
+    "description": "Full (non-linear) visco-resistive MHD equations, with the q variable (square root of the pressure), discretized with a variational method."
+  },
+  {
+    "className": "ViscousEulerSPH",
+    "name": "ViscousEulerSPH",
+    "type": "Fluid",
+    "description": "Euler equations with viscosity discretized with smoothed particle hydrodynamics (SPH)."
+  },
+  {
+    "className": "ViscousFluid",
+    "name": "ViscousFluid",
+    "type": "Fluid",
+    "description": "Full (non-linear) viscous Navier-Stokes equations discretized with a variational method."
+  },
+  {
+    "className": "DeterministicParticleDiffusion",
+    "name": "DeterministicParticleDiffusion",
+    "type": "Kinetic",
+    "description": "Diffusion equation discretized with a deterministic particle method."
+  },
+  {
+    "className": "DriftKineticElectrostaticAdiabatic",
+    "name": "DriftKineticElectrostaticAdiabatic",
+    "type": "Kinetic",
+    "description": "Electrostatic drift-kinetic model for a single ion species with adiabatic electrons."
+  },
+  {
+    "className": "GuidingCenter",
+    "name": "GuidingCenter",
+    "type": "Kinetic",
+    "description": "Guiding-center equation for a single species in a static background magnetic field."
+  },
+  {
+    "className": "LinearVlasovAmpereOneSpecies",
+    "name": "LinearVlasovAmpereOneSpecies",
+    "type": "Kinetic",
+    "description": "Linearized Vlasov-Amp\u00e8re equations for one kinetic species around a Maxwellian background."
+  },
+  {
+    "className": "RandomParticleDiffusion",
+    "name": "RandomParticleDiffusion",
+    "type": "Kinetic",
+    "description": "Diffusion equation discretized with a random particle method, via a Wiener process."
+  },
+  {
+    "className": "Vlasov",
+    "name": "Vlasov",
+    "type": "Kinetic",
+    "description": "Vlasov equation for a single species in a static background magnetic field."
+  },
+  {
+    "className": "VlasovAmpereOneSpecies",
+    "name": "VlasovAmpereOneSpecies",
+    "type": "Kinetic",
+    "description": "Vlasov-Amp\u00e8re system for a single kinetic species in an electric field."
+  },
+  {
+    "className": "VlasovMaxwellOneSpecies",
+    "name": "VlasovMaxwellOneSpecies",
+    "type": "Kinetic",
+    "description": "Vlasov-Maxwell equations for one kinetic species."
+  },
+  {
+    "className": "LinearVlasovMaxwellOneSpecies",
+    "name": "LinearVlasovMaxwellOneSpecies",
+    "type": "Kinetic",
+    "description": "Linearized Vlasov-Maxwell equations for one kinetic species around a Maxwellian background."
+  },
+  {
+    "className": "ColdPlasmaVlasov",
+    "name": "ColdPlasmaVlasov",
+    "type": "Hybrid",
+    "description": "Hybrid cold-plasma model: a cold electron fluid coupled with a hot kinetic species and Maxwell's equations."
+  },
+  {
+    "className": "LinearMHDDriftkineticCC",
+    "name": "LinearMHDDriftkineticCC",
+    "type": "Hybrid",
+    "description": "Hybrid linear ideal MHD coupled with energetic ions (5D drift-kinetic) via the current-coupling scheme."
+  },
+  {
+    "className": "LinearMHDVlasovCC",
+    "name": "LinearMHDVlasovCC",
+    "type": "Hybrid",
+    "description": "Hybrid linear MHD coupled with energetic ions (6D Vlasov) via the current-coupling scheme."
+  },
+  {
+    "className": "LinearMHDVlasovPC",
+    "name": "LinearMHDVlasovPC",
+    "type": "Hybrid",
+    "description": "Hybrid linear MHD coupled with energetic ions (6D Vlasov) via the pressure-coupling scheme."
+  },
+  {
+    "className": "Maxwell",
+    "name": "Maxwell",
+    "type": "Toy",
+    "description": "Maxwell's equations in vacuum for electromagnetic field evolution."
+  },
+  {
+    "className": "ToyDrift",
+    "name": "ToyDrift",
+    "type": "Toy",
+    "description": "Electrostatic drift toy model for a single ion species in a given background magnetic field."
+  }
+]
