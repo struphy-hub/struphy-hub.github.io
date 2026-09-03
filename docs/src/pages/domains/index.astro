@@ -14,9 +14,18 @@ const domainNames = [
   'IGAPolarCylinder', 'IGAPolarTorus', 'Orthogonal', 'PoweredEllipticCylinder',
   'ShafranovDshapedCylinder', 'ShafranovShiftCylinder', 'ShafranovSqrtCylinder', 'Tokamak',
 ];
+const domainDocsBase = 'https://struphy.readthedocs.io/en/latest/sections/subsections/domains-avail.html#struphy.geometry.domains.';
 const domains = domainNames.map((name) => name === 'DESCunit'
-  ? { name, unavailableReason: 'The default domain requires DESC equilibrium data.' }
-  : { name, url: `/domains/${name}.vtp` });
+  ? {
+      name,
+      docsUrl: `${domainDocsBase}${name}`,
+      unavailableReason: 'The default domain requires DESC equilibrium data.',
+    }
+  : {
+      name,
+      url: `/domains/${name}.vtp`,
+      docsUrl: `${domainDocsBase}${name}`,
+    });
 ---
 
 <Layout
