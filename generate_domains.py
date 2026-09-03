@@ -7,21 +7,115 @@ import inspect
 import json
 from pathlib import Path
 
+import numpy as np
+
 from struphy import domains
 from struphy.geometry.base import Domain
 
 
 DEFAULT_OUTPUT_DIR = Path(__file__).parent / "docs" / "public" / "domains"
 
+TORUS_MAPPINGS = {
+    "Tokamak",
+    "GVECunit",
+    "DESCunit",
+    "IGAPolarTorus",
+    "HollowTorus",
+}
+
+
+def _grid(
+    xyz,
+    first: int,
+    second: int,
+    *,
+    highlight_rows=(),
+    markers=(),
+    omit_last_column=False,
+):
+    """Serialize one mapped logical grid for the browser renderer."""
+    return {
+        "a": np.asarray(xyz[first]).tolist(),
+        "b": np.asarray(xyz[second]).tolist(),
+        "highlight_rows": list(highlight_rows),
+        "markers": [list(marker) for marker in markers],
+        "omit_last_column": omit_last_column,
+    }
+
+
 def export_grid(domain, name, output_dir, plane, n1=16, n2=65):
-    e1, e2 = __import__('numpy').linspace(0., 1., n1), __import__('numpy').linspace(0., 1., n2)
-    np = __import__('numpy')
-    # Take each 2D view through the center of the omitted logical coordinate,
-    # matching a centered slice rather than a boundary face.
-    coordinates = {'xy': (e1, e2, 0.5), 'xz': (e1, 0.5, e2), 'yz': (0.5, e1, e2)}[plane]
-    xyz = domain(*coordinates, squeeze_out=True)
-    data = {'name': name, 'plane': plane, 'x': np.asarray(xyz[0]).tolist(), 'y': np.asarray(xyz[1]).tolist(), 'z': np.asarray(xyz[2]).tolist()}
-    (output_dir / f'{name}-{plane}.json').write_text(json.dumps(data, separators=(',', ':')) + '\n', encoding='utf-8')
+    """Export the same grid constructions used by ``Domain.show()``.
+
+    For toroidal mappings, x-z is the ``eta3 = 0`` cross-section and x-y is
+    the two-branch top view (``eta2 = 0`` and ``eta2 = .5``).  These are the
+    two views drawn by Struphy itself; treating them as generic centred
+    Cartesian slices makes HollowTorus degenerate to lines.
+    """
+    e1 = np.linspace(0.0, 1.0, n1)
+    e2 = np.linspace(0.0, 1.0, n2)
+    is_not_cube = domain.kind_map < 10 or domain.kind_map > 19
+    is_torus = name in TORUS_MAPPINGS
+
+    if plane == "xy" and is_torus:
+        # Domain.show() top view, including both sides for non-cube mappings.
+        branches = [domain(e1, 0.0, e2, squeeze_out=True)]
+        if is_not_cube:
+            branches.append(domain(e1, 0.5, e2, squeeze_out=True))
+        grids = [_grid(branch, 0, 1, highlight_rows=(0,)) for branch in branches]
+    elif plane == "xz" and is_torus:
+        # Domain.show() first panel: physical poloidal section at eta3 = 0.
+        section = domain(e1, e2, 0.0, squeeze_out=True)
+        marker_columns = (0, n2 // 2) if is_not_cube else (0,)
+        grids = [
+            _grid(
+                section,
+                0,
+                2,
+                markers=((0, j) for j in marker_columns),
+                omit_last_column=is_not_cube,
+            )
+        ]
+    elif plane == "xy":
+        # Domain.show() first panel for non-toroidal mappings.
+        section = domain(e1, e2, 0.0, squeeze_out=True)
+        marker_columns = (0, n2 // 2) if is_not_cube else (0,)
+        grids = [
+            _grid(
+                section,
+                0,
+                1,
+                markers=((0, j) for j in marker_columns),
+                omit_last_column=is_not_cube,
+            )
+        ]
+    elif plane == "xz":
+        # Domain.show() top view for non-toroidal mappings.
+        branches = [domain(e1, 0.0, e2, squeeze_out=True)]
+        if is_not_cube:
+            branches.append(domain(e1, 0.5, e2, squeeze_out=True))
+        grids = [_grid(branch, 0, 2, highlight_rows=(0,)) for branch in branches]
+    elif plane == "yz" and is_torus:
+        # The y-z counterpart of the top view. Domain.show() has no third
+        # panel, so use the two quarter-turn branches rather than a projection
+        # that collapses either logical coordinate.
+        branches = [domain(e1, 0.25, e2, squeeze_out=True)]
+        if is_not_cube:
+            branches.append(domain(e1, 0.75, e2, squeeze_out=True))
+        grids = [_grid(branch, 1, 2, highlight_rows=(0,)) for branch in branches]
+    elif plane == "yz":
+        section = domain(0.5, e1, e2, squeeze_out=True)
+        grids = [_grid(section, 1, 2)]
+    else:
+        raise ValueError(f"Unsupported plane: {plane}")
+
+    data = {
+        "name": name,
+        "plane": plane,
+        "axes": list(plane),
+        "grids": grids,
+    }
+    output_file = output_dir / f"{name}-{plane}.json"
+    output_file.write_text(json.dumps(data, separators=(",", ":")) + "\n", encoding="utf-8")
 
 
 def domain_classes() -> list[tuple[str, type[Domain]]]:
