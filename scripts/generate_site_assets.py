@@ -5,7 +5,6 @@ from pathlib import Path
 import pyvista as pv
 from PIL import Image
 
-
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "docs" / "public" / "images"
 

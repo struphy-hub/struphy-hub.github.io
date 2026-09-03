@@ -1,11 +1,10 @@
-import json
 import inspect
+import json
 import re
 from pathlib import Path
 
 import numpy as np
 from struphy.fields_background import equils
-
 
 OUTPUT_DIR = Path(__file__).parent / "docs" / "src" / "data" / "equilibria"
 
@@ -53,7 +52,9 @@ def sample_slice(eq, plane="xy", value=0.0, extent=None, n=201):
                 values = np.full(U.shape, values.item())
             fields[field.removesuffix("_xyz")] = {
                 "kind": "scalar",
-                "values": np.nan_to_num(values, nan=0.0, posinf=0.0, neginf=0.0).tolist(),
+                "values": np.nan_to_num(
+                    values, nan=0.0, posinf=0.0, neginf=0.0
+                ).tolist(),
             }
 
     for field in ("b_xyz", "j_xyz"):
@@ -66,13 +67,22 @@ def sample_slice(eq, plane="xy", value=0.0, extent=None, n=201):
         fields[field.removesuffix("_xyz")] = {
             "kind": "vector",
             "components": {
-                axis: np.nan_to_num(np.asarray(component), nan=0.0, posinf=0.0, neginf=0.0).tolist()
+                axis: np.nan_to_num(
+                    np.asarray(component), nan=0.0, posinf=0.0, neginf=0.0
+                ).tolist()
                 for axis, component in zip(("x", "y", "z"), components)
             },
         }
         if field == "b_xyz":
-            magnitude = np.sqrt(sum(np.asarray(component) ** 2 for component in components))
-            fields["bmag"] = {"kind": "scalar", "values": np.nan_to_num(magnitude, nan=0.0, posinf=0.0, neginf=0.0).tolist()}
+            magnitude = np.sqrt(
+                sum(np.asarray(component) ** 2 for component in components)
+            )
+            fields["bmag"] = {
+                "kind": "scalar",
+                "values": np.nan_to_num(
+                    magnitude, nan=0.0, posinf=0.0, neginf=0.0
+                ).tolist(),
+            }
 
     return {
         "plane": plane,
@@ -91,7 +101,11 @@ def sample_centerline(eq, axis="x", extent=None, n=401):
         extent = (-a, a)
     x = np.linspace(*extent, n)
     zeros = np.zeros_like(x)
-    coordinates = {"x": (x, zeros, zeros), "y": (zeros, x, zeros), "z": (zeros, zeros, x)}
+    coordinates = {
+        "x": (x, zeros, zeros),
+        "y": (zeros, x, zeros),
+        "z": (zeros, zeros, x),
+    }
     X, Y, Z = coordinates[axis]
     fields = {}
     for field in ("p_xyz", "n_xyz"):
@@ -101,13 +115,19 @@ def sample_centerline(eq, axis="x", extent=None, n=401):
         values = np.asarray(method(X, Y, Z))
         if values.ndim == 0:
             values = np.full(x.shape, values.item())
-        fields[field.removesuffix("_xyz")] = np.nan_to_num(values, nan=0.0, posinf=0.0, neginf=0.0).tolist()
+        fields[field.removesuffix("_xyz")] = np.nan_to_num(
+            values, nan=0.0, posinf=0.0, neginf=0.0
+        ).tolist()
     magnetic = getattr(eq, "b_xyz", None)
     if magnetic is not None:
         components = magnetic(X, Y, Z)
         if components is not None:
-            magnitude = np.sqrt(sum(np.asarray(component) ** 2 for component in components))
-            fields["bmag"] = np.nan_to_num(magnitude, nan=0.0, posinf=0.0, neginf=0.0).tolist()
+            magnitude = np.sqrt(
+                sum(np.asarray(component) ** 2 for component in components)
+            )
+            fields["bmag"] = np.nan_to_num(
+                magnitude, nan=0.0, posinf=0.0, neginf=0.0
+            ).tolist()
     return {"axis": axis, "coordinates": x.tolist(), "fields": fields}
 
 
@@ -123,7 +143,9 @@ def export_equilibrium(name, eq, output_dir=OUTPUT_DIR, **slice_options):
         "slice": slices["xy"],
         "slices": slices,
         "centerline": sample_centerline(eq),
-        "centerlines": {axis: sample_centerline(eq, axis=axis) for axis in ("x", "y", "z")},
+        "centerlines": {
+            axis: sample_centerline(eq, axis=axis) for axis in ("x", "y", "z")
+        },
         "parameters": _json_parameters(getattr(eq, "params", {})),
         "parameter_descriptions": parameter_descriptions(type(eq)),
     }
@@ -146,12 +168,17 @@ def has_variation(data, tolerance=1e-10) -> bool:
             if field.get("kind") == "scalar":
                 samples.extend(np.asarray(field.get("values", []), dtype=float).ravel())
     for line in data.get("centerlines", {}).values():
-        samples.extend(np.asarray(line.get("fields", {}).get("bmag", []), dtype=float).ravel())
-    return bool(samples) and any(np.ptp(values) > tolerance for values in [np.asarray(samples)])
+        samples.extend(
+            np.asarray(line.get("fields", {}).get("bmag", []), dtype=float).ravel()
+        )
+    return bool(samples) and any(
+        np.ptp(values) > tolerance for values in [np.asarray(samples)]
+    )
 
 
 def _json_parameters(parameters):
     """Convert equilibrium parameters to JSON-safe values for the catalogue."""
+
     def convert(value):
         if isinstance(value, dict):
             return {str(key): convert(item) for key, item in value.items()}
@@ -162,13 +189,18 @@ def _json_parameters(parameters):
         if isinstance(value, (str, int, float, bool)) or value is None:
             return value
         return str(value)
+
     return convert(parameters)
 
 
 def parameter_descriptions(cls) -> dict[str, str]:
     """Extract NumPy-style ``Parameters`` descriptions from an equilibrium docstring."""
     doc = inspect.getdoc(cls) or ""
-    match = re.search(r"\nParameters\n-+\n(?P<body>.*?)(?:\n\n(?:Note|Notes|Returns|Attributes)\n-+|\Z)", doc, re.S)
+    match = re.search(
+        r"\nParameters\n-+\n(?P<body>.*?)(?:\n\n(?:Note|Notes|Returns|Attributes)\n-+|\Z)",
+        doc,
+        re.S,
+    )
     if not match:
         return {}
     descriptions: dict[str, str] = {}
@@ -196,10 +228,12 @@ def available_equilibria() -> list[tuple[str, object]]:
         try:
             kwargs = PRESETS.get(name, {}).copy()
             if name.startswith("GenericCartesianFluidEquilibrium"):
-                kwargs.update({
-                    "p_xyz": lambda x, y, z: 1.0 + 0.5 * np.sin(x),
-                    "n_xyz": lambda x, y, z: 1.0 + 0.25 * np.cos(y),
-                })
+                kwargs.update(
+                    {
+                        "p_xyz": lambda x, y, z: 1.0 + 0.5 * np.sin(x),
+                        "n_xyz": lambda x, y, z: 1.0 + 0.25 * np.cos(y),
+                    }
+                )
             result.append((name, cls(**kwargs)))
         except (Exception, SystemExit) as error:
             print(f"Skipped {name}: {error or type(error).__name__}")

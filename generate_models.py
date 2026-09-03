@@ -10,7 +10,6 @@ from pathlib import Path
 from struphy.models.utils import get_models
 from struphy.utils.docstring_converter import rst_to_html
 
-
 OUTPUT_FILE = Path(__file__).parent / "docs" / "src" / "data" / "models.json"
 CATEGORIES = ("Fluid", "Kinetic", "Hybrid", "Toy")
 
