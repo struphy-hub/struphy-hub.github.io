@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import inspect
+import json
 from pathlib import Path
 
 from struphy import domains
@@ -11,6 +12,16 @@ from struphy.geometry.base import Domain
 
 
 DEFAULT_OUTPUT_DIR = Path(__file__).parent / "docs" / "public" / "domains"
+
+def export_grid(domain, name, output_dir, plane, n1=16, n2=65):
+    e1, e2 = __import__('numpy').linspace(0., 1., n1), __import__('numpy').linspace(0., 1., n2)
+    np = __import__('numpy')
+    # Take each 2D view through the center of the omitted logical coordinate,
+    # matching a centered slice rather than a boundary face.
+    coordinates = {'xy': (e1, e2, 0.5), 'xz': (e1, 0.5, e2), 'yz': (0.5, e1, e2)}[plane]
+    xyz = domain(*coordinates, squeeze_out=True)
+    data = {'name': name, 'plane': plane, 'x': np.asarray(xyz[0]).tolist(), 'y': np.asarray(xyz[1]).tolist(), 'z': np.asarray(xyz[2]).tolist()}
+    (output_dir / f'{name}-{plane}.json').write_text(json.dumps(data, separators=(',', ':')) + '\n', encoding='utf-8')
 
 
 def domain_classes() -> list[tuple[str, type[Domain]]]:
@@ -41,6 +52,8 @@ def export_domains(output_dir: Path, *, strict: bool = False) -> int:
 
         try:
             domain_class().export_geometry(filename=str(output_file))
+            for plane in ('xy', 'xz', 'yz'):
+                export_grid(domain_class(), name, output_dir, plane)
         except (Exception, SystemExit) as error:
             failures.append((name, error))
             detail = str(error) or type(error).__name__

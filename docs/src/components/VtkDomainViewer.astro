@@ -14,6 +14,7 @@ const { domains, initialDomain } = Astro.props;
     <div class="viewer" data-vtk-viewer role="img" aria-label={`Interactive ${initialDomain} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`}>
       <p class="status" data-vtk-status role="status" aria-live="polite">Loading {initialDomain}…</p>
     </div>
+    <div class="slice-view" data-slice-view hidden role="img" aria-label="2D domain grid slice"><svg viewBox="0 0 600 420" preserveAspectRatio="xMidYMid meet"><g data-grid-lines></g></svg></div>
     <div class="viewer-details">
       <figcaption id="domain-caption"><strong data-domain-caption>{initialDomain}</strong> — generated and exported by Struphy. <a data-domain-docs href={domains.find((domain) => domain.name === initialDomain)?.docsUrl} target="_blank" rel="noreferrer">Read the docs ↗</a><span>Drag to rotate · Scroll to zoom · Shift-drag to pan</span></figcaption>
       <button type="button" class="reset" data-vtk-reset disabled>Reset view</button>
@@ -43,7 +44,9 @@ const { domains, initialDomain } = Astro.props;
     const options = [...root.querySelectorAll<HTMLButtonElement>('[data-domain-name]')];
     const sliceTabs = [...root.querySelectorAll<HTMLButtonElement>('[data-slice-plane]')];
     const view3d = root.querySelector<HTMLButtonElement>('[data-view-mode="3d"]');
-    if (!container || !status || !reset || !caption || !docsLink) return () => {};
+    const sliceView = root.querySelector<HTMLElement>('[data-slice-view]');
+    const gridLines = root.querySelector<SVGGElement>('[data-grid-lines]');
+    if (!container || !status || !reset || !caption || !docsLink || !sliceView || !gridLines) return () => {};
     const domains = JSON.parse(root.dataset.domains || '[]') as DomainEntry[];
     const byName = new Map(domains.map((d) => [d.name, d]));
     const grw = vtkGenericRenderWindow.newInstance({ background: [0.027, 0.075, 0.114] });
@@ -63,6 +66,7 @@ const { domains, initialDomain } = Astro.props;
     let actorAdded = false;
     let reader: ReturnType<typeof vtkXMLPolyDataReader.newInstance> | undefined;
     let cameraState: any;
+    let activeView = '3d';
     let aborter: AbortController | undefined;
     let serial = 0;
     let disposed = false;
@@ -76,17 +80,20 @@ const { domains, initialDomain } = Astro.props;
       renderer.resetCameraClippingRange(); renderWindow.render();
     };
     const setPlane = (planeName: string) => {
+      activeView = planeName;
       const c = renderer.getActiveCamera();
       const focal = c.getFocalPoint(); const distance = Math.max(1, c.getDistance());
       const positions: Record<string, [number, number, number]> = { xy: [0, 0, 1], xz: [0, 1, 0], yz: [1, 0, 0] };
       const direction = positions[planeName] || positions.xy;
-      plane.setNormal(...direction); cutter.update(); mapper.setInputConnection(cutter.getOutputPort());
+      plane.setNormal(...direction); cutter.update(); mapper.setInputConnection(cutter.getOutputPort()); drawGrid(caption.textContent || '', planeName);
+      container.hidden = true; sliceView.hidden = false;
       c.setPosition(focal[0] + direction[0] * distance, focal[1] + direction[1] * distance, focal[2] + direction[2] * distance);
       c.setViewUp(planeName === 'yz' ? [0, 0, 1] : [0, 1, 0]); renderer.resetCamera(); renderer.resetCameraClippingRange(); renderWindow.render();
       sliceTabs.forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.slicePlane === planeName)));
       view3d?.setAttribute('aria-selected', 'false');
     };
-    const show3d = () => { if (!reader) return; mapper.setInputData(reader.getOutputData(0)); renderer.resetCamera(); renderWindow.render(); view3d?.setAttribute('aria-selected', 'true'); sliceTabs.forEach((tab) => tab.setAttribute('aria-selected', 'false')); };
+    const show3d = () => { if (!reader) return; activeView = '3d'; sliceView.hidden = true; container.hidden = false; mapper.setInputData(reader.getOutputData(0)); renderer.resetCamera(); renderWindow.render(); view3d?.setAttribute('aria-selected', 'true'); sliceTabs.forEach((tab) => tab.setAttribute('aria-selected', 'false')); };
+    const drawGrid = async (name: string, planeName: string) => { const response = await fetch(`/domains/${name}-${planeName}.json`); if (!response.ok) return; const data = await response.json(); const axis = planeName === 'xy' ? ['x', 'y'] : planeName === 'xz' ? ['x', 'z'] : ['y', 'z']; const a = data[axis[0]], b = data[axis[1]]; const minA = Math.min(...a.flat()), maxA = Math.max(...a.flat()), minB = Math.min(...b.flat()), maxB = Math.max(...b.flat()); const scale = Math.min(540 / (maxA - minA || 1), 360 / (maxB - minB || 1)); const sx = (v: number) => 30 + (v - minA) * scale, sy = (v: number) => 390 - (v - minB) * scale; gridLines.innerHTML = ''; const add = (points: string, highlight = false) => { const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline'); line.setAttribute('points', points); line.setAttribute('fill', 'none'); line.setAttribute('stroke', highlight ? '#e85d5d' : '#63eee6'); line.setAttribute('stroke-opacity', highlight ? '1' : '.55'); line.setAttribute('stroke-width', highlight ? '2' : '1'); gridLines.appendChild(line); }; for (let j = 0; j < a.length; j++) add(a[j].map((v: number, i: number) => `${sx(v)},${sy(b[j][i])}`).join(' '), j === 0); for (let i = 0; i < a[0].length; i++) add(a.map((row: number[], j: number) => `${sx(row[i])},${sy(b[j][i])}`).join(' ')); };
     const load = async (name: string) => {
       const domain = byName.get(name);
       if (!domain?.url || disposed) return;
@@ -109,6 +116,7 @@ const { domains, initialDomain } = Astro.props;
         renderer.resetCamera(); c.zoom(1.15); renderer.resetCameraClippingRange();
         cameraState = { position: [...c.getPosition()], focalPoint: [...c.getFocalPoint()], viewUp: [...c.getViewUp()], parallelProjection: c.getParallelProjection(), parallelScale: c.getParallelScale(), viewAngle: c.getViewAngle() };
         options.forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.domainName === name)));
+        if (activeView === '3d') show3d(); else { container.hidden = true; sliceView.hidden = false; drawGrid(name, activeView); }
         caption.textContent = name;
         docsLink.href = domain.docsUrl;
         container.setAttribute('aria-label', `Interactive ${name} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`);
@@ -176,6 +184,11 @@ const { domains, initialDomain } = Astro.props;
   .reset:hover:not(:disabled) { background:var(--cyan); color:var(--ink); } .reset:disabled { opacity:.45; cursor:wait; }
   @media(max-width:760px) { .domain-browser { grid-template-columns:1fr; } .domain-index ul { columns:2; column-gap:24px; } .domain-index li { break-inside:avoid; } .viewer { height:clamp(320px,92vw,400px); } }
   @media(max-width:440px) { .domain-index ul { columns:1; } .viewer-details { align-items:stretch; flex-direction:column; gap:12px; } .reset { align-self:flex-start; } }
+</style>
+<style>
+  .slice-view { width:100%; height:clamp(400px,46vw,520px); border:1px solid var(--rule); background:var(--ink); }
+  .slice-view svg { width:100%; height:100%; }
+  .slice-view[hidden] { display:none; }
 </style>
 <style>
   .domain-index ul { max-height: 600px; overflow: auto; }

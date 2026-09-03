@@ -42,6 +42,9 @@ jobs:
       - name: Verify generated domain geometries
         run: test -n "$(find docs/public/domains -maxdepth 1 -name '*.vtp' -print -quit)"
 
+      - name: Verify generated domain grids
+        run: test -n "$(find docs/public/domains -maxdepth 1 -name '*-xy.json' -print -quit)"
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
