@@ -9,6 +9,18 @@ from struphy.fields_background import equils
 
 OUTPUT_DIR = Path(__file__).parent / "docs" / "src" / "data" / "equilibria"
 
+# A few analytic equilibria use flat profile defaults. These presets keep the
+# catalogue visually informative while remaining representative examples.
+PRESETS = {
+    "ScrewPinch": {"R0": 3.0, "n1": 2.0, "n2": 2.0, "na": 0.25},
+    "ShearedSlab": {"n1": 2.0, "n2": 2.0, "na": 0.25},
+    "ConstantVelocity": {"density_profile": "gaussian_xy", "p0": 0.35},
+    "AdhocTorusQPsi": {"beta": 6.0, "q0": 0.35, "q1": 5.0},
+    "CircularTokamak": {"B0": 4.0, "Bp": 60.0},
+    "CurrentSheet": {"delta": 0.08, "amp": 8.0},
+    "HomogenSlab": {"B0x": 1.2, "B0y": 0.8, "B0z": 1.0, "beta": 2.0},
+}
+
 
 def sample_slice(eq, plane="xy", value=0.0, extent=None, n=201):
     """Sample an equilibrium on a 2-D Cartesian slice."""
@@ -58,6 +70,9 @@ def sample_slice(eq, plane="xy", value=0.0, extent=None, n=201):
                 for axis, component in zip(("x", "y", "z"), components)
             },
         }
+        if field == "b_xyz":
+            magnitude = np.sqrt(sum(np.asarray(component) ** 2 for component in components))
+            fields["bmag"] = {"kind": "scalar", "values": np.nan_to_num(magnitude, nan=0.0, posinf=0.0, neginf=0.0).tolist()}
 
     return {
         "plane": plane,
@@ -87,6 +102,12 @@ def sample_centerline(eq, axis="x", extent=None, n=401):
         if values.ndim == 0:
             values = np.full(x.shape, values.item())
         fields[field.removesuffix("_xyz")] = np.nan_to_num(values, nan=0.0, posinf=0.0, neginf=0.0).tolist()
+    magnetic = getattr(eq, "b_xyz", None)
+    if magnetic is not None:
+        components = magnetic(X, Y, Z)
+        if components is not None:
+            magnitude = np.sqrt(sum(np.asarray(component) ** 2 for component in components))
+            fields["bmag"] = np.nan_to_num(magnitude, nan=0.0, posinf=0.0, neginf=0.0).tolist()
     return {"axis": axis, "coordinates": x.tolist(), "fields": fields}
 
 
@@ -106,6 +127,8 @@ def export_equilibrium(name, eq, output_dir=OUTPUT_DIR, **slice_options):
         "parameters": _json_parameters(getattr(eq, "params", {})),
         "parameter_descriptions": parameter_descriptions(type(eq)),
     }
+    if not has_variation(data):
+        raise ValueError("all sampled equilibrium fields are constant")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{name}.json"
@@ -113,6 +136,18 @@ def export_equilibrium(name, eq, output_dir=OUTPUT_DIR, **slice_options):
         json.dump(data, output_file, separators=(",", ":"), allow_nan=False)
         output_file.write("\n")
     return output_path
+
+
+def has_variation(data, tolerance=1e-10) -> bool:
+    """Return whether at least one sampled scalar field varies meaningfully."""
+    samples = []
+    for slice_data in data.get("slices", {}).values():
+        for field in slice_data.get("fields", {}).values():
+            if field.get("kind") == "scalar":
+                samples.extend(np.asarray(field.get("values", []), dtype=float).ravel())
+    for line in data.get("centerlines", {}).values():
+        samples.extend(np.asarray(line.get("fields", {}).get("bmag", []), dtype=float).ravel())
+    return bool(samples) and any(np.ptp(values) > tolerance for values in [np.asarray(samples)])
 
 
 def _json_parameters(parameters):
@@ -159,7 +194,13 @@ def available_equilibria() -> list[tuple[str, object]]:
         if not inspect.isclass(cls) or cls.__module__ != equils.__name__:
             continue
         try:
-            result.append((name, cls()))
+            kwargs = PRESETS.get(name, {}).copy()
+            if name.startswith("GenericCartesianFluidEquilibrium"):
+                kwargs.update({
+                    "p_xyz": lambda x, y, z: 1.0 + 0.5 * np.sin(x),
+                    "n_xyz": lambda x, y, z: 1.0 + 0.25 * np.cos(y),
+                })
+            result.append((name, cls(**kwargs)))
         except (Exception, SystemExit) as error:
             print(f"Skipped {name}: {error or type(error).__name__}")
     return result
