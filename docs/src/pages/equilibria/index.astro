@@ -1,6 +1,13 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 
+const links = {
+  docs: 'https://struphy.readthedocs.io/en/latest/',
+  github: 'https://github.com/struphy-hub/struphy',
+  pypi: 'https://pypi.org/project/struphy/',
+  tutorials: 'https://github.com/struphy-hub/struphy-tutorials',
+};
+
 const imported = import.meta.glob('../../data/equilibria/*.json', { eager: true, import: 'default' });
 const equilibria = [...new Map(Object.entries(imported).map(([path, value]) => {
   const data = value as any;
@@ -35,11 +42,11 @@ function linePoints(values: number[], width = 280, height = 150) {
 <Layout title="Equilibria — Struphy" description="Equilibrium fields and slices available in Struphy.">
   <header class="site-header">
     <a class="brand" href="/" aria-label="Struphy home">Struphy</a>
-    <nav aria-label="Primary navigation"><a href="/models/">Models</a><a href="/domains/">Domains</a><a class="current" href="/equilibria/" aria-current="page">Equilibria</a><a href="https://struphy.readthedocs.io/en/latest/">Documentation</a><a href="https://github.com/struphy-hub/struphy">GitHub</a></nav>
+    <nav aria-label="Primary navigation"><a href="/models/">Models</a><a href="/domains/">Domains</a><a class="current" href="/equilibria/" aria-current="page">Equilibria</a><a href={links.docs}>Documentation</a><a href={links.github}>GitHub</a><a href={links.pypi}>PyPI</a><a href={links.tutorials}>Tutorials</a></nav>
   </header>
   <main>
     <section class="intro"><p class="eyebrow">Background fields</p><h1>Equilibria</h1><p>Explore the reference equilibria used to initialize Struphy simulations. Each slice is generated from the corresponding Struphy equilibrium class during the site build.</p></section>
-    {equilibria.length ? <section class="browser" aria-label="Available equilibria"><aside class="selector"><p class="eyebrow">Select an equilibrium</p><div class="equilibrium-list">{equilibria.map((equilibrium, index) => <button type="button" class="equilibrium-option" data-equilibrium={equilibrium.slug} aria-pressed={index === 0}><code>{equilibrium.type}</code><small>Reference fields</small></button>)}</div></aside><div class="grid" aria-label="Selected equilibrium">
+    {equilibria.length ? <section class="browser" aria-label="Available equilibria"><aside class="selector"><p class="eyebrow">Select an equilibrium</p><div class="equilibrium-list">{equilibria.map((equilibrium, index) => <button type="button" class="equilibrium-option" data-equilibrium={equilibrium.slug} aria-pressed={index === 0}><code>{equilibrium.type}</code></button>)}</div></aside><div class="grid" aria-label="Selected equilibrium">
       {equilibria.map((equilibrium, index) => <article class="card" id={equilibrium.slug} data-equilibrium-card={equilibrium.slug} hidden={index !== 0}>
         <div class="card-heading"><div><p class="eyebrow">Equilibrium</p><h2>{equilibrium.type}</h2></div></div>
         <div class="slice-tabs" role="tablist" aria-label={`${equilibrium.type} slice planes`}>{(['xy', 'xz', 'yz'] as const).map((plane, index) => <button type="button" role="tab" aria-selected={index === 0} aria-controls={`${equilibrium.slug}-${plane}`} data-slice-tab={`${equilibrium.slug}-${plane}`}>{plane.toUpperCase()}</button>)}</div>

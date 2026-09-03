@@ -7,18 +7,15 @@ const { domains, initialDomain } = Astro.props;
 <div class="domain-browser" data-domain-browser data-domains={JSON.stringify(domains)} data-initial-domain={initialDomain}>
   <aside class="domain-index" aria-label="Available Struphy domains">
     <p>Domain classes</p>
-    <ul>{domains.map((domain) => <li>
-      <a href={domain.docsUrl} target="_blank" rel="noreferrer">{domain.name}</a>
-      <button type="button" data-domain-name={domain.name} aria-label={`View ${domain.name} geometry`} aria-pressed={domain.name === initialDomain ? 'true' : 'false'} disabled={!domain.url} title={domain.unavailableReason}>View</button>
-      {!domain.url && <small>Requires equilibrium data</small>}
-    </li>)}</ul>
+    <ul>{domains.map((domain) => <li><button type="button" class="domain-option" data-domain-name={domain.name} aria-label={`View ${domain.name} geometry`} aria-pressed={domain.name === initialDomain ? 'true' : 'false'} disabled={!domain.url} title={domain.unavailableReason}><code>{domain.name}</code></button></li>)}</ul>
   </aside>
   <figure aria-labelledby="domain-caption">
+    <div class="slice-tabs" role="tablist" aria-label="Domain view"><button type="button" role="tab" aria-selected="true" data-view-mode="3d">3D</button><button type="button" role="tab" aria-selected="false" data-slice-plane="xy">XY</button><button type="button" role="tab" aria-selected="false" data-slice-plane="xz">XZ</button><button type="button" role="tab" aria-selected="false" data-slice-plane="yz">YZ</button></div>
     <div class="viewer" data-vtk-viewer role="img" aria-label={`Interactive ${initialDomain} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`}>
       <p class="status" data-vtk-status role="status" aria-live="polite">Loading {initialDomain}…</p>
     </div>
     <div class="viewer-details">
-      <figcaption id="domain-caption"><strong data-domain-caption>{initialDomain}</strong> — generated and exported by Struphy.<span>Drag to rotate · Scroll to zoom · Shift-drag to pan</span></figcaption>
+      <figcaption id="domain-caption"><strong data-domain-caption>{initialDomain}</strong> — generated and exported by Struphy. <a data-domain-docs href={domains.find((domain) => domain.name === initialDomain)?.docsUrl} target="_blank" rel="noreferrer">Read the docs ↗</a><span>Drag to rotate · Scroll to zoom · Shift-drag to pan</span></figcaption>
       <button type="button" class="reset" data-vtk-reset disabled>Reset view</button>
     </div>
   </figure>
@@ -30,6 +27,8 @@ const { domains, initialDomain } = Astro.props;
   import vtkActor from '@kitware/vtk.js/Rendering/Core/Actor';
   import vtkMapper from '@kitware/vtk.js/Rendering/Core/Mapper';
   import vtkXMLPolyDataReader from '@kitware/vtk.js/IO/XML/XMLPolyDataReader';
+  import vtkPlane from '@kitware/vtk.js/Common/DataModel/Plane';
+  import vtkCutter from '@kitware/vtk.js/Filters/Core/Cutter';
 
   type DomainEntry = { name: string; url?: string; docsUrl: string };
   type Cleanup = () => void;
@@ -40,8 +39,11 @@ const { domains, initialDomain } = Astro.props;
     const status = root.querySelector<HTMLElement>('[data-vtk-status]');
     const reset = root.querySelector<HTMLButtonElement>('[data-vtk-reset]');
     const caption = root.querySelector<HTMLElement>('[data-domain-caption]');
+    const docsLink = root.querySelector<HTMLAnchorElement>('[data-domain-docs]');
     const options = [...root.querySelectorAll<HTMLButtonElement>('[data-domain-name]')];
-    if (!container || !status || !reset || !caption) return () => {};
+    const sliceTabs = [...root.querySelectorAll<HTMLButtonElement>('[data-slice-plane]')];
+    const view3d = root.querySelector<HTMLButtonElement>('[data-view-mode="3d"]');
+    if (!container || !status || !reset || !caption || !docsLink) return () => {};
     const domains = JSON.parse(root.dataset.domains || '[]') as DomainEntry[];
     const byName = new Map(domains.map((d) => [d.name, d]));
     const grw = vtkGenericRenderWindow.newInstance({ background: [0.027, 0.075, 0.114] });
@@ -49,6 +51,8 @@ const { domains, initialDomain } = Astro.props;
     const renderer = grw.getRenderer();
     const renderWindow = grw.getRenderWindow();
     const mapper = vtkMapper.newInstance();
+    const plane = vtkPlane.newInstance();
+    const cutter = vtkCutter.newInstance({ cutFunction: plane });
     const actor = vtkActor.newInstance();
     actor.setMapper(mapper);
     actor.getProperty().setColor(0.39, 0.93, 0.9);
@@ -71,6 +75,18 @@ const { domains, initialDomain } = Astro.props;
       c.setParallelScale(cameraState.parallelScale); c.setViewAngle(cameraState.viewAngle);
       renderer.resetCameraClippingRange(); renderWindow.render();
     };
+    const setPlane = (planeName: string) => {
+      const c = renderer.getActiveCamera();
+      const focal = c.getFocalPoint(); const distance = Math.max(1, c.getDistance());
+      const positions: Record<string, [number, number, number]> = { xy: [0, 0, 1], xz: [0, 1, 0], yz: [1, 0, 0] };
+      const direction = positions[planeName] || positions.xy;
+      plane.setNormal(...direction); cutter.update(); mapper.setInputConnection(cutter.getOutputPort());
+      c.setPosition(focal[0] + direction[0] * distance, focal[1] + direction[1] * distance, focal[2] + direction[2] * distance);
+      c.setViewUp(planeName === 'yz' ? [0, 0, 1] : [0, 1, 0]); renderer.resetCamera(); renderer.resetCameraClippingRange(); renderWindow.render();
+      sliceTabs.forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.slicePlane === planeName)));
+      view3d?.setAttribute('aria-selected', 'false');
+    };
+    const show3d = () => { if (!reader) return; mapper.setInputData(reader.getOutputData(0)); renderer.resetCamera(); renderWindow.render(); view3d?.setAttribute('aria-selected', 'true'); sliceTabs.forEach((tab) => tab.setAttribute('aria-selected', 'false')); };
     const load = async (name: string) => {
       const domain = byName.get(name);
       if (!domain?.url || disposed) return;
@@ -85,13 +101,16 @@ const { domains, initialDomain } = Astro.props;
         const data = nextReader.getOutputData(0);
         if (!data || data.getNumberOfPoints() === 0) { nextReader.delete(); throw new Error('No renderable points'); }
         if (disposed || current !== serial) { nextReader.delete(); return; }
-        mapper.setInputData(data); reader?.delete(); reader = nextReader;
+        const bounds = data.getBounds();
+        plane.setOrigin((bounds[0] + bounds[1]) / 2, (bounds[2] + bounds[3]) / 2, (bounds[4] + bounds[5]) / 2);
+        cutter.setInputData(data); mapper.setInputData(data); cutter.update(); reader?.delete(); reader = nextReader;
         if (!actorAdded) { renderer.addActor(actor); actorAdded = true; }
         const c = renderer.getActiveCamera();
-        renderer.resetCamera(); c.zoom(1.15); renderer.resetCameraClippingRange(); renderWindow.render();
+        renderer.resetCamera(); c.zoom(1.15); renderer.resetCameraClippingRange();
         cameraState = { position: [...c.getPosition()], focalPoint: [...c.getFocalPoint()], viewUp: [...c.getViewUp()], parallelProjection: c.getParallelProjection(), parallelScale: c.getParallelScale(), viewAngle: c.getViewAngle() };
         options.forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.domainName === name)));
         caption.textContent = name;
+        docsLink.href = domain.docsUrl;
         container.setAttribute('aria-label', `Interactive ${name} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`);
         status.hidden = true; reset.disabled = false;
       } catch (error) {
@@ -105,14 +124,18 @@ const { domains, initialDomain } = Astro.props;
       option.addEventListener('click', handler); return [option, handler] as const;
     });
     reset.addEventListener('click', resetView);
+    const sliceHandlers = sliceTabs.map((tab) => { const handler = () => setPlane(tab.dataset.slicePlane || 'xy'); tab.addEventListener('click', handler); return [tab, handler] as const; });
+    const modeHandler = () => show3d(); view3d?.addEventListener('click', modeHandler);
     const observer = new ResizeObserver(() => { if (!disposed) { grw.resize(); renderWindow.render(); } });
     observer.observe(container);
     await load(root.dataset.initialDomain || domains.find((d) => d.url)?.name || '');
     return () => {
       disposed = true; aborter?.abort(); observer.disconnect(); reset.removeEventListener('click', resetView);
       handlers.forEach(([o, h]) => o.removeEventListener('click', h));
+      sliceHandlers.forEach(([tab, handler]) => tab.removeEventListener('click', handler));
+      view3d?.removeEventListener('click', modeHandler);
       if (actorAdded) renderer.removeActor(actor);
-      reader?.delete(); actor.delete(); mapper.delete(); grw.delete();
+      reader?.delete(); actor.delete(); cutter.delete(); plane.delete(); mapper.delete(); grw.delete();
     };
   }
   function initialise() {
@@ -127,6 +150,9 @@ const { domains, initialDomain } = Astro.props;
 
 <style>
   .domain-browser { display:grid; grid-template-columns:minmax(210px,.34fr) minmax(0,1fr); gap:clamp(28px,5vw,56px); align-items:start; }
+  .slice-tabs { display:flex; gap:0 24px; margin-bottom:12px; border-bottom:1px solid var(--rule); }
+  .slice-tabs button { padding:9px 0 7px; border:0; border-bottom:2px solid transparent; background:none; color:var(--muted); cursor:pointer; font:inherit; font-size:.82rem; }
+  .slice-tabs button[aria-selected="true"] { border-bottom-color:var(--cyan); color:var(--paper); }
   .domain-index p { margin:0 0 10px; color:var(--muted); font-size:.82rem; }
   ul { margin:0; padding:0; border-top:1px solid var(--rule); list-style:none; }
   li { border-bottom:1px solid var(--rule); }
@@ -150,4 +176,18 @@ const { domains, initialDomain } = Astro.props;
   .reset:hover:not(:disabled) { background:var(--cyan); color:var(--ink); } .reset:disabled { opacity:.45; cursor:wait; }
   @media(max-width:760px) { .domain-browser { grid-template-columns:1fr; } .domain-index ul { columns:2; column-gap:24px; } .domain-index li { break-inside:avoid; } .viewer { height:clamp(320px,92vw,400px); } }
   @media(max-width:440px) { .domain-index ul { columns:1; } .viewer-details { align-items:stretch; flex-direction:column; gap:12px; } .reset { align-self:flex-start; } }
+</style>
+<style>
+  .domain-index ul { max-height: 600px; overflow: auto; }
+  .domain-index li { display: block; padding: 0; }
+  .domain-index .domain-option { display: block; width: 100%; padding: 11px 8px; border: 0; border-bottom: 1px solid var(--rule); background: none; color: var(--cyan); text-align: left; cursor: pointer; }
+  .domain-option code { display: block; color: inherit; font: 600 .87rem/1.45 var(--mono); }
+  .domain-option small { display: block; margin-top: 2px; color: var(--muted); font: .72rem var(--mono); }
+  .domain-option:hover:not(:disabled), .domain-option:focus-visible, .domain-option[aria-pressed="true"] { background: rgba(99,238,230,.12); color: var(--paper); }
+  .domain-option[aria-pressed="true"] { border-left: 2px solid var(--cyan); padding-left: 6px; }
+  .domain-option:disabled { color: var(--muted); cursor: not-allowed; opacity: .62; }
+  .domain-index .domain-option + small { display: none; }
+  figcaption a { color: var(--cyan); }
+  @media(max-width:760px) { .domain-index ul { columns: 2; max-height: none; } .domain-index li { break-inside: avoid; } }
+  @media(max-width:440px) { .domain-index ul { columns: 1; } }
 </style>
