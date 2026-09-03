@@ -1,5 +1,5 @@
 ---
-interface DomainEntry { name: string; url?: string; unavailableReason?: string; }
+interface DomainEntry { name: string; url?: string; docsUrl: string; unavailableReason?: string; }
 interface Props { domains: DomainEntry[]; initialDomain: string; }
 const { domains, initialDomain } = Astro.props;
 ---
@@ -7,7 +7,11 @@ const { domains, initialDomain } = Astro.props;
 <div class="domain-browser" data-domain-browser data-domains={JSON.stringify(domains)} data-initial-domain={initialDomain}>
   <aside class="domain-index" aria-label="Available Struphy domains">
     <p>Domain classes</p>
-    <ul>{domains.map((domain) => <li><button type="button" data-domain-name={domain.name} aria-pressed={domain.name === initialDomain ? 'true' : 'false'} disabled={!domain.url} title={domain.unavailableReason}><span>{domain.name}</span>{!domain.url && <small>Requires equilibrium data</small>}</button></li>)}</ul>
+    <ul>{domains.map((domain) => <li>
+      <a href={domain.docsUrl} target="_blank" rel="noreferrer">{domain.name}</a>
+      <button type="button" data-domain-name={domain.name} aria-label={`View ${domain.name} geometry`} aria-pressed={domain.name === initialDomain ? 'true' : 'false'} disabled={!domain.url} title={domain.unavailableReason}>View</button>
+      {!domain.url && <small>Requires equilibrium data</small>}
+    </li>)}</ul>
   </aside>
   <figure aria-labelledby="domain-caption">
     <div class="viewer" data-vtk-viewer role="img" aria-label={`Interactive ${initialDomain} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`}>
@@ -27,7 +31,7 @@ const { domains, initialDomain } = Astro.props;
   import vtkMapper from '@kitware/vtk.js/Rendering/Core/Mapper';
   import vtkXMLPolyDataReader from '@kitware/vtk.js/IO/XML/XMLPolyDataReader';
 
-  type DomainEntry = { name: string; url?: string };
+  type DomainEntry = { name: string; url?: string; docsUrl: string };
   type Cleanup = () => void;
   const cleanups = new Map<HTMLElement, Cleanup>();
 
@@ -126,11 +130,15 @@ const { domains, initialDomain } = Astro.props;
   .domain-index p { margin:0 0 10px; color:var(--muted); font-size:.82rem; }
   ul { margin:0; padding:0; border-top:1px solid var(--rule); list-style:none; }
   li { border-bottom:1px solid var(--rule); }
-  .domain-index button { width:100%; padding:9px 0; border:0; background:transparent; color:var(--cyan); font:inherit; font-size:.88rem; text-align:left; cursor:pointer; }
-  .domain-index button:hover:not(:disabled), .domain-index button[aria-pressed="true"] { color:var(--paper); text-decoration:underline; text-underline-offset:.2em; }
+  .domain-index li { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; padding:9px 0; }
+  .domain-index a { min-width:0; overflow-wrap:anywhere; color:var(--cyan); font-size:.88rem; }
+  .domain-index a:hover { color:var(--paper); text-decoration-thickness:2px; text-underline-offset:.2em; }
+  .domain-index a:focus-visible { outline:2px solid var(--paper); outline-offset:3px; }
+  .domain-index button { padding:3px 7px; border:1px solid var(--cyan); border-radius:0; background:transparent; color:var(--cyan); font:inherit; font-size:.72rem; cursor:pointer; }
+  .domain-index button:hover:not(:disabled), .domain-index button[aria-pressed="true"] { background:var(--cyan); color:var(--ink); }
   button:focus-visible { outline:2px solid var(--paper); outline-offset:3px; }
   .domain-index button:disabled { color:var(--muted); cursor:not-allowed; opacity:.62; }
-  .domain-index small { display:block; margin-top:1px; font-size:.7rem; }
+  .domain-index small { grid-column:1 / -1; margin-top:-5px; font-size:.7rem; }
   figure { min-width:0; margin:0; }
   .viewer { position:relative; width:100%; height:clamp(400px,46vw,520px); overflow:hidden; border:1px solid var(--rule); background:var(--ink); touch-action:none; }
   .viewer :global(canvas) { display:block; width:100%; height:100%; }
