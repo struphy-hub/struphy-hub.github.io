@@ -122,7 +122,7 @@ const { domains, initialDomain } = Astro.props;
     if (!container || !status || !reset || !caption || !docsLink || !sliceView || !gridLines || !parameterBody) return () => {};
     const domains = JSON.parse(root.dataset.domains || '[]') as DomainEntry[];
     const byName = new Map(domains.map((d) => [d.name, d]));
-    const grw = vtkGenericRenderWindow.newInstance({ background: [0.027, 0.075, 0.114] });
+    const grw = vtkGenericRenderWindow.newInstance();
     grw.setContainer(container); grw.resize();
     const renderer = grw.getRenderer();
     const renderWindow = grw.getRenderWindow();
@@ -131,10 +131,8 @@ const { domains, initialDomain } = Astro.props;
     const cutter = vtkCutter.newInstance({ cutFunction: plane });
     const actor = vtkActor.newInstance();
     actor.setMapper(mapper);
-    actor.getProperty().setColor(0.39, 0.93, 0.9);
     actor.getProperty().setOpacity(0.9);
     actor.getProperty().setEdgeVisibility(true);
-    actor.getProperty().setEdgeColor(0.39, 0.93, 0.9);
     actor.getProperty().setLineWidth(1.2);
     let actorAdded = false;
     let reader: any;
@@ -145,6 +143,28 @@ const { domains, initialDomain } = Astro.props;
     let serial = 0;
     let disposed = false;
     let metadata: Record<string, DomainMetadata> = {};
+
+    const readThemeColour = (variable: string): [number, number, number] => {
+      const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+      const hex = value.match(/^#([\da-f]{3}|[\da-f]{6})$/i)?.[1];
+      if (hex) {
+        const expanded = hex.length === 3 ? [...hex].map((character) => character + character).join('') : hex;
+        return [0, 2, 4].map((offset) => parseInt(expanded.slice(offset, offset + 2), 16) / 255) as [number, number, number];
+      }
+      const rgb = value.match(/^rgba?\(\s*([\d.]+)[, ]+\s*([\d.]+)[, ]+\s*([\d.]+)/i);
+      return rgb ? [Number(rgb[1]) / 255, Number(rgb[2]) / 255, Number(rgb[3]) / 255] : [0, 0, 0];
+    };
+    const applyTheme = () => {
+      const background = readThemeColour('--ink');
+      const accent = readThemeColour('--cyan');
+      renderer.setBackground(...background);
+      actor.getProperty().setColor(...accent);
+      actor.getProperty().setEdgeColor(...accent);
+      renderWindow.render();
+    };
+    applyTheme();
+    const themeObserver = new MutationObserver(applyTheme);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     const valueText = (value: unknown) => value !== null && typeof value === 'object'
       ? JSON.stringify(value)
@@ -259,7 +279,7 @@ const { domains, initialDomain } = Astro.props;
         dot.setAttribute('cx', String(sx(a)));
         dot.setAttribute('cy', String(sy(b)));
         dot.setAttribute('r', '4');
-        dot.setAttribute('fill', '#e85d5d');
+        dot.setAttribute('fill', 'var(--viewer-highlight)');
         gridLines.appendChild(dot);
       };
       const addLine = (points: Array<[number, number]>, highlight = false) => {
@@ -272,7 +292,7 @@ const { domains, initialDomain } = Astro.props;
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
         line.setAttribute('points', points.map(([a, b]) => `${sx(a)},${sy(b)}`).join(' '));
         line.setAttribute('fill', 'none');
-        line.setAttribute('stroke', highlight ? '#e85d5d' : 'var(--cyan)');
+        line.setAttribute('stroke', highlight ? 'var(--viewer-highlight)' : 'var(--cyan)');
         line.setAttribute('stroke-opacity', highlight ? '1' : '.55');
         line.setAttribute('stroke-width', highlight ? '2' : '1');
         gridLines.appendChild(line);
@@ -381,7 +401,7 @@ const { domains, initialDomain } = Astro.props;
       : (root.dataset.initialDomain || domains.find((d) => d.url)?.name || '');
     await Promise.all([load(initialName), metadataReady]);
     return () => {
-      disposed = true; aborter?.abort(); observer.disconnect(); reset.removeEventListener('click', resetView);
+      disposed = true; aborter?.abort(); observer.disconnect(); themeObserver.disconnect(); reset.removeEventListener('click', resetView);
       handlers.forEach(([o, h]) => o.removeEventListener('click', h));
       sliceHandlers.forEach(([tab, handler]) => tab.removeEventListener('click', handler));
       view3d?.removeEventListener('click', modeHandler);
@@ -415,7 +435,8 @@ const { domains, initialDomain } = Astro.props;
 </script>
 
 <style>
-  .domain-browser { display:grid; grid-template-columns:minmax(250px,300px) minmax(0,1fr); gap:48px; align-items:start; }
+  .domain-browser { --viewer-highlight:#a43f00; display:grid; grid-template-columns:minmax(250px,300px) minmax(0,1fr); gap:48px; align-items:start; }
+  :global(html[data-theme='dark']) .domain-browser { --viewer-highlight:#f2b35d; }
   .domain-index { position:sticky; top:24px; min-width:0; }
   .eyebrow { margin:0 0 7px; color:var(--muted); font:600 .76rem/1.4 var(--mono); letter-spacing:.08em; text-transform:uppercase; }
   .domain-filter { width:100%; margin-bottom:10px; padding:8px 10px; border:1px solid var(--rule); background:var(--ink); color:var(--paper); font:inherit; font-size:.87rem; }
@@ -448,7 +469,7 @@ const { domains, initialDomain } = Astro.props;
   .viewer-frame:fullscreen .viewer,
   .viewer-frame:fullscreen .slice-view { height:100%; }
   .viewer, .slice-view { width:100%; height:clamp(400px,42vw,500px); border:1px solid var(--rule); }
-  .viewer { position:relative; overflow:hidden; background:#07131d; touch-action:none; }
+  .viewer { position:relative; overflow:hidden; background:var(--ink); touch-action:none; }
   .viewer :global(canvas) { display:block; width:100%; height:100%; }
   .slice-view { background:var(--plot-bg); }
   .slice-view svg { display:block; width:100%; height:100%; }
@@ -456,8 +477,8 @@ const { domains, initialDomain } = Astro.props;
   .viewer-details-actions { display:flex; flex:none; gap:10px; }
   .expand { flex:none; padding:7px 12px; border:1px solid var(--rule); background:transparent; color:var(--muted); font:inherit; font-size:.82rem; cursor:pointer; }
   .expand:hover { color:var(--paper); border-color:var(--cyan); }
-  .status { position:absolute; inset:0; z-index:1; display:grid; place-items:center; margin:0; padding:24px; color:#a9b7bb; text-align:center; pointer-events:none; }
-  .status.error { color:#eeeadd; }
+  .status { position:absolute; inset:0; z-index:1; display:grid; place-items:center; margin:0; padding:24px; color:var(--muted); text-align:center; pointer-events:none; }
+  .status.error { color:var(--paper); }
   .status[hidden] { display:none; }
   .viewer-details { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-top:12px; }
   figcaption { color:var(--muted); font-size:.85rem; }
