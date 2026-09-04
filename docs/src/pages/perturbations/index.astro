@@ -1,10 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { toSlug } from '../../lib/catalogue';
-
-const imported = import.meta.glob('../../data/perturbations/*.json', { eager: true, import: 'default' });
-const perturbations = [...new Map(Object.values(imported).map((value: any) => [value.type, value])).values()]
-  .sort((a: any, b: any) => a.type.localeCompare(b.type));
+import catalogueIndex from '../../data/catalogue-index.json';
+const perturbations = catalogueIndex.perturbations;
 ---
 
 <Layout title="Perturbations — Struphy" description="Browse initial-condition perturbations available in Struphy.">
@@ -12,7 +9,7 @@ const perturbations = [...new Map(Object.values(imported).map((value: any) => [v
     <section class="intro" aria-labelledby="page-title"><p class="eyebrow">Initial conditions</p><h1 id="page-title">Perturbations</h1><p>Browse functions used to seed Struphy simulations. Each entry has a shareable page with slice plots, profiles, parameters, and a documentation link.</p></section>
     <section class="directory" aria-labelledby="directory-title">
       <div class="directory-heading"><div><p class="eyebrow">{perturbations.length} available</p><h2 id="directory-title">Choose a perturbation</h2></div><input type="search" data-filter placeholder="Filter perturbations…" aria-label="Filter perturbations" /></div>
-      <div class="cards">{perturbations.map((item: any) => <a class="card" href={`/perturbations/${toSlug(item.type)}/`} data-search={`${item.type} ${item.given_in_basis ?? ''}`.toLowerCase()}><code>{item.type}</code><span>{item.given_in_basis ? `Basis: ${item.given_in_basis}` : 'Initial-condition function'}</span></a>)}</div>
+      <div class="cards">{perturbations.map((item: any) => <a class="card" href={`/perturbations/${item.slug}/`} data-search={`${item.type} ${item.basis ?? ''}`.toLowerCase()}><code>{item.type}</code><span>{item.basis ? `Basis: ${item.basis}` : 'Initial-condition function'}</span></a>)}</div>
       <p data-empty hidden>No perturbations match your search.</p>
     </section>
   </main>

@@ -1,10 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { toSlug } from '../../lib/catalogue';
-
-const imported = import.meta.glob('../../data/equilibria/*.json', { eager: true, import: 'default' });
-const equilibria = [...new Map(Object.values(imported).map((value: any) => [value.type, value])).values()]
-  .sort((a: any, b: any) => a.type.localeCompare(b.type));
+import catalogueIndex from '../../data/catalogue-index.json';
+const equilibria = catalogueIndex.equilibria;
 ---
 
 <Layout title="Equilibria — Struphy" description="Browse equilibrium fields available for Struphy simulations.">
@@ -21,9 +18,9 @@ const equilibria = [...new Map(Object.values(imported).map((value: any) => [valu
       </div>
       <div class="cards" data-items>
         {equilibria.map((equilibrium: any) => (
-          <a class="card" href={`/equilibria/${toSlug(equilibrium.type)}/`} data-search={equilibrium.type.toLowerCase()}>
+          <a class="card" href={`/equilibria/${equilibrium.slug}/`} data-search={equilibrium.type.toLowerCase()}>
             <code>{equilibrium.type}</code>
-            <span>{Object.keys(equilibrium.parameters ?? {}).length} parameters</span>
+            <span>{equilibrium.parameterCount} parameters</span>
           </a>
         ))}
       </div>

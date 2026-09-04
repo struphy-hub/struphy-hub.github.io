@@ -1,14 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import rawModels from '../data/models.json';
-
-const equilibriumFiles = import.meta.glob('../data/equilibria/*.json');
-const perturbationFiles = import.meta.glob('../data/perturbations/*.json');
+import catalogueIndex from '../data/catalogue-index.json';
 const projectStats = [
   { value: rawModels.length, label: 'simulation models' },
   { value: 14, label: 'mapped domains' },
-  { value: Object.keys(equilibriumFiles).length, label: 'equilibria' },
-  { value: Object.keys(perturbationFiles).length, label: 'perturbations' },
+  { value: catalogueIndex.equilibria.length, label: 'equilibria' },
+  { value: catalogueIndex.perturbations.length, label: 'perturbations' },
 ];
 
 const links = {

@@ -1,18 +1,15 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import rawModels from '../../data/models.json';
-import { excerpt, toSlug } from '../../lib/catalogue';
+import catalogueIndex from '../../data/catalogue-index.json';
+import { toSlug } from '../../lib/catalogue';
 
-const equilibriaImported = import.meta.glob('../../data/equilibria/*.json', { eager: true, import: 'default' });
-const perturbationsImported = import.meta.glob('../../data/perturbations/*.json', { eager: true, import: 'default' });
 const domainNames = ['Colella','Cuboid','DESCunit','GVECunit','HollowCylinder','HollowTorus','IGAPolarCylinder','IGAPolarTorus','Orthogonal','PoweredEllipticCylinder','ShafranovDshapedCylinder','ShafranovShiftCylinder','ShafranovSqrtCylinder','Tokamak'];
-const equilibria = [...new Map(Object.values(equilibriaImported).map((item: any)=>[item.type,item])).values()];
-const perturbations = [...new Map(Object.values(perturbationsImported).map((item: any)=>[item.type,item])).values()];
 const records = [
-  ...rawModels.map((item: any)=>({type:'Model',name:item.className,description:item.description||excerpt(item.longDescriptionHtml),href:`/models/${toSlug(item.className)}/`,keywords:`${item.type} ${item.useCasesHtml||''}`})),
+  ...rawModels.map((item: any)=>({type:'Model',name:item.className,description:item.description||'Struphy simulation model.',href:`/models/${toSlug(item.className)}/`,keywords:`${item.type} ${item.useCasesHtml||''}`})),
   ...domainNames.map((name)=>({type:'Domain',name,description:'Mapped geometry available for Struphy simulations.',href:`/domains/#${name}`,keywords:'geometry mapping'})),
-  ...equilibria.map((item: any)=>({type:'Equilibrium',name:item.type,description:excerpt(item.description_html)||'Background fields for initializing a Struphy simulation.',href:`/equilibria/${toSlug(item.type)}/`,keywords:Object.keys(item.parameters??{}).join(' ')})),
-  ...perturbations.map((item: any)=>({type:'Perturbation',name:item.type,description:`Initial-condition perturbation${item.given_in_basis?` in the ${item.given_in_basis} basis`:''}.`,href:`/perturbations/${toSlug(item.type)}/`,keywords:`${item.given_in_basis||''} ${Object.keys(item.parameters??{}).join(' ')}`})),
+  ...catalogueIndex.equilibria.map((item)=>({type:'Equilibrium',name:item.type,description:item.description||'Background fields for initializing a Struphy simulation.',href:`/equilibria/${item.slug}/`,keywords:''})),
+  ...catalogueIndex.perturbations.map((item)=>({type:'Perturbation',name:item.type,description:`Initial-condition perturbation${item.basis?` in the ${item.basis} basis`:''}.`,href:`/perturbations/${item.slug}/`,keywords:item.basis||''})),
 ].sort((a,b)=>a.name.localeCompare(b.name));
 const types = ['All','Model','Domain','Equilibrium','Perturbation'];
 ---

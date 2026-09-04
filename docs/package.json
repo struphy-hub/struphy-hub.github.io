@@ -6,7 +6,10 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "catalogue:index": "node scripts/generate-catalogue-index.mjs",
+    "predev": "npm run catalogue:index",
     "dev": "astro dev",
+    "prebuild": "npm run catalogue:index",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"

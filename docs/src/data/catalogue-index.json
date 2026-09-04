@@ -1,0 +1,267 @@
+{
+  "equilibria": [
+    {
+      "file": "equilibria/adhoctorus.json",
+      "type": "AdhocTorus",
+      "slug": "adhoc-torus",
+      "parameterCount": 17,
+      "description": "Ad hoc tokamak MHD equilibrium with circular concentric flux surfaces. For a cylindrical coordinate system mathematical formulation with transformation formulae mathemati…"
+    },
+    {
+      "file": "equilibria/adhoctorusqpsi.json",
+      "type": "AdhocTorusQPsi",
+      "slug": "adhoc-torus-qpsi",
+      "parameterCount": 14,
+      "description": "Ad hoc tokamak MHD equilibrium with circular concentric flux surfaces. For a cylindrical coordinate system mathematical formulation with transformation formulae mathemati…"
+    },
+    {
+      "file": "equilibria/circulartokamak.json",
+      "type": "CircularTokamak",
+      "slug": "circular-tokamak",
+      "parameterCount": 4,
+      "description": "Tokamak MHD equilibrium with circular concentric flux surfaces. For a cylindrical coordinate system mathematical formulation with transformation formulae mathematical for…"
+    },
+    {
+      "file": "equilibria/constantvelocity.json",
+      "type": "ConstantVelocity",
+      "slug": "constant-velocity",
+      "parameterCount": 12,
+      "description": "Constant-velocity background equilibrium. Represents a simple fluid equilibrium with a spatially-constant bulk velocity ( ux , uy , uz ) and configurable density/pressure…"
+    },
+    {
+      "file": "equilibria/currentsheet.json",
+      "type": "CurrentSheet",
+      "slug": "current-sheet",
+      "parameterCount": 2,
+      "description": "Current sheet equilibrium mathematical formulation Units are those defned in the parameter file (through struphy.io.options.BaseUnits )."
+    },
+    {
+      "file": "equilibria/eqdskequilibrium.json",
+      "type": "EQDSKequilibrium",
+      "slug": "eqdskequilibrium",
+      "parameterCount": 11,
+      "description": "Interface to `EQDSK file format `_."
+    },
+    {
+      "file": "equilibria/genericcartesianfluidequilibrium.json",
+      "type": "GenericCartesianFluidEquilibrium",
+      "slug": "generic-cartesian-fluid-equilibrium",
+      "parameterCount": 3,
+      "description": "Generic Cartesian fluid equilibrium with callable fields. This class extends CartesianFluidEquilibrium to allow user-defined callable functions for velocity, pressure, an…"
+    },
+    {
+      "file": "equilibria/genericcartesianfluidequilibriumwithb.json",
+      "type": "GenericCartesianFluidEquilibriumWithB",
+      "slug": "generic-cartesian-fluid-equilibrium-with-b",
+      "parameterCount": 3,
+      "description": "Generic Cartesian fluid equilibrium with magnetic field and callable fields. This class extends GenericCartesianFluidEquilibrium to include magnetic field and its gradien…"
+    },
+    {
+      "file": "equilibria/homogenslab.json",
+      "type": "HomogenSlab",
+      "slug": "homogen-slab",
+      "parameterCount": 5,
+      "description": "Homogeneous MHD equilibrium: mathematical formulation Units are those defned in the parameter file (through struphy.io.options.BaseUnits )."
+    },
+    {
+      "file": "equilibria/homogenslabitg.json",
+      "type": "HomogenSlabITG",
+      "slug": "homogen-slab-itg",
+      "parameterCount": 6,
+      "description": "Homogenous slab equilibrium with temperature gradient in x, B-field in z: mathematical formulation Units are those defned in the parameter file (through struphy.io.option…"
+    },
+    {
+      "file": "equilibria/screwpinch.json",
+      "type": "ScrewPinch",
+      "slug": "screw-pinch",
+      "parameterCount": 10,
+      "description": "Straight tokamak (screw pinch) MHD equilibrium for a cylindrical geometry of radius mathematical formulation and length mathematical formulation. The profiles in cylindri…"
+    },
+    {
+      "file": "equilibria/shearedslab.json",
+      "type": "ShearedSlab",
+      "slug": "sheared-slab",
+      "parameterCount": 10,
+      "description": "Sheared slab MHD equilibrium in a cube with side lengths mathematical formulation. Profiles depend on mathematical formulation solely: mathematical formulation Units are…"
+    },
+    {
+      "file": "equilibria/shearfluid.json",
+      "type": "ShearFluid",
+      "slug": "shear-fluid",
+      "parameterCount": 13,
+      "description": "Sheared fluid equilibrium in a cube with side lengths mathematical formulation. Profiles depend on mathematical formulation solely: mathematical formulation Units are tho…"
+    }
+  ],
+  "perturbations": [
+    {
+      "file": "perturbations/CoaxialWaveguideElectric_r.json",
+      "type": "CoaxialWaveguideElectric_r",
+      "slug": "coaxial-waveguide-electric-r",
+      "parameterCount": 5,
+      "basis": "norm"
+    },
+    {
+      "file": "perturbations/CoaxialWaveguideElectric_theta.json",
+      "type": "CoaxialWaveguideElectric_theta",
+      "slug": "coaxial-waveguide-electric-theta",
+      "parameterCount": 5,
+      "basis": "norm"
+    },
+    {
+      "file": "perturbations/CoaxialWaveguideMagnetic.json",
+      "type": "CoaxialWaveguideMagnetic",
+      "slug": "coaxial-waveguide-magnetic",
+      "parameterCount": 5,
+      "basis": "norm"
+    },
+    {
+      "file": "perturbations/Erf_z.json",
+      "type": "Erf_z",
+      "slug": "erf-z",
+      "parameterCount": 4
+    },
+    {
+      "file": "perturbations/ITPA_density.json",
+      "type": "ITPA_density",
+      "slug": "itpa-density",
+      "parameterCount": 3,
+      "basis": "physical"
+    },
+    {
+      "file": "perturbations/ManufacturedSolutionPotential.json",
+      "type": "ManufacturedSolutionPotential",
+      "slug": "manufactured-solution-potential",
+      "parameterCount": 2,
+      "basis": "physical"
+    },
+    {
+      "file": "perturbations/ManufacturedSolutionVelocity.json",
+      "type": "ManufacturedSolutionVelocity",
+      "slug": "manufactured-solution-velocity",
+      "parameterCount": 4,
+      "basis": "physical"
+    },
+    {
+      "file": "perturbations/ManufacturedSolutionVelocity_2.json",
+      "type": "ManufacturedSolutionVelocity_2",
+      "slug": "manufactured-solution-velocity-2",
+      "parameterCount": 4,
+      "basis": "physical"
+    },
+    {
+      "file": "perturbations/ModesCos.json",
+      "type": "ModesCos",
+      "slug": "modes-cos",
+      "parameterCount": 10
+    },
+    {
+      "file": "perturbations/ModesCosCos.json",
+      "type": "ModesCosCos",
+      "slug": "modes-cos-cos",
+      "parameterCount": 12
+    },
+    {
+      "file": "perturbations/ModesCosSin.json",
+      "type": "ModesCosSin",
+      "slug": "modes-cos-sin",
+      "parameterCount": 12
+    },
+    {
+      "file": "perturbations/ModesSin.json",
+      "type": "ModesSin",
+      "slug": "modes-sin",
+      "parameterCount": 12
+    },
+    {
+      "file": "perturbations/ModesSinCos.json",
+      "type": "ModesSinCos",
+      "slug": "modes-sin-cos",
+      "parameterCount": 12
+    },
+    {
+      "file": "perturbations/ModesSinSin.json",
+      "type": "ModesSinSin",
+      "slug": "modes-sin-sin",
+      "parameterCount": 12
+    },
+    {
+      "file": "perturbations/RestelliAnalyticSolutionPotential.json",
+      "type": "RestelliAnalyticSolutionPotential",
+      "slug": "restelli-analytic-solution-potential",
+      "parameterCount": 6,
+      "basis": "physical"
+    },
+    {
+      "file": "perturbations/RestelliAnalyticSolutionVelocity.json",
+      "type": "RestelliAnalyticSolutionVelocity",
+      "slug": "restelli-analytic-solution-velocity",
+      "parameterCount": 7,
+      "basis": "physical"
+    },
+    {
+      "file": "perturbations/RestelliAnalyticSolutionVelocity_2.json",
+      "type": "RestelliAnalyticSolutionVelocity_2",
+      "slug": "restelli-analytic-solution-velocity-2",
+      "parameterCount": 7,
+      "basis": "physical"
+    },
+    {
+      "file": "perturbations/RestelliAnalyticSolutionVelocity_3.json",
+      "type": "RestelliAnalyticSolutionVelocity_3",
+      "slug": "restelli-analytic-solution-velocity-3",
+      "parameterCount": 7,
+      "basis": "physical"
+    },
+    {
+      "file": "perturbations/Shear_x.json",
+      "type": "Shear_x",
+      "slug": "shear-x",
+      "parameterCount": 4
+    },
+    {
+      "file": "perturbations/Shear_y.json",
+      "type": "Shear_y",
+      "slug": "shear-y",
+      "parameterCount": 4
+    },
+    {
+      "file": "perturbations/Shear_z.json",
+      "type": "Shear_z",
+      "slug": "shear-z",
+      "parameterCount": 4
+    },
+    {
+      "file": "perturbations/TokamakManufacturedSolutionVelocity.json",
+      "type": "TokamakManufacturedSolutionVelocity",
+      "slug": "tokamak-manufactured-solution-velocity",
+      "parameterCount": 7,
+      "basis": "physical"
+    },
+    {
+      "file": "perturbations/TokamakManufacturedSolutionVelocity_1.json",
+      "type": "TokamakManufacturedSolutionVelocity_1",
+      "slug": "tokamak-manufactured-solution-velocity-1",
+      "parameterCount": 7,
+      "basis": "physical"
+    },
+    {
+      "file": "perturbations/TokamakManufacturedSolutionVelocity_2.json",
+      "type": "TokamakManufacturedSolutionVelocity_2",
+      "slug": "tokamak-manufactured-solution-velocity-2",
+      "parameterCount": 7,
+      "basis": "physical"
+    },
+    {
+      "file": "perturbations/TorusModesCos.json",
+      "type": "TorusModesCos",
+      "slug": "torus-modes-cos",
+      "parameterCount": 7
+    },
+    {
+      "file": "perturbations/TorusModesSin.json",
+      "type": "TorusModesSin",
+      "slug": "torus-modes-sin",
+      "parameterCount": 7
+    }
+  ]
+}
