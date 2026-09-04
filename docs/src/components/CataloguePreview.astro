@@ -1,0 +1,47 @@
+---
+const { category, initialSlug } = Astro.props;
+---
+<section class="preview" data-catalogue-preview data-category={category} data-slug={initialSlug} aria-label="Selected item figures">
+  <div class="tabs" role="tablist" aria-label="Coordinate slice plane">
+    {['xy','xz','yz'].map((plane,index)=><button type="button" role="tab" data-plane={plane} aria-selected={String(index===0)}>{plane.toUpperCase()}</button>)}
+  </div>
+  <p class="loading" data-preview-status>Loading figures…</p>
+  <div class="heatmaps" data-heatmaps></div>
+  <div class="profile-section" data-profile-section hidden>
+    <h3>Coordinate-line profiles</h3>
+    <div class="profiles" data-profiles></div>
+  </div>
+</section>
+
+<script>
+  function palette(value: number, diverging: boolean) {
+    const stops = diverging ? [[32,99,155],[247,247,247],[178,24,43]] : [[68,1,84],[33,145,140],[253,231,37]];
+    const scaled=Math.max(0,Math.min(1,value))*(stops.length-1),index=Math.min(stops.length-2,Math.floor(scaled)),amount=scaled-index;
+    return stops[index].map((channel,channelIndex)=>Math.round(channel+(stops[index+1][channelIndex]-channel)*amount));
+  }
+  function drawHeatmap(canvas: HTMLCanvasElement, values: number[][], diverging: boolean) {
+    const flat=values.flat().map(Number),min=Math.min(...flat),max=Math.max(...flat),span=max-min||1,context=canvas.getContext('2d');if(!context)return {min,max};
+    const rows=values.length,columns=values[0]?.length||1,cellWidth=canvas.width/columns,cellHeight=canvas.height/rows;
+    values.forEach((row,y)=>row.forEach((value,x)=>{const [red,green,blue]=palette((value-min)/span,diverging);context.fillStyle=`rgb(${red},${green},${blue})`;context.fillRect(x*cellWidth,y*cellHeight,Math.ceil(cellWidth),Math.ceil(cellHeight))}));return {min,max};
+  }
+  function addLineFigure(container: HTMLElement, line: any, label: string, category: string) {
+    const fields=category==='equilibria'?['p','n']:['u'];const figure=document.createElement('figure'),svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 300 170');svg.setAttribute('role','img');svg.setAttribute('aria-label',`${label} coordinate-line profile`);
+    const frame=document.createElementNS(svg.namespaceURI,'rect');frame.setAttribute('x','10');frame.setAttribute('y','10');frame.setAttribute('width','280');frame.setAttribute('height','140');frame.setAttribute('fill','none');frame.setAttribute('stroke','var(--rule)');svg.appendChild(frame);
+    fields.forEach((field,index)=>{const values=line?.fields?.[field];if(!values?.length)return;const min=Math.min(...values),max=Math.max(...values),span=max-min||1;const points=values.map((value,i)=>`${10+(i/Math.max(1,values.length-1))*280},${150-((value-min)/span)*140}`).join(' ');const polyline=document.createElementNS(svg.namespaceURI,'polyline');polyline.setAttribute('points',points);polyline.setAttribute('fill','none');polyline.setAttribute('stroke',index===0?'var(--cyan)':'var(--preview-secondary)');polyline.setAttribute('stroke-width','2');svg.appendChild(polyline)});
+    const caption=document.createElement('figcaption');caption.textContent=label;figure.append(svg,caption);container.appendChild(figure);
+  }
+  function setupPreview(root: HTMLElement) {
+    const heatmaps=root.querySelector<HTMLElement>('[data-heatmaps]'),profiles=root.querySelector<HTMLElement>('[data-profiles]'),profileSection=root.querySelector<HTMLElement>('[data-profile-section]'),status=root.querySelector<HTMLElement>('[data-preview-status]'),tabs=[...root.querySelectorAll<HTMLButtonElement>('[data-plane]')];if(!heatmaps||!profiles||!profileSection||!status)return;
+    let item:any=null,activePlane='xy',request=0;const category=root.dataset.category||'equilibria';
+    const renderPlane=()=>{const slice=item?.slices?.[activePlane];heatmaps.replaceChildren();if(!slice){status.hidden=false;status.textContent='No figure is available for this plane.';return}status.hidden=true;const fields=category==='equilibria'?['p','n']:['u'];fields.forEach((field)=>{const values=slice.fields?.[field]?.values;if(!values)return;const figure=document.createElement('figure'),canvas=document.createElement('canvas'),caption=document.createElement('figcaption');canvas.width=440;canvas.height=360;const range=drawHeatmap(canvas,values,category==='perturbations');const fieldLabel=field==='p'?'Pressure':field==='n'?'Density':'Perturbation value';canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`${fieldLabel} ${activePlane.toUpperCase()} heatmap, ${range.min.toExponential(2)} to ${range.max.toExponential(2)}`);caption.innerHTML=`<strong>${fieldLabel}</strong><span>${slice.axes.join('–')} · ${range.min.toExponential(2)} to ${range.max.toExponential(2)}</span>`;figure.append(canvas,caption);heatmaps.appendChild(figure)});};
+    const renderProfiles=()=>{profiles.replaceChildren();const entries=Object.entries(item?.centerlines||{}).filter(([,line])=>line);profileSection.hidden=!entries.length;entries.forEach(([axis,line])=>addLineFigure(profiles,line,axis,category));};
+    const load=async(slug:string)=>{const current=++request;status.hidden=false;status.textContent='Loading figures…';try{const response=await fetch(`/catalogue-data/${category}/${slug}.json`);if(!response.ok)throw new Error(`Figures returned ${response.status}`);const data=await response.json();if(current!==request)return;item=data;renderPlane();renderProfiles()}catch(error){console.error('Unable to load catalogue figures:',error);status.textContent='Figures could not be loaded.'}};
+    tabs.forEach((tab)=>tab.addEventListener('click',()=>{activePlane=tab.dataset.plane||'xy';tabs.forEach((button)=>button.setAttribute('aria-selected',String(button===tab)));renderPlane()}));
+    root.addEventListener('catalogue-preview-change',((event:CustomEvent)=>{const slug=event.detail?.slug;if(slug){root.dataset.slug=slug;load(slug)}}) as EventListener);load(root.dataset.slug||'');
+  }
+  document.querySelectorAll<HTMLElement>('[data-catalogue-preview]').forEach((root)=>setupPreview(root));
+</script>
+
+<style>
+  .preview{--preview-secondary:#b85c00;margin-top:28px;padding-top:18px;border-top:1px solid var(--rule)}:global(html[data-theme='dark']) .preview{--preview-secondary:#f2b35d}.tabs{display:flex;gap:22px;margin-bottom:16px;border-bottom:1px solid var(--rule)}.tabs button{padding:8px 0;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);cursor:pointer}.tabs button[aria-selected=true]{border-bottom-color:var(--cyan);color:var(--paper)}.loading{color:var(--muted);font-size:.85rem}.heatmaps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.heatmaps:global(:has(figure:only-child)){grid-template-columns:minmax(0,440px)}.heatmaps :global(figure),.profiles :global(figure){margin:0}.heatmaps :global(canvas),.profiles :global(svg){display:block;width:100%;height:auto;border:1px solid var(--rule);background:var(--plot-bg)}.heatmaps :global(figcaption){display:flex;justify-content:space-between;gap:10px;margin-top:6px;color:var(--muted);font-size:.76rem}.heatmaps :global(figcaption strong){color:var(--paper)}.profile-section{margin-top:24px}.profile-section h3{margin:0 0 10px;font-size:.95rem}.profiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.profiles :global(figcaption){margin-top:5px;color:var(--muted);font:.75rem var(--mono)}@media(max-width:700px){.heatmaps,.profiles{grid-template-columns:1fr}}
+</style>

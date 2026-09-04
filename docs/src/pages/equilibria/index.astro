@@ -1,60 +1,41 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import CataloguePreview from '../../components/CataloguePreview.astro';
 import catalogueIndex from '../../data/catalogue-index.json';
 const equilibria = catalogueIndex.equilibria;
+const initial = equilibria[0];
 ---
 
 <Layout title="Equilibria — Struphy" description="Browse equilibrium fields available for Struphy simulations.">
   <main>
-    <section class="intro" aria-labelledby="page-title">
-      <p class="eyebrow">Background fields</p>
-      <h1 id="page-title">Equilibria</h1>
-      <p>Browse reference equilibria generated directly from Struphy. Each entry has shareable plots, parameters, and coordinate-line profiles.</p>
-    </section>
-    <section class="directory" aria-labelledby="directory-title">
-      <div class="directory-heading">
-        <div><p class="eyebrow">{equilibria.length} available</p><h2 id="directory-title">Choose an equilibrium</h2></div>
+    <section class="intro" aria-labelledby="page-title"><p class="eyebrow">Background fields</p><h1 id="page-title">Equilibria</h1><p>Explore reference equilibria generated directly from Struphy. Select an entry to see its purpose and open its plots, parameters, and coordinate-line profiles.</p></section>
+    <section class="browser" aria-label="Available equilibria">
+      <aside class="selector" aria-label="Select an equilibrium">
+        <p class="eyebrow">Select an equilibrium</p>
         <input type="search" data-filter placeholder="Filter equilibria…" aria-label="Filter equilibria" />
-      </div>
-      <div class="cards" data-items>
-        {equilibria.map((equilibrium: any) => (
-          <a class="card" href={`/equilibria/${equilibrium.slug}/`} data-search={equilibrium.type.toLowerCase()}>
-            <code>{equilibrium.type}</code>
-            <span>{equilibrium.parameterCount} parameters</span>
-          </a>
-        ))}
-      </div>
-      <p data-empty hidden>No equilibria match your search.</p>
+        <ul>{equilibria.map((item,index)=><li data-item><a href={`/equilibria/${item.slug}/`} data-option={item.slug} data-search={item.type.toLowerCase()} aria-current={index===0?'true':undefined}><code>{item.type}</code></a></li>)}</ul>
+        <p class="empty" data-empty hidden>No equilibria match your search.</p>
+      </aside>
+      <article class="detail" aria-live="polite">
+        <p class="eyebrow">Equilibrium</p>
+        <h2 data-name>{initial.type}</h2>
+        <p class="description" data-description>{initial.description || 'Background fields for initializing a Struphy simulation.'}</p>
+        <CataloguePreview category="equilibria" initialSlug={initial.slug} />
+        <dl><div><dt>Parameters</dt><dd data-parameters>{initial.parameterCount}</dd></div><div><dt>Available data</dt><dd>XY, XZ, and YZ slices · coordinate-line profiles</dd></div></dl>
+        <a class="button" data-open href={`/equilibria/${initial.slug}/`}>Open plots and parameters →</a>
+      </article>
     </section>
   </main>
 </Layout>
 
-<script>
-  const input = document.querySelector<HTMLInputElement>('[data-filter]');
-  const items = [...document.querySelectorAll<HTMLElement>('[data-search]')];
-  const empty = document.querySelector<HTMLElement>('[data-empty]');
-  input?.addEventListener('input', () => {
-    const query = input.value.trim().toLowerCase();
-    let count = 0;
-    items.forEach((item) => { const match = !query || (item.dataset.search || '').includes(query); item.hidden = !match; if (match) count += 1; });
-    if (empty) empty.hidden = count > 0;
-  });
+<script is:inline define:vars={{ equilibria }}>
+  const options=[...document.querySelectorAll('[data-option]')],items=[...document.querySelectorAll('[data-item]')];const input=document.querySelector('[data-filter]'),empty=document.querySelector('[data-empty]'),name=document.querySelector('[data-name]'),description=document.querySelector('[data-description]'),parameters=document.querySelector('[data-parameters]'),open=document.querySelector('[data-open]');
+  function select(slug,updateHash=true){const item=equilibria.find((entry)=>entry.slug===slug);if(!item)return;options.forEach((option)=>option.setAttribute('aria-current',String(option.dataset.option===slug)));name.textContent=item.type;description.textContent=item.description||'Background fields for initializing a Struphy simulation.';parameters.textContent=String(item.parameterCount);open.href=`/equilibria/${item.slug}/`;document.querySelector('[data-catalogue-preview]')?.dispatchEvent(new CustomEvent('catalogue-preview-change',{detail:{slug}}));if(updateHash&&history.replaceState)history.replaceState(null,'',`#${item.slug}`)}
+  options.forEach((option)=>option.addEventListener('click',(event)=>{if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();select(option.dataset.option)}));
+  input?.addEventListener('input',()=>{const query=input.value.trim().toLowerCase();let count=0;items.forEach((item)=>{const option=item.querySelector('[data-option]');const match=!query||(option?.dataset.search||'').includes(query);item.hidden=!match;if(match)count+=1});if(empty)empty.hidden=count>0});
+  const hash=decodeURIComponent(location.hash.replace(/^#/,''));if(hash&&equilibria.some((item)=>item.slug===hash))select(hash,false);
 </script>
 
 <style>
-  .intro { max-width: 760px; padding-block: clamp(56px,8vw,92px); }
-  h1 { margin: 0 0 18px; font-size: clamp(2.35rem,5vw,4rem); line-height: 1.08; letter-spacing: -.035em; }
-  .intro>p:not(.eyebrow), [data-empty] { color: var(--muted); }
-  .eyebrow { margin: 0 0 7px; color: var(--muted); font: 600 .76rem/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
-  .directory { padding-block: 40px 72px; border-top: 1px solid var(--rule); }
-  .directory-heading { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 24px; }
-  h2 { margin: 0; font-size: 1.6rem; }
-  input { width: min(100%,320px); padding: 10px 12px; border: 1px solid var(--rule); background: var(--ink); color: var(--paper); font: inherit; }
-  .cards { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
-  .card { display: flex; min-width: 0; padding: 18px; border: 1px solid var(--rule); color: var(--paper); text-decoration: none; flex-direction: column; gap: 8px; }
-  .card:hover { border-color: var(--cyan); background: var(--accent-wash); }
-  .card code { overflow-wrap: anywhere; color: var(--cyan); }
-  .card span { color: var(--muted); font-size: .82rem; }
-  @media(max-width:760px){.directory-heading{align-items:stretch;flex-direction:column}.cards{grid-template-columns:1fr 1fr}}
-  @media(max-width:480px){.cards{grid-template-columns:1fr}}
+  .intro{max-width:760px;padding-block:clamp(56px,8vw,92px)}h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow){color:var(--muted);font-size:1.1rem}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}.browser{display:grid;grid-template-columns:minmax(250px,300px) minmax(0,1fr);gap:48px;padding-block:40px 72px;border-top:1px solid var(--rule)}.selector{position:sticky;top:24px;align-self:start;min-width:0}.selector input{width:100%;margin-bottom:10px;padding:8px 10px;border:1px solid var(--rule);background:var(--ink);color:var(--paper);font:inherit;font-size:.87rem}.selector ul{max-height:600px;margin:0;padding:0;overflow:auto;border-top:1px solid var(--rule);list-style:none}.selector li{margin:0}.selector a{display:block;width:100%;padding:11px 8px;border-bottom:1px solid var(--rule);color:var(--cyan);text-decoration:none}.selector a:hover,.selector a:focus-visible,.selector a[aria-current=true]{background:var(--accent-wash);color:var(--paper)}.selector code{color:inherit;font:600 .87rem/1.45 var(--mono);overflow-wrap:anywhere}.empty{color:var(--muted);font-size:.85rem}.detail{min-width:0;padding:28px;border:1px solid var(--rule)}.detail h2{margin:0 0 14px;font-size:clamp(1.6rem,3vw,2.2rem);overflow-wrap:anywhere}.description{max-width:680px;color:var(--muted)}dl{display:grid;grid-template-columns:1fr 1fr;margin:28px 0;border-top:1px solid var(--rule)}dl div{padding:18px 20px 0 0}dl div+div{padding-left:20px;border-left:1px solid var(--rule)}dt{font-weight:700}dd{margin:4px 0 0;color:var(--muted)}.button{display:inline-block;margin-top:12px;padding:10px 15px;border:1px solid var(--cyan);color:var(--cyan);font-weight:650;text-decoration:none}.button:hover{background:var(--cyan);color:var(--ink)}@media(max-width:700px){.browser{grid-template-columns:1fr;gap:28px}.selector{position:static}.detail{min-height:0}dl{grid-template-columns:1fr}dl div,dl div+div{padding:14px 0;border-left:0;border-bottom:1px solid var(--rule)}}
 </style>
