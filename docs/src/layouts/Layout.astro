@@ -9,14 +9,13 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const ogImageURL = new URL(image, Astro.site);
 
 const navLinks = [
+  { href: '/examples/', label: 'Examples' },
   { href: '/models/', label: 'Models' },
   { href: '/domains/', label: 'Domains' },
   { href: '/equilibria/', label: 'Equilibria' },
   { href: '/perturbations/', label: 'Perturbations' },
   { href: 'https://struphy-hub.github.io/struphy', label: 'Documentation' },
   { href: 'https://github.com/struphy-hub/struphy', label: 'GitHub' },
-  { href: 'https://pypi.org/project/struphy/', label: 'PyPI' },
-  { href: 'https://github.com/struphy-hub/struphy-tutorials', label: 'Tutorials' },
 ];
 
 const buildDate = new Date().toISOString().slice(0, 10);
@@ -117,7 +116,9 @@ const structuredData = {
       <p>Struphy is open-source software released under the MIT License.</p>
       <nav aria-label="Footer">
         <a href="https://struphy-hub.github.io/struphy">Documentation</a>
+        <a href="https://github.com/struphy-hub/struphy-tutorials">Tutorials</a>
         <a href="https://github.com/struphy-hub/struphy">GitHub</a>
+        <a href="https://pypi.org/project/struphy/">PyPI</a>
         <a href="https://github.com/struphy-hub/struphy/issues">Issues</a>
         <a href="https://github.com/struphy-hub/struphy/blob/main/CONTRIBUTING.md">Contributing</a>
         <a href="https://github.com/struphy-hub/struphy/blob/main/LICENSE">License</a>

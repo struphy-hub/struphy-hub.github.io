@@ -1,0 +1,65 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const examples = [
+  {
+    href: '/examples/maxwell-light-wave/',
+    image: '/images/examples/maxwell-dispersion.png',
+    title: 'Maxwell light-wave dispersion',
+    description: 'Measure the vacuum light-wave branch with Struphy’s structure-preserving Maxwell solver.',
+    model: 'Maxwell',
+  },
+];
+---
+
+<Layout title="Examples — Struphy" description="A visual gallery of reproducible Struphy simulations with complete scripts and generated figures.">
+  <main>
+    <header class="intro">
+      <p class="eyebrow">Reproducible simulations</p>
+      <h1>Examples</h1>
+      <p>Browse simulations by their output. Select a figure to see the physical setup, numerical method, complete runnable script, and reproduction instructions.</p>
+    </header>
+
+    <section class="gallery-section" aria-labelledby="waves-title">
+      <div class="section-heading">
+        <h2 id="waves-title">Electromagnetic waves</h2>
+        <p>Vacuum wave propagation and electromagnetic field dynamics.</p>
+      </div>
+      <div class="gallery-grid">
+        {examples.map((example) => (
+          <article class="gallery-item">
+            <a href={example.href} aria-label={`Open ${example.title} example`}>
+              <div class="thumbnail"><img src={example.image} alt="Numerical Maxwell dispersion spectrum from a Struphy simulation" loading="eager" /></div>
+              <div class="caption">
+                <p>{example.model}</p>
+                <h3>{example.title}</h3>
+                <span>{example.description}</span>
+              </div>
+            </a>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="contribute" aria-labelledby="contribute-title">
+      <p class="eyebrow">Extend the collection</p>
+      <h2 id="contribute-title">Add an example</h2>
+      <p>Each gallery entry should include a generated figure, a short physical description, the complete runnable Struphy script, its requirements, and approximate computational cost.</p>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .intro{max-width:790px;padding-block:clamp(56px,8vw,92px)}
+  .eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}
+  .intro>p:not(.eyebrow),.section-heading p,.contribute>p:not(.eyebrow){color:var(--muted)}
+  .gallery-section,.contribute{padding-block:clamp(44px,7vw,72px);border-top:1px solid var(--rule)}
+  .section-heading{display:flex;align-items:baseline;justify-content:space-between;gap:24px;margin-bottom:26px}.section-heading h2,.contribute h2{margin:0;font-size:clamp(1.5rem,3vw,2rem)}.section-heading p{margin:0;max-width:520px;text-align:right}
+  .gallery-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:34px 24px}
+  .gallery-item{min-width:0}.gallery-item a{display:block;color:var(--paper);text-decoration:none}.thumbnail{aspect-ratio:1;overflow:hidden;border:1px solid var(--rule);background:#fff}.thumbnail img{display:block;width:100%;height:100%;object-fit:contain;transition:transform .2s ease}.gallery-item a:hover .thumbnail{border-color:var(--cyan)}.gallery-item a:hover img{transform:scale(1.018)}
+  .caption{padding-top:12px}.caption p{margin:0 0 3px;color:var(--cyan);font:650 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase}.caption h3{margin:0 0 5px;font-size:1rem}.caption span{display:block;color:var(--muted);font-size:.82rem;line-height:1.45}
+  .contribute{max-width:780px}.contribute h2{margin-bottom:12px}.contribute p{margin-bottom:0}
+  @media(max-width:820px){.gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:600px){.section-heading{align-items:flex-start;flex-direction:column;gap:5px}.section-heading p{text-align:left}.gallery-grid{grid-template-columns:1fr}}
+</style>
