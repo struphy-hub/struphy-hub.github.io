@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -28,7 +30,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Struphy
-        run: python -m pip install --upgrade pip struphy==3.2.0 # gvec desc
+        run: python -m pip install --upgrade pip && python -m pip install ./submodules/struphy
 
       - name: Generate equilibrium slices
         run: python generate_equilibrium_slices.py
