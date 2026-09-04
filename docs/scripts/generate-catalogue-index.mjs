@@ -56,6 +56,9 @@ function compactRecord(data, category, slug) {
     slug,
     type: data.type,
     description_html: data.description_html,
+    description_math: data.description_math,
+    formula_html: data.formula_html,
+    formula_math: data.formula_math,
     given_in_basis: data.given_in_basis,
     parameters: data.parameters,
     parameter_descriptions: data.parameter_descriptions,
@@ -80,7 +83,7 @@ async function readCategory(category) {
       type: data.type,
       slug,
       parameterCount: Object.keys(data.parameters ?? {}).filter((key) => key !== 'self').length,
-      ...(category === 'equilibria' ? { description: excerpt(data.description_html) } : {}),
+      ...(data.description_html ? { description: excerpt(data.description_html) } : {}),
       ...(category === 'perturbations' && data.given_in_basis ? { basis: data.given_in_basis } : {}),
     });
     details.push(compactRecord(data, category, slug));

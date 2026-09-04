@@ -5,7 +5,8 @@ from pathlib import Path
 
 import numpy as np
 from struphy.fields_background import equils
-from struphy.utils.docstring_converter import _extract_math_directives, rst_to_html
+
+from catalogue_docs import class_description, equation_html
 
 OUTPUT_DIR = Path(__file__).parent / "docs" / "src" / "data" / "equilibria"
 
@@ -20,68 +21,6 @@ PRESETS = {
     "CurrentSheet": {"delta": 0.08, "amp": 8.0},
     "HomogenSlab": {"B0x": 1.2, "B0y": 0.8, "B0z": 1.0, "beta": 2.0},
 }
-
-
-def extract_math(rst: str) -> tuple[str, list[dict]]:
-    """Pull raw LaTeX out of ``.. math::`` blocks and ``:math:`...``` roles.
-
-    Each occurrence is replaced with a placeholder token so the surrounding
-    RST can still go through struphy's ``rst_to_html`` unharmed. The real
-    LaTeX is returned separately for the site to render with KaTeX (real
-    typesetting) instead of struphy's Unicode-approximation converter, which
-    exists only for VS Code hover tooltips that can't load a math renderer.
-    """
-    math_items: list[dict] = []
-
-    def save_block(content: str) -> str:
-        raw = "\n".join(line.strip() for line in content.strip().split("\n") if line.strip())
-        # A block that already opens with its own environment (``\begin{bmatrix}``,
-        # ``\begin{aligned}``, ...) is self-contained -- pass it through as-is.
-        if raw.lstrip().startswith("\\begin{"):
-            latex = raw
-        else:
-            # Otherwise docstrings write bare multi-row systems -- either
-            # linebroken with an explicit `\\[2mm]`, or as blank-line-separated
-            # paragraphs each ending in a comma -- relying on Sphinx's math
-            # directive to implicitly lay them out as an aligned system. KaTeX
-            # needs that made explicit, or a lone `&`/`\\` is a syntax error
-            # outside an alignment environment.
-            groups = [
-                " ".join(line.strip() for line in group.split("\n") if line.strip())
-                for group in re.split(r"\n\s*\n", content.strip())
-            ]
-            needs_aligned = len(groups) > 1 or any("&" in group for group in groups)
-            latex = r" \\ ".join(groups)
-            if needs_aligned:
-                latex = f"\\begin{{aligned}} {latex} \\end{{aligned}}"
-        token = f"@@MATH{len(math_items)}@@"
-        math_items.append({"token": token, "latex": latex, "display": True})
-        return token
-
-    stripped = _extract_math_directives(rst, save_block)
-
-    def save_inline(match: re.Match) -> str:
-        token = f"@@MATH{len(math_items)}@@"
-        math_items.append({"token": token, "latex": match.group(1), "display": False})
-        return token
-
-    stripped = re.sub(r":math:`([^`]+)`", save_inline, stripped)
-    return stripped, math_items
-
-
-def class_description(cls) -> tuple[str, list[dict]]:
-    """Convert the docstring intro (before ``Parameters``) to HTML, with LaTeX
-    extracted for KaTeX rendering. Sphinx ``.. image::`` directives reference
-    internal documentation assets that don't resolve here, so they are dropped.
-    """
-    doc = inspect.getdoc(cls) or ""
-    intro = re.split(r"\nParameters\n-+\n", doc, maxsplit=1)[0]
-    intro = re.sub(r"\n\.\. image::[^\n]*\n?", "\n", intro)
-    if not intro.strip():
-        return "", []
-    stripped, math_items = extract_math(intro)
-    html = rst_to_html(stripped, forced_heading_level=3).strip()
-    return html, math_items
 
 
 def sample_slice(eq, plane="xy", value=0.0, extent=None, n=201):
@@ -201,6 +140,7 @@ def export_equilibrium(name, eq, output_dir=OUTPUT_DIR, **slice_options):
         for plane in ("xy", "xz", "yz")
     }
     description_html, description_math = class_description(type(eq))
+    formula_html, formula_math = equation_html(type(eq).formula_markdown())
     data = {
         "name": name,
         "type": type(eq).__name__,
@@ -214,6 +154,8 @@ def export_equilibrium(name, eq, output_dir=OUTPUT_DIR, **slice_options):
         "parameter_descriptions": parameter_descriptions(type(eq)),
         "description_html": description_html,
         "description_math": description_math,
+        "formula_html": formula_html,
+        "formula_math": formula_math,
     }
     if not has_variation(data):
         raise ValueError("all sampled equilibrium fields are constant")
@@ -309,5 +251,8 @@ def available_equilibria() -> list[tuple[str, object]]:
 if __name__ == "__main__":
     for equilibrium_name, equilibrium in available_equilibria():
         equilibrium_name = equilibrium_name.lower()
-        output_path = export_equilibrium(equilibrium_name, equilibrium)
-        print(f"Exported {output_path}")
+        try:
+            output_path = export_equilibrium(equilibrium_name, equilibrium)
+            print(f"Exported {output_path}")
+        except (Exception, SystemExit) as error:
+            print(f"Skipped {equilibrium_name}: {error or type(error).__name__}")

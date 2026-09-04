@@ -1,14 +1,10 @@
 ---
-import fs from 'node:fs';
 import Layout from '../../../layouts/Layout.astro';
 import maxwellWave from '../../../examples/maxwell-wave.py?raw';
+import data from '../../../../public/examples/maxwell-wave.metadata.json';
 import { codeToHtml } from 'shiki';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-
-const data = JSON.parse(
-  fs.readFileSync(new URL('../../../../public/examples/maxwell-wave.metadata.json', import.meta.url), 'utf-8'),
-);
 
 function pdeMarkdownToHtml(markdown: string): string {
   return markdown
