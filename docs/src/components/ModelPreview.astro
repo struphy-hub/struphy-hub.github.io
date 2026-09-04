@@ -1,0 +1,37 @@
+---
+import 'katex/dist/katex.min.css';
+const { initialSlug } = Astro.props;
+---
+<article class="model-preview" data-model-preview data-slug={initialSlug} aria-live="polite">
+  <div class="heading">
+    <div><p class="eyebrow" data-model-type>Model</p><h2 data-model-name>Loading…</h2></div>
+    <div class="actions"><a data-model-page href={`/models/${initialSlug}/`}>Full page</a><a data-model-docs href="https://struphy-hub.github.io/struphy">Documentation ↗</a></div>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Model information">
+    {[['overview','Overview'],['pde','PDE'],['normalization','Normalization'],['discretization','Discretization'],['diagnostics','Diagnostics'],['example','Example']].map(([id,label],index)=><button type="button" role="tab" data-model-tab={id} aria-selected={String(index===0)}>{label}</button>)}
+  </div>
+  <p class="status" data-model-status>Loading model information…</p>
+  <div class="panel generated" data-model-panel="overview"><p class="summary" data-model-summary></p><div data-model-long></div><h3>Use cases</h3><div data-model-uses></div></div>
+  <div class="panel generated" data-model-panel="pde" hidden></div>
+  <div class="panel generated" data-model-panel="normalization" hidden></div>
+  <div class="panel generated" data-model-panel="discretization" hidden></div>
+  <div class="panel generated" data-model-panel="diagnostics" hidden></div>
+  <div class="panel generated" data-model-panel="example" hidden></div>
+</article>
+
+<script>
+  function setupModelPreview(root: HTMLElement) {
+    const tabs=[...root.querySelectorAll<HTMLButtonElement>('[data-model-tab]')],panels=[...root.querySelectorAll<HTMLElement>('[data-model-panel]')],status=root.querySelector<HTMLElement>('[data-model-status]');let request=0;
+    const selectTab=(id:string)=>{tabs.forEach((tab)=>tab.setAttribute('aria-selected',String(tab.dataset.modelTab===id)));panels.forEach((panel)=>{panel.hidden=panel.dataset.modelPanel!==id})};
+    tabs.forEach((tab)=>tab.addEventListener('click',()=>selectTab(tab.dataset.modelTab||'overview')));
+    const setHtml=(selector:string,html='')=>{const element=root.querySelector<HTMLElement>(selector);if(element)element.innerHTML=html};
+    const setText=(selector:string,text='')=>{const element=root.querySelector<HTMLElement>(selector);if(element)element.textContent=text};
+    const load=async(slug:string)=>{const current=++request;if(status){status.hidden=false;status.textContent='Loading model information…'}try{const response=await fetch(`/catalogue-data/models/${slug}.json`);if(!response.ok)throw new Error(`Model returned ${response.status}`);const model=await response.json();if(current!==request)return;setText('[data-model-name]',model.className);setText('[data-model-type]',`${model.type} model`);setText('[data-model-summary]',model.description);setHtml('[data-model-long]',model.longDescriptionHtml);setHtml('[data-model-uses]',model.useCasesHtml);setHtml('[data-model-panel="pde"]',model.pdeHtml);setHtml('[data-model-panel="normalization"]',model.normalizationHtml);setHtml('[data-model-panel="discretization"]',model.discretizationHtml);setHtml('[data-model-panel="diagnostics"]',model.scalarQuantitiesHtml);setHtml('[data-model-panel="example"]',model.examplesHtml);const page=root.querySelector<HTMLAnchorElement>('[data-model-page]'),docs=root.querySelector<HTMLAnchorElement>('[data-model-docs]');if(page)page.href=`/models/${model.slug}/`;if(docs)docs.href=`https://struphy-hub.github.io/struphy/sections/subsections/models-all.html#struphy.models.${model.className}`;if(status)status.hidden=true;selectTab('overview')}catch(error){console.error('Unable to load model information:',error);if(status)status.textContent='Model information could not be loaded.'}};
+    root.addEventListener('model-preview-change',((event:CustomEvent)=>{const slug=event.detail?.slug;if(slug){root.dataset.slug=slug;load(slug)}}) as EventListener);load(root.dataset.slug||'');
+  }
+  document.querySelectorAll<HTMLElement>('[data-model-preview]').forEach((root)=>setupModelPreview(root));
+</script>
+
+<style>
+  .model-preview{min-width:0;padding:28px;border:1px solid var(--rule)}.heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}.heading h2{margin:0;font-size:clamp(1.5rem,3vw,2.15rem);overflow-wrap:anywhere}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:12px 18px}.actions a{color:var(--cyan);font-size:.82rem;text-decoration:none}.actions a:hover{text-decoration:underline}.tabs{display:flex;gap:0 20px;margin:24px 0 20px;overflow-x:auto;border-bottom:1px solid var(--rule)}.tabs button{flex:none;padding:9px 0 7px;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:.84rem}.tabs button[aria-selected=true]{border-bottom-color:var(--cyan);color:var(--paper)}.status,.summary,.generated :global(p),.generated :global(li){color:var(--muted)}.panel{min-width:0}.panel h3{margin-top:28px}.generated :global(pre){max-width:100%;padding:16px;overflow:auto;border:1px solid var(--rule);background:var(--code-bg);font-size:.8rem}.generated :global(.math-display){max-width:100%;overflow:auto}.generated :global(table){display:block;max-width:100%;overflow:auto;border-collapse:collapse}.generated :global(th),.generated :global(td){padding:8px;border-bottom:1px solid var(--rule);text-align:left}@media(max-width:650px){.heading{flex-direction:column}.actions{justify-content:flex-start}}
+</style>
