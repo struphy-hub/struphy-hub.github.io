@@ -6,6 +6,8 @@ from pathlib import Path
 import numpy as np
 from struphy.initial import perturbations
 
+from catalogue_docs import class_description, equation_html
+
 OUTPUT_DIR = Path(__file__).parent / "docs" / "src" / "data" / "perturbations"
 
 # A handful of perturbations are flat by default (mode numbers of zero cancel
@@ -87,6 +89,8 @@ def sample_centerline(perturbation, axis="eta1", extent=(0.02, 0.98), n=121):
 def export_perturbation(name, perturbation, output_dir=OUTPUT_DIR):
     """Export one perturbation's slices and centerlines as JSON for the docs site."""
     slices = {plane: sample_slice(perturbation, plane=plane) for plane in ("xy", "xz", "yz")}
+    description_html, description_math = class_description(type(perturbation))
+    formula_html, formula_math = equation_html(type(perturbation).formula_markdown())
     data = {
         "name": name,
         "type": type(perturbation).__name__,
@@ -99,6 +103,10 @@ def export_perturbation(name, perturbation, output_dir=OUTPUT_DIR):
         "given_in_basis": perturbation.given_in_basis,
         "parameters": _json_parameters(getattr(perturbation, "params", {})),
         "parameter_descriptions": parameter_descriptions(type(perturbation)),
+        "description_html": description_html,
+        "description_math": description_math,
+        "formula_html": formula_html,
+        "formula_math": formula_math,
     }
     if not has_variation(data):
         raise ValueError("all sampled perturbation values are constant")

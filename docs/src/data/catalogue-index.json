@@ -5,21 +5,21 @@
       "type": "AdhocTorus",
       "slug": "adhoc-torus",
       "parameterCount": 17,
-      "description": "Ad hoc tokamak MHD equilibrium with circular concentric flux surfaces. For a cylindrical coordinate system mathematical formulation with transformation formulae mathemati…"
+      "description": "Ad hoc tokamak MHD equilibrium with circular concentric flux surfaces."
     },
     {
       "file": "equilibria/adhoctorusqpsi.json",
       "type": "AdhocTorusQPsi",
       "slug": "adhoc-torus-qpsi",
       "parameterCount": 14,
-      "description": "Ad hoc tokamak MHD equilibrium with circular concentric flux surfaces. For a cylindrical coordinate system mathematical formulation with transformation formulae mathemati…"
+      "description": "Ad hoc tokamak MHD equilibrium with circular concentric flux surfaces."
     },
     {
       "file": "equilibria/circulartokamak.json",
       "type": "CircularTokamak",
       "slug": "circular-tokamak",
       "parameterCount": 4,
-      "description": "Tokamak MHD equilibrium with circular concentric flux surfaces. For a cylindrical coordinate system mathematical formulation with transformation formulae mathematical for…"
+      "description": "Tokamak MHD equilibrium with circular concentric flux surfaces."
     },
     {
       "file": "equilibria/constantvelocity.json",
@@ -33,14 +33,7 @@
       "type": "CurrentSheet",
       "slug": "current-sheet",
       "parameterCount": 2,
-      "description": "Current sheet equilibrium mathematical formulation Units are those defned in the parameter file (through struphy.io.options.BaseUnits )."
-    },
-    {
-      "file": "equilibria/eqdskequilibrium.json",
-      "type": "EQDSKequilibrium",
-      "slug": "eqdskequilibrium",
-      "parameterCount": 11,
-      "description": "Interface to `EQDSK file format `_."
+      "description": "Current sheet equilibrium."
     },
     {
       "file": "equilibria/genericcartesianfluidequilibrium.json",
@@ -61,35 +54,35 @@
       "type": "HomogenSlab",
       "slug": "homogen-slab",
       "parameterCount": 5,
-      "description": "Homogeneous MHD equilibrium: mathematical formulation Units are those defned in the parameter file (through struphy.io.options.BaseUnits )."
+      "description": "Homogeneous MHD equilibrium."
     },
     {
       "file": "equilibria/homogenslabitg.json",
       "type": "HomogenSlabITG",
       "slug": "homogen-slab-itg",
       "parameterCount": 6,
-      "description": "Homogenous slab equilibrium with temperature gradient in x, B-field in z: mathematical formulation Units are those defned in the parameter file (through struphy.io.option…"
+      "description": "Homogenous slab equilibrium with temperature gradient in x, B-field in z."
     },
     {
       "file": "equilibria/screwpinch.json",
       "type": "ScrewPinch",
       "slug": "screw-pinch",
       "parameterCount": 10,
-      "description": "Straight tokamak (screw pinch) MHD equilibrium for a cylindrical geometry of radius mathematical formulation and length mathematical formulation. The profiles in cylindri…"
+      "description": "Straight tokamak (screw pinch) MHD equilibrium for a cylindrical geometry of radius mathematical formulation and length mathematical formulation."
     },
     {
       "file": "equilibria/shearedslab.json",
       "type": "ShearedSlab",
       "slug": "sheared-slab",
       "parameterCount": 10,
-      "description": "Sheared slab MHD equilibrium in a cube with side lengths mathematical formulation. Profiles depend on mathematical formulation solely: mathematical formulation Units are…"
+      "description": "Sheared slab MHD equilibrium in a cube with side lengths mathematical formulation. Profiles depend on mathematical formulation solely."
     },
     {
       "file": "equilibria/shearfluid.json",
       "type": "ShearFluid",
       "slug": "shear-fluid",
       "parameterCount": 13,
-      "description": "Sheared fluid equilibrium in a cube with side lengths mathematical formulation. Profiles depend on mathematical formulation solely: mathematical formulation Units are tho…"
+      "description": "Sheared fluid equilibrium in a cube with side lengths mathematical formulation. Profiles depend on mathematical formulation solely."
     }
   ],
   "perturbations": [
@@ -98,6 +91,7 @@
       "type": "CoaxialWaveguideElectric_r",
       "slug": "coaxial-waveguide-electric-r",
       "parameterCount": 5,
+      "description": "Initializes function for Coaxial Waveguide electric field in radial direction. Solutions taken from TUM master thesis of Alicia Robles Pérez: \"Development of a Geometric…",
       "basis": "norm"
     },
     {
@@ -105,6 +99,7 @@
       "type": "CoaxialWaveguideElectric_theta",
       "slug": "coaxial-waveguide-electric-theta",
       "parameterCount": 5,
+      "description": "Initializes funtion for Coaxial Waveguide electric field in the azimuthal direction. Solutions taken from TUM master thesis of Alicia Robles Pérez: \"Development of a Geom…",
       "basis": "norm"
     },
     {
@@ -112,19 +107,22 @@
       "type": "CoaxialWaveguideMagnetic",
       "slug": "coaxial-waveguide-magnetic",
       "parameterCount": 5,
+      "description": "Initializes funtion for Coaxial Waveguide magnetic field in $z$-direction. Solutions taken from TUM master thesis of Alicia Robles Pérez: \"Development of a Geometric Part…",
       "basis": "norm"
     },
     {
       "file": "perturbations/Erf_z.json",
       "type": "Erf_z",
       "slug": "erf-z",
-      "parameterCount": 4
+      "parameterCount": 4,
+      "description": "Shear layer in eta3 (-1 in lower regions, 1 in upper regions)."
     },
     {
       "file": "perturbations/ITPA_density.json",
       "type": "ITPA_density",
       "slug": "itpa-density",
       "parameterCount": 3,
+      "description": "ITPA radial density profile in `A. Könies et al. 2018 `_",
       "basis": "physical"
     },
     {
@@ -132,6 +130,7 @@
       "type": "ManufacturedSolutionPotential",
       "slug": "manufactured-solution-potential",
       "parameterCount": 2,
+      "description": "Analytic solution mathematical formulation of the system:",
       "basis": "physical"
     },
     {
@@ -139,6 +138,7 @@
       "type": "ManufacturedSolutionVelocity",
       "slug": "manufactured-solution-velocity",
       "parameterCount": 4,
+      "description": "Analytic solutions mathematical formulation and mathematical formulation of the system:",
       "basis": "physical"
     },
     {
@@ -146,49 +146,57 @@
       "type": "ManufacturedSolutionVelocity_2",
       "slug": "manufactured-solution-velocity-2",
       "parameterCount": 4,
+      "description": "Analytic solutions mathematical formulation and mathematical formulation of the system:",
       "basis": "physical"
     },
     {
       "file": "perturbations/ModesCos.json",
       "type": "ModesCos",
       "slug": "modes-cos",
-      "parameterCount": 10
+      "parameterCount": 10,
+      "description": "Cosinusoidal function in 3D."
     },
     {
       "file": "perturbations/ModesCosCos.json",
       "type": "ModesCosCos",
       "slug": "modes-cos-cos",
-      "parameterCount": 12
+      "parameterCount": 12,
+      "description": "Product of cosine modes in x and y, modulated by an optional localizing profile in z."
     },
     {
       "file": "perturbations/ModesCosSin.json",
       "type": "ModesCosSin",
       "slug": "modes-cos-sin",
-      "parameterCount": 12
+      "parameterCount": 12,
+      "description": "Product of a cosine mode in x and a sine mode in y, modulated by an optional localizing profile in z."
     },
     {
       "file": "perturbations/ModesSin.json",
       "type": "ModesSin",
       "slug": "modes-sin",
-      "parameterCount": 12
+      "parameterCount": 12,
+      "description": "Sinusoidal function in 3D."
     },
     {
       "file": "perturbations/ModesSinCos.json",
       "type": "ModesSinCos",
       "slug": "modes-sin-cos",
-      "parameterCount": 12
+      "parameterCount": 12,
+      "description": "Product of a sine mode in x and a cosine mode in y, modulated by an optional localizing profile in z."
     },
     {
       "file": "perturbations/ModesSinSin.json",
       "type": "ModesSinSin",
       "slug": "modes-sin-sin",
-      "parameterCount": 12
+      "parameterCount": 12,
+      "description": "Product of sine modes in x and y, modulated by an optional localizing profile in z."
     },
     {
       "file": "perturbations/RestelliAnalyticSolutionPotential.json",
       "type": "RestelliAnalyticSolutionPotential",
       "slug": "restelli-analytic-solution-potential",
       "parameterCount": 6,
+      "description": "Analytic solution mathematical formulation of the system:",
       "basis": "physical"
     },
     {
@@ -196,6 +204,7 @@
       "type": "RestelliAnalyticSolutionVelocity",
       "slug": "restelli-analytic-solution-velocity",
       "parameterCount": 7,
+      "description": "Analytic solution mathematical formulation of the system:",
       "basis": "physical"
     },
     {
@@ -203,6 +212,7 @@
       "type": "RestelliAnalyticSolutionVelocity_2",
       "slug": "restelli-analytic-solution-velocity-2",
       "parameterCount": 7,
+      "description": "Analytic solution mathematical formulation of the system:",
       "basis": "physical"
     },
     {
@@ -210,31 +220,36 @@
       "type": "RestelliAnalyticSolutionVelocity_3",
       "slug": "restelli-analytic-solution-velocity-3",
       "parameterCount": 7,
+      "description": "Analytic solution mathematical formulation of the system:",
       "basis": "physical"
     },
     {
       "file": "perturbations/Shear_x.json",
       "type": "Shear_x",
       "slug": "shear-x",
-      "parameterCount": 4
+      "parameterCount": 4,
+      "description": "Double shear layer in eta1 (-1 in outer regions, 1 in inner regions)."
     },
     {
       "file": "perturbations/Shear_y.json",
       "type": "Shear_y",
       "slug": "shear-y",
-      "parameterCount": 4
+      "parameterCount": 4,
+      "description": "Double shear layer in eta2 (-1 in outer regions, 1 in inner regions)."
     },
     {
       "file": "perturbations/Shear_z.json",
       "type": "Shear_z",
       "slug": "shear-z",
-      "parameterCount": 4
+      "parameterCount": 4,
+      "description": "Double shear layer in eta3 (-1 in outer regions, 1 in inner regions)."
     },
     {
       "file": "perturbations/TokamakManufacturedSolutionVelocity.json",
       "type": "TokamakManufacturedSolutionVelocity",
       "slug": "tokamak-manufactured-solution-velocity",
       "parameterCount": 7,
+      "description": "Analytic solution mathematical formulation of the system:",
       "basis": "physical"
     },
     {
@@ -242,6 +257,7 @@
       "type": "TokamakManufacturedSolutionVelocity_1",
       "slug": "tokamak-manufactured-solution-velocity-1",
       "parameterCount": 7,
+      "description": "Analytic solution mathematical formulation of the system:",
       "basis": "physical"
     },
     {
@@ -249,19 +265,22 @@
       "type": "TokamakManufacturedSolutionVelocity_2",
       "slug": "tokamak-manufactured-solution-velocity-2",
       "parameterCount": 7,
+      "description": "Analytic solution mathematical formulation of the system:",
       "basis": "physical"
     },
     {
       "file": "perturbations/TorusModesCos.json",
       "type": "TorusModesCos",
       "slug": "torus-modes-cos",
-      "parameterCount": 7
+      "parameterCount": 7,
+      "description": "Cosinusoidal function in the periodic coordinates of a Torus."
     },
     {
       "file": "perturbations/TorusModesSin.json",
       "type": "TorusModesSin",
       "slug": "torus-modes-sin",
-      "parameterCount": 7
+      "parameterCount": 7,
+      "description": "Sinusoidal function in the periodic coordinates of a Torus."
     }
   ]
 }
