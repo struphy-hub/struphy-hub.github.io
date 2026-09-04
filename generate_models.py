@@ -47,6 +47,32 @@ def generate(output_file: Path = OUTPUT_FILE) -> None:
                         "doc_long_description",
                         "<p>No long description is available.</p>",
                     ),
+                    "normalizationHtml": documentation_html(
+                        model,
+                        "doc_normalization",
+                        "<p>No normalization information is available.</p>",
+                    ),
+                    "discretizationHtml": documentation_html(
+                        model,
+                        "doc_discretization",
+                        "<p>No discretization information is available.</p>",
+                    ),
+                    "scalarQuantitiesHtml": documentation_html(
+                        model,
+                        "doc_scalar_quantities",
+                        "<p>No tracked scalar quantities are documented.</p>",
+                    ),
+                    "useCasesHtml": documentation_html(
+                        model, "doc_use_cases", "<p>No use cases are documented.</p>"
+                    ),
+                    "cannotBeUsedForHtml": documentation_html(
+                        model,
+                        "doc_cannot_be_used_for",
+                        "<p>No limitations are documented.</p>",
+                    ),
+                    "examplesHtml": documentation_html(
+                        model, "doc_examples", "<p>No examples are available.</p>"
+                    ),
                 }
             )
 

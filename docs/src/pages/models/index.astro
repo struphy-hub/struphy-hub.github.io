@@ -30,9 +30,27 @@ const initialModel = catalogue[0];
       </aside>
       <article class="detail" aria-live="polite">
         <div class="detail-heading"><div><p class="eyebrow" id="detail-type">{initialModel.type} model</p><h2 id="detail-name">{initialModel.className}</h2></div><div class="detail-heading-actions"><button type="button" class="copy-link" data-copy-link aria-label="Copy link to this model">Copy link</button><a id="detail-docs" class="docs-link" href={modelDocsUrl(initialModel.className)} target="_blank" rel="noreferrer">Read the docs ↗</a></div></div>
-        <div class="tabs" role="tablist" aria-label="Model information"><button type="button" role="tab" id="tab-information" aria-selected="true" aria-controls="panel-information" tabindex="0">Model information</button><button type="button" role="tab" id="tab-pde" aria-selected="false" aria-controls="panel-pde" tabindex="-1">PDE</button></div>
-        <div id="panel-information" class="tab-panel generated-content" role="tabpanel" aria-labelledby="tab-information"><p id="detail-description">{initialModel.description}</p><div id="detail-long-description" set:html={initialModel.longDescriptionHtml}></div></div>
+        <div class="tabs" role="tablist" aria-label="Model information">
+          <button type="button" role="tab" id="tab-information" aria-selected="true" aria-controls="panel-information" tabindex="0">Overview</button>
+          <button type="button" role="tab" id="tab-pde" aria-selected="false" aria-controls="panel-pde" tabindex="-1">PDE</button>
+          <button type="button" role="tab" id="tab-normalization" aria-selected="false" aria-controls="panel-normalization" tabindex="-1">Normalization</button>
+          <button type="button" role="tab" id="tab-discretization" aria-selected="false" aria-controls="panel-discretization" tabindex="-1">Discretization</button>
+          <button type="button" role="tab" id="tab-diagnostics" aria-selected="false" aria-controls="panel-diagnostics" tabindex="-1">Diagnostics</button>
+          <button type="button" role="tab" id="tab-examples" aria-selected="false" aria-controls="panel-examples" tabindex="-1">Examples</button>
+        </div>
+        <div id="panel-information" class="tab-panel generated-content" role="tabpanel" aria-labelledby="tab-information">
+          <p id="detail-description">{initialModel.description}</p>
+          <div id="detail-long-description" set:html={initialModel.longDescriptionHtml}></div>
+          <h3>Use cases</h3>
+          <div id="detail-use-cases" set:html={initialModel.useCasesHtml}></div>
+          <h3>Limitations</h3>
+          <div id="detail-cannot-be-used-for" set:html={initialModel.cannotBeUsedForHtml}></div>
+        </div>
         <div id="panel-pde" class="tab-panel generated-content" role="tabpanel" aria-labelledby="tab-pde" hidden set:html={initialModel.pdeHtml}></div>
+        <div id="panel-normalization" class="tab-panel generated-content" role="tabpanel" aria-labelledby="tab-normalization" hidden set:html={initialModel.normalizationHtml}></div>
+        <div id="panel-discretization" class="tab-panel generated-content" role="tabpanel" aria-labelledby="tab-discretization" hidden set:html={initialModel.discretizationHtml}></div>
+        <div id="panel-diagnostics" class="tab-panel generated-content" role="tabpanel" aria-labelledby="tab-diagnostics" hidden set:html={initialModel.scalarQuantitiesHtml}></div>
+        <div id="panel-examples" class="tab-panel generated-content" role="tabpanel" aria-labelledby="tab-examples" hidden set:html={initialModel.examplesHtml}></div>
       </article>
     </section>
     <p class="documentation-link">See the <a href={docsBase}>full Struphy model documentation</a> for equations, parameters, and usage.</p>
@@ -45,7 +63,7 @@ const initialModel = catalogue[0];
   const tabs = [...document.querySelectorAll('[role="tab"]')];
   const panels = [...document.querySelectorAll('[role="tabpanel"]')];
   const setTab = (tab) => { tabs.forEach((item) => { const active = item === tab; item.setAttribute('aria-selected', String(active)); item.tabIndex = active ? 0 : -1; }); panels.forEach((panel) => { panel.hidden = panel.getAttribute('aria-labelledby') !== tab.id; }); };
-  const selectModel = (className, { updateHash = true } = {}) => { const model = models.find((item) => item.className === className); if (!model) return; options.forEach((option) => option.setAttribute('aria-pressed', String(option.dataset.model === className))); document.querySelector('#detail-name').textContent = model.className; document.querySelector('#detail-type').textContent = `${model.type} model`; document.querySelector('#detail-description').textContent = model.description; document.querySelector('#detail-docs').href = docsUrl(model.className); document.querySelector('#detail-long-description').innerHTML = model.longDescriptionHtml; document.querySelector('#panel-pde').innerHTML = model.pdeHtml; setTab(document.querySelector('#tab-information')); if (updateHash && history.replaceState) history.replaceState(null, '', `#${className}`); };
+  const selectModel = (className, { updateHash = true } = {}) => { const model = models.find((item) => item.className === className); if (!model) return; options.forEach((option) => option.setAttribute('aria-pressed', String(option.dataset.model === className))); document.querySelector('#detail-name').textContent = model.className; document.querySelector('#detail-type').textContent = `${model.type} model`; document.querySelector('#detail-description').textContent = model.description; document.querySelector('#detail-docs').href = docsUrl(model.className); document.querySelector('#detail-long-description').innerHTML = model.longDescriptionHtml; document.querySelector('#detail-use-cases').innerHTML = model.useCasesHtml; document.querySelector('#detail-cannot-be-used-for').innerHTML = model.cannotBeUsedForHtml; document.querySelector('#panel-pde').innerHTML = model.pdeHtml; document.querySelector('#panel-normalization').innerHTML = model.normalizationHtml; document.querySelector('#panel-discretization').innerHTML = model.discretizationHtml; document.querySelector('#panel-diagnostics').innerHTML = model.scalarQuantitiesHtml; document.querySelector('#panel-examples').innerHTML = model.examplesHtml; setTab(document.querySelector('#tab-information')); if (updateHash && history.replaceState) history.replaceState(null, '', `#${className}`); };
   options.forEach((option) => option.addEventListener('click', () => selectModel(option.dataset.model)));
   tabs.forEach((tab, index) => { tab.addEventListener('click', () => setTab(tab)); tab.addEventListener('keydown', (event) => { if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return; event.preventDefault(); const next = tabs[(index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length]; next.focus(); setTab(next); }); });
 
