@@ -1,0 +1,89 @@
+---
+const { domain = 'Tokamak', source = '/domains/Tokamak.vtp', poster = '/images/tokamak-domain.webp' } = Astro.props;
+---
+<figure class="hero-domain" data-hero-domain data-source={source} data-domain={domain}>
+  <div class="viewer-shell">
+    <img class="poster" src={poster} width="1440" height="1120" alt={`Toroidal wireframe ${domain} domain generated with Struphy`} fetchpriority="high" />
+    <div class="viewer" data-hero-viewer role="img" aria-label={`Interactive ${domain} domain. Drag to rotate, scroll to zoom, and shift-drag to pan.`} aria-hidden="true"></div>
+    <p class="status" data-hero-status role="status">Loading interactive domain…</p>
+    <button class="reset" type="button" data-hero-reset disabled>Reset view</button>
+  </div>
+  <figcaption><span>{domain} domain generated with Struphy.</span><span class="instructions">Drag to rotate · Scroll to zoom · Shift-drag to pan</span></figcaption>
+</figure>
+
+<script>
+  type Cleanup = () => void;
+  const heroCleanups = new Map<HTMLElement, Cleanup>();
+  const heroPending = new Map<HTMLElement, IntersectionObserver>();
+
+  function themeColour(variable: string): [number, number, number] {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+    const hex = value.match(/^#([\da-f]{3}|[\da-f]{6})$/i)?.[1];
+    if (hex) {
+      const expanded = hex.length === 3 ? [...hex].map((character) => character + character).join('') : hex;
+      return [0, 2, 4].map((offset) => parseInt(expanded.slice(offset, offset + 2), 16) / 255) as [number, number, number];
+    }
+    const rgb = value.match(/^rgba?\(\s*([\d.]+)[, ]+\s*([\d.]+)[, ]+\s*([\d.]+)/i);
+    return rgb ? [Number(rgb[1]) / 255, Number(rgb[2]) / 255, Number(rgb[3]) / 255] : [0, 0, 0];
+  }
+
+  async function setupHero(root: HTMLElement): Promise<Cleanup> {
+    await import('@kitware/vtk.js/Rendering/Profiles/Geometry');
+    const [{ default: vtkGenericRenderWindow }, { default: vtkActor }, { default: vtkMapper }, { default: vtkXMLPolyDataReader }] = await Promise.all([
+      import('@kitware/vtk.js/Rendering/Misc/GenericRenderWindow'), import('@kitware/vtk.js/Rendering/Core/Actor'),
+      import('@kitware/vtk.js/Rendering/Core/Mapper'), import('@kitware/vtk.js/IO/XML/XMLPolyDataReader'),
+    ]);
+    const container = root.querySelector<HTMLElement>('[data-hero-viewer]');
+    const poster = root.querySelector<HTMLImageElement>('.poster');
+    const status = root.querySelector<HTMLElement>('[data-hero-status]');
+    const reset = root.querySelector<HTMLButtonElement>('[data-hero-reset]');
+    if (!container || !poster || !status || !reset) return () => {};
+
+    const grw = vtkGenericRenderWindow.newInstance();
+    grw.setContainer(container); grw.resize();
+    const renderer = grw.getRenderer(), renderWindow = grw.getRenderWindow();
+    const reader = vtkXMLPolyDataReader.newInstance(), mapper = vtkMapper.newInstance(), actor = vtkActor.newInstance();
+    actor.setMapper(mapper); actor.getProperty().setOpacity(.92); actor.getProperty().setEdgeVisibility(true); actor.getProperty().setLineWidth(1.15); renderer.addActor(actor);
+    let cameraState: any, disposed = false;
+    const applyTheme = () => { const background = themeColour('--ink'), accent = themeColour('--cyan'); renderer.setBackground(...background); actor.getProperty().setColor(...accent); actor.getProperty().setEdgeColor(...accent); renderWindow.render(); };
+    const resetView = () => { if (!cameraState) return; const camera = renderer.getActiveCamera(); camera.setPosition(...cameraState.position); camera.setFocalPoint(...cameraState.focalPoint); camera.setViewUp(...cameraState.viewUp); renderer.resetCameraClippingRange(); renderWindow.render(); };
+    applyTheme(); reset.addEventListener('click', resetView);
+    const themeObserver = new MutationObserver(applyTheme); themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    const resizeObserver = new ResizeObserver(() => { if (!disposed) { grw.resize(); renderWindow.render(); } }); resizeObserver.observe(container);
+
+    try {
+      const response = await fetch(root.dataset.source || '');
+      if (!response.ok) throw new Error(`Domain file returned ${response.status}`);
+      reader.parseAsArrayBuffer(await response.arrayBuffer());
+      const data = reader.getOutputData(0);
+      if (!data || data.getNumberOfPoints() === 0) throw new Error('No renderable points');
+      mapper.setInputData(data);
+      const bounds = data.getBounds(), center = [(bounds[0] + bounds[1]) / 2, (bounds[2] + bounds[3]) / 2, (bounds[4] + bounds[5]) / 2];
+      const span = Math.max(bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4]);
+      const camera = renderer.getActiveCamera(); camera.setFocalPoint(...center); camera.setPosition(center[0] + 1.3 * span, center[1] - 1.4 * span, center[2] + .9 * span); camera.setViewUp(0, 0, 1); renderer.resetCameraClippingRange();
+      cameraState = { position: [...camera.getPosition()], focalPoint: [...camera.getFocalPoint()], viewUp: [...camera.getViewUp()] }; applyTheme();
+      root.classList.add('ready'); container.setAttribute('aria-hidden', 'false'); poster.setAttribute('aria-hidden', 'true'); status.hidden = true; reset.disabled = false;
+    } catch (error) {
+      console.error(`Unable to load ${root.dataset.domain}:`, error); status.textContent = 'Interactive view unavailable; showing a rendered preview.'; status.classList.add('error');
+    }
+    return () => { disposed = true; themeObserver.disconnect(); resizeObserver.disconnect(); reset.removeEventListener('click', resetView); renderer.removeActor(actor); actor.delete(); mapper.delete(); reader.delete(); grw.delete(); };
+  }
+
+  function initialiseHero() {
+    document.querySelectorAll<HTMLElement>('[data-hero-domain]').forEach((root) => {
+      if (heroCleanups.has(root) || heroPending.has(root)) return;
+      const observer = new IntersectionObserver((entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        observer.disconnect(); heroPending.delete(root);
+        setupHero(root).then((cleanup) => root.isConnected ? heroCleanups.set(root, cleanup) : cleanup());
+      }, { rootMargin: '250px' });
+      heroPending.set(root, observer); observer.observe(root);
+    });
+  }
+  initialiseHero(); document.addEventListener('astro:page-load', initialiseHero);
+  document.addEventListener('astro:before-swap', () => { heroPending.forEach((observer) => observer.disconnect()); heroPending.clear(); heroCleanups.forEach((cleanup) => cleanup()); heroCleanups.clear(); });
+</script>
+
+<style>
+  .hero-domain{margin:0;min-width:0}.viewer-shell{position:relative;aspect-ratio:9/7;overflow:hidden;border:1px solid var(--rule);background:var(--ink)}.poster,.viewer{position:absolute;inset:0;width:100%;height:100%}.poster{display:block;object-fit:cover;opacity:1;transition:opacity .25s ease}.viewer{opacity:0;touch-action:none;transition:opacity .25s ease}.viewer :global(canvas){display:block;width:100%;height:100%}.ready .poster{opacity:0;pointer-events:none}.ready .viewer{opacity:1}.status{position:absolute;inset:auto 14px 14px;z-index:2;margin:0;color:#a9b7bb;font-size:.78rem;pointer-events:none}.status.error{max-width:300px;padding:6px 8px;background:color-mix(in srgb,var(--ink) 88%,transparent);color:var(--paper)}.status[hidden]{display:none}.reset{position:absolute;top:12px;right:12px;z-index:3;padding:6px 10px;border:1px solid var(--rule);background:color-mix(in srgb,var(--ink) 88%,transparent);color:var(--paper);cursor:pointer;font:600 .75rem/1.4 var(--sans)}.reset:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan)}.reset:disabled{opacity:0;pointer-events:none}figcaption{display:flex;justify-content:space-between;gap:12px;margin-top:10px;color:var(--muted);font-size:.82rem}.instructions{text-align:right}@media(prefers-reduced-motion:reduce){.poster,.viewer{transition:none}}@media(max-width:520px){figcaption{flex-direction:column;gap:2px}.instructions{text-align:left}}
+</style>
