@@ -1,17 +1,17 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Heatmap from '../../components/Heatmap.astro';
-import { excerpt, toSlug } from '../../lib/catalogue';
+import { excerpt } from '../../lib/catalogue';
+import catalogueIndex from '../../data/catalogue-index.json';
+import catalogueDetails from '../../data/catalogue-details.json';
 
 export function getStaticPaths() {
-  const imported = import.meta.glob('../../data/equilibria/*.json', { eager: true, import: 'default' });
-  return [...new Map(Object.values(imported).map((value: any) => [value.type, value])).values()].map((equilibrium: any) => ({
-    params: { slug: toSlug(equilibrium.type) },
-    props: { equilibrium },
-  }));
+  return catalogueIndex.equilibria.map((record) => ({ params: { slug: record.slug }, props: { slug: record.slug } }));
 }
 
-const { equilibrium } = Astro.props;
+const { slug } = Astro.props;
+const equilibrium = catalogueDetails.equilibria.find((item) => item.slug === slug);
+if (!equilibrium) throw new Error(`Unknown equilibrium: ${slug}`);
 const planes = ['xy', 'xz', 'yz'];
 const description = excerpt(equilibrium.description_html || '', 240);
 

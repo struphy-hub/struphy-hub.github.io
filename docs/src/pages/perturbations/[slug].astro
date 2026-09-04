@@ -1,13 +1,15 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Heatmap from '../../components/Heatmap.astro';
-import { toSlug } from '../../lib/catalogue';
+import catalogueIndex from '../../data/catalogue-index.json';
+import catalogueDetails from '../../data/catalogue-details.json';
 
 export function getStaticPaths() {
-  const imported = import.meta.glob('../../data/perturbations/*.json', { eager: true, import: 'default' });
-  return [...new Map(Object.values(imported).map((value: any) => [value.type, value])).values()].map((perturbation: any) => ({ params: { slug: toSlug(perturbation.type) }, props: { perturbation } }));
+  return catalogueIndex.perturbations.map((record) => ({ params: { slug: record.slug }, props: { slug: record.slug } }));
 }
-const { perturbation } = Astro.props;
+const { slug } = Astro.props;
+const perturbation = catalogueDetails.perturbations.find((item) => item.slug === slug);
+if (!perturbation) throw new Error(`Unknown perturbation: ${slug}`);
 const planes = ['xy','xz','yz'];
 const docsUrl = `https://struphy-hub.github.io/struphy/sections/perturbations.html#struphy.initial.perturbations.${perturbation.type}`;
 function linePoints(values: number[], width = 280, height = 150) { const finite=values.map((value)=>Number.isFinite(value)?value:0); const min=Math.min(...finite),max=Math.max(...finite),span=max-min||1; return finite.map((value,index)=>`${(index/Math.max(1,finite.length-1))*width},${height-((value-min)/span)*height}`).join(' '); }
