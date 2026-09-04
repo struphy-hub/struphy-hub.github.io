@@ -1,0 +1,40 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const bibtex = `@software{struphy_TODO_YEAR,
+  author  = {TODO: Struphy authors or collaboration},
+  title   = {Struphy: TODO preferred software title},
+  version = {TODO: release used},
+  year    = {TODO: publication year},
+  doi     = {TODO: archival DOI},
+  url     = {https://github.com/struphy-hub/struphy}
+}`;
+const cff = `cff-version: 1.2.0
+message: "If you use Struphy, please cite it using this metadata."
+title: "TODO: preferred Struphy software title"
+type: software
+authors:
+  - family-names: "TODO"
+    given-names: "TODO"
+version: "TODO"
+date-released: "TODO: YYYY-MM-DD"
+doi: "TODO"
+repository-code: "https://github.com/struphy-hub/struphy"
+license: MIT`;
+---
+<Layout title="Citation and reproducibility — Struphy" description="Citation templates and a reproducibility checklist for research using Struphy.">
+  <main>
+    <section class="intro"><p class="eyebrow">Research software</p><h1>Citation and reproducibility</h1><p>Use this page to publish the preferred Struphy citation and help readers reproduce the exact software environment behind a result.</p></section>
+    <aside class="notice"><strong>Template:</strong> replace every <code>TODO</code> value below with the project’s preferred authors, title, release, year, and DOI before publication.</aside>
+    <section class="section"><div class="heading"><div><h2>BibTeX template</h2><p>Recommended for papers and LaTeX bibliographies.</p></div><button type="button" data-copy="bibtex">Copy BibTeX</button></div><pre><code id="bibtex">{bibtex}</code></pre></section>
+    <section class="section"><div class="heading"><div><h2>CITATION.cff template</h2><p>Machine-readable citation metadata for GitHub and reference managers.</p></div><button type="button" data-copy="cff">Copy CFF</button></div><pre><code id="cff">{cff}</code></pre></section>
+    <section class="section"><h2>Reproducibility checklist</h2><ul class="checklist"><li>Struphy version or exact Git commit</li><li>Python version and operating system</li><li>Complete simulation configuration</li><li>Model, domain, equilibrium, and perturbation names</li><li>Random seed and initial-condition data</li><li>MPI process count and relevant hardware details</li><li>Post-processing scripts and plotting parameters</li><li>Archived input, output, and environment files with a persistent DOI</li></ul></section>
+    <section class="section"><h2>Useful project links</h2><p class="links"><a href="https://github.com/struphy-hub/struphy/releases">Releases</a><a href="https://github.com/struphy-hub/struphy">Source code</a><a href="https://struphy-hub.github.io/struphy">Documentation</a><a href="https://github.com/struphy-hub/struphy/blob/main/LICENSE">MIT License</a></p></section>
+  </main>
+</Layout>
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((button)=>button.addEventListener('click',async()=>{const source=document.getElementById(button.dataset.copy||'');if(!source)return;const original=button.textContent;try{await navigator.clipboard.writeText(source.textContent||'');button.textContent='Copied'}catch{button.textContent='Copy failed'}setTimeout(()=>{button.textContent=original},1800)}));
+</script>
+<style>
+  .intro{max-width:800px;padding-block:clamp(54px,8vw,88px)}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08}.intro>p:not(.eyebrow),.heading p{color:var(--muted)}.notice{padding:18px;border:1px solid var(--cyan);background:var(--accent-wash)}.section{padding-block:40px 56px;border-top:1px solid var(--rule)}.notice+.section{margin-top:40px}.heading{display:flex;align-items:start;justify-content:space-between;gap:20px}.heading h2,.heading p{margin:0}.heading button{padding:7px 12px;border:1px solid var(--rule);background:transparent;color:var(--paper);cursor:pointer}pre{padding:20px;overflow:auto;border:1px solid var(--rule);background:var(--code-bg);font: .84rem/1.7 var(--mono)}.checklist{display:grid;grid-template-columns:1fr 1fr;gap:10px 36px;padding-left:22px;color:var(--muted)}.links{display:flex;flex-wrap:wrap;gap:18px}.links a{color:var(--cyan)}@media(max-width:600px){.heading{flex-direction:column}.checklist{grid-template-columns:1fr}}
+</style>

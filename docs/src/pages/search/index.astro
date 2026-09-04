@@ -1,0 +1,41 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import rawModels from '../../data/models.json';
+import { excerpt, toSlug } from '../../lib/catalogue';
+
+const equilibriaImported = import.meta.glob('../../data/equilibria/*.json', { eager: true, import: 'default' });
+const perturbationsImported = import.meta.glob('../../data/perturbations/*.json', { eager: true, import: 'default' });
+const domainNames = ['Colella','Cuboid','DESCunit','GVECunit','HollowCylinder','HollowTorus','IGAPolarCylinder','IGAPolarTorus','Orthogonal','PoweredEllipticCylinder','ShafranovDshapedCylinder','ShafranovShiftCylinder','ShafranovSqrtCylinder','Tokamak'];
+const equilibria = [...new Map(Object.values(equilibriaImported).map((item: any)=>[item.type,item])).values()];
+const perturbations = [...new Map(Object.values(perturbationsImported).map((item: any)=>[item.type,item])).values()];
+const records = [
+  ...rawModels.map((item: any)=>({type:'Model',name:item.className,description:item.description||excerpt(item.longDescriptionHtml),href:`/models/${toSlug(item.className)}/`,keywords:`${item.type} ${item.useCasesHtml||''}`})),
+  ...domainNames.map((name)=>({type:'Domain',name,description:'Mapped geometry available for Struphy simulations.',href:`/domains/#${name}`,keywords:'geometry mapping'})),
+  ...equilibria.map((item: any)=>({type:'Equilibrium',name:item.type,description:excerpt(item.description_html)||'Background fields for initializing a Struphy simulation.',href:`/equilibria/${toSlug(item.type)}/`,keywords:Object.keys(item.parameters??{}).join(' ')})),
+  ...perturbations.map((item: any)=>({type:'Perturbation',name:item.type,description:`Initial-condition perturbation${item.given_in_basis?` in the ${item.given_in_basis} basis`:''}.`,href:`/perturbations/${toSlug(item.type)}/`,keywords:`${item.given_in_basis||''} ${Object.keys(item.parameters??{}).join(' ')}`})),
+].sort((a,b)=>a.name.localeCompare(b.name));
+const types = ['All','Model','Domain','Equilibrium','Perturbation'];
+---
+
+<Layout title="Search the Struphy catalogue" description="Search Struphy models, domains, equilibria, and perturbations in one place.">
+  <main>
+    <section class="intro"><p class="eyebrow">Unified catalogue</p><h1>Find a Struphy component</h1><p>Search across models, mapped domains, background equilibria, and initial-condition perturbations.</p></section>
+    <section class="search-area" aria-label="Catalogue search">
+      <label for="catalogue-search">Search by name, physics, geometry, or parameter</label>
+      <input id="catalogue-search" type="search" data-query placeholder="Try “Alfvén”, “toroidal”, or “density”…" autofocus />
+      <div class="filters" aria-label="Filter by type">{types.map((type,index)=><button type="button" data-type={type} aria-pressed={String(index===0)}>{type}</button>)}</div>
+      <p class="summary" aria-live="polite"><strong data-count>{records.length}</strong> results</p>
+      <div class="results">{records.map((record)=><a class="result" href={record.href} data-record data-type-value={record.type} data-search={`${record.name} ${record.description} ${record.keywords}`.toLowerCase()}><span class="result-type">{record.type}</span><h2>{record.name}</h2><p>{record.description}</p></a>)}</div>
+      <p data-empty hidden>No components match this combination. Try a broader term or select “All”.</p>
+    </section>
+  </main>
+</Layout>
+<script>
+  const queryInput=document.querySelector<HTMLInputElement>('[data-query]');const buttons=[...document.querySelectorAll<HTMLButtonElement>('[data-type]')];const records=[...document.querySelectorAll<HTMLElement>('[data-record]')];const count=document.querySelector<HTMLElement>('[data-count]');const empty=document.querySelector<HTMLElement>('[data-empty]');let activeType='All';
+  function apply(){const query=(queryInput?.value||'').trim().toLowerCase();let visible=0;records.forEach((record)=>{const matchesType=activeType==='All'||record.dataset.typeValue===activeType;const matchesQuery=!query||(record.dataset.search||'').includes(query);record.hidden=!(matchesType&&matchesQuery);if(!record.hidden)visible+=1});if(count)count.textContent=String(visible);if(empty)empty.hidden=visible>0;const url=new URL(location.href);query?url.searchParams.set('q',query):url.searchParams.delete('q');activeType==='All'?url.searchParams.delete('type'):url.searchParams.set('type',activeType.toLowerCase());history.replaceState(null,'',url)}
+  queryInput?.addEventListener('input',apply);buttons.forEach((button)=>button.addEventListener('click',()=>{activeType=button.dataset.type||'All';buttons.forEach((item)=>item.setAttribute('aria-pressed',String(item===button)));apply()}));
+  const params=new URLSearchParams(location.search);if(queryInput&&params.get('q'))queryInput.value=params.get('q')||'';const requested=params.get('type');const selected=buttons.find((button)=>button.dataset.type?.toLowerCase()===requested);if(selected)selected.click();else apply();
+</script>
+<style>
+  .intro{max-width:760px;padding-block:clamp(54px,8vw,88px)}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08}.intro>p:not(.eyebrow){color:var(--muted)}.search-area{padding-block:38px 70px;border-top:1px solid var(--rule)}label{display:block;margin-bottom:8px;font-weight:650}input{width:100%;padding:15px 16px;border:1px solid var(--rule);background:var(--ink);color:var(--paper);font:inherit;font-size:1rem}.filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.filters button{padding:7px 12px;border:1px solid var(--rule);background:transparent;color:var(--muted);cursor:pointer}.filters button[aria-pressed=true]{border-color:var(--cyan);background:var(--accent-wash);color:var(--paper)}.summary{color:var(--muted);font-size:.85rem}.results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.result{padding:18px;border:1px solid var(--rule);color:var(--paper);text-decoration:none}.result:hover{border-color:var(--cyan);background:var(--accent-wash)}.result-type{color:var(--cyan);font:600 .7rem var(--mono);letter-spacing:.07em;text-transform:uppercase}.result h2{margin:7px 0;font-size:1.05rem;overflow-wrap:anywhere}.result p,[data-empty]{margin:0;color:var(--muted);font-size:.84rem}@media(max-width:760px){.results{grid-template-columns:1fr 1fr}}@media(max-width:480px){.results{grid-template-columns:1fr}}
+</style>

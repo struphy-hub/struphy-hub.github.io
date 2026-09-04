@@ -1,0 +1,64 @@
+---
+import { sampleGrid } from '../lib/catalogue';
+
+const {
+  values,
+  label,
+  palette = 'viridis',
+  xLabel = 'x',
+  yLabel = 'y',
+} = Astro.props;
+const sampled = sampleGrid(values);
+---
+
+<figure class="heatmap">
+  <canvas
+    width="560"
+    height="560"
+    data-heatmap
+    data-size={sampled.size}
+    data-values={sampled.values.join(',')}
+    data-palette={palette}
+    role="img"
+    aria-label={`${label}. Values range from ${sampled.min.toExponential(2)} to ${sampled.max.toExponential(2)}.`}
+  ></canvas>
+  <figcaption>
+    <strong>{label}</strong>
+    <span>{xLabel}–{yLabel} · {sampled.min.toExponential(2)} to {sampled.max.toExponential(2)}</span>
+  </figcaption>
+</figure>
+
+<script>
+  function colour(value: number, palette: string) {
+    const stops = palette === 'diverging'
+      ? [[32, 99, 155], [247, 247, 247], [178, 24, 43]]
+      : [[68, 1, 84], [33, 145, 140], [253, 231, 37]];
+    const scaled = Math.max(0, Math.min(1, value)) * (stops.length - 1);
+    const index = Math.min(stops.length - 2, Math.floor(scaled));
+    const amount = scaled - index;
+    return stops[index].map((channel, channelIndex) =>
+      Math.round(channel + (stops[index + 1][channelIndex] - channel) * amount),
+    );
+  }
+
+  document.querySelectorAll<HTMLCanvasElement>('[data-heatmap]').forEach((canvas) => {
+    const context = canvas.getContext('2d');
+    const size = Number(canvas.dataset.size);
+    const values = (canvas.dataset.values || '').split(',').map(Number);
+    if (!context || !size || !values.length) return;
+    const cell = canvas.width / size;
+    values.forEach((value, index) => {
+      const [red, green, blue] = colour(value, canvas.dataset.palette || 'viridis');
+      context.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+      context.fillRect((index % size) * cell, Math.floor(index / size) * cell, Math.ceil(cell), Math.ceil(cell));
+    });
+  });
+</script>
+
+<style>
+  .heatmap { margin: 0; min-width: 0; }
+  canvas { display: block; width: 100%; height: auto; border: 1px solid var(--rule); background: var(--plot-bg); }
+  figcaption { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; color: var(--muted); font-size: .82rem; }
+  figcaption strong { color: var(--paper); }
+  @media (max-width: 480px) { figcaption { align-items: flex-start; flex-direction: column; gap: 2px; } }
+</style>

@@ -1,5 +1,15 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import rawModels from '../data/models.json';
+
+const equilibriumFiles = import.meta.glob('../data/equilibria/*.json');
+const perturbationFiles = import.meta.glob('../data/perturbations/*.json');
+const projectStats = [
+  { value: rawModels.length, label: 'simulation models' },
+  { value: 14, label: 'mapped domains' },
+  { value: Object.keys(equilibriumFiles).length, label: 'equilibria' },
+  { value: Object.keys(perturbationFiles).length, label: 'perturbations' },
+];
 
 const links = {
   docs: 'https://struphy-hub.github.io/struphy',
@@ -75,6 +85,30 @@ const publications = [
         />
         <figcaption>GVEC unit domain generated with Struphy.</figcaption>
       </figure>
+    </section>
+
+    <section class="project-proof" aria-label="Project snapshot">
+      <ul>
+        {projectStats.map((stat) => <li><strong>{stat.value}</strong><span>{stat.label}</span></li>)}
+        <li><strong>MIT</strong><span>open-source license</span></li>
+      </ul>
+      <p class="health-links"><span>Generated from the current Struphy catalogue at build time.</span><a href="https://github.com/struphy-hub/struphy/releases">Releases</a><a href="https://github.com/struphy-hub/struphy/issues">Issue tracker</a><a href="https://github.com/struphy-hub/struphy-hub.github.io/actions/workflows/deploy.yml">Build status</a></p>
+    </section>
+
+    <section class="why" aria-labelledby="why-title">
+      <div class="section-heading">
+        <p class="eyebrow">Why Struphy</p>
+        <h2 id="why-title">One framework, from equations to reproducible simulations.</h2>
+        <p>Struphy connects geometric numerical methods with a practical Python workflow, so researchers can move between fluid, kinetic, and hybrid descriptions without rebuilding their simulation stack.</p>
+      </div>
+      <div class="benefit-grid">
+        <article><h3>Preserve the physics</h3><p>Compatible discretizations retain structural identities and important invariants over long simulations.</p></article>
+        <article><h3>Combine model families</h3><p>Study fluid fields, kinetic particles, or coupled hybrid systems through a common model interface.</p></article>
+        <article><h3>Work with mapped geometry</h3><p>Run models on Cartesian, cylindrical, toroidal, and externally generated domains.</p></article>
+        <article><h3>Prototype in Python</h3><p>Use a researcher-friendly Python workflow backed by compiled performance-critical kernels.</p></article>
+        <article><h3>Reproduce every run</h3><p>Keep model, domain, equilibrium, perturbation, and parameters together in inspectable configurations.</p></article>
+      </div>
+      <p class="why-actions"><a href="/search/">Search the full catalogue</a><a href="/citation/">Citation and reproducibility</a></p>
     </section>
 
     <section class="explainer" aria-labelledby="explainer-title">
@@ -290,6 +324,8 @@ const publications = [
     font-size: 0.85rem;
   }
 
+  .project-proof,
+  .why,
   .explainer,
   .overview,
   .quick-start,
@@ -297,6 +333,34 @@ const publications = [
     border-top: 1px solid var(--rule);
     padding-block: clamp(48px, 7vw, 76px);
   }
+
+  .project-proof { padding-block: 28px; }
+
+  .project-proof ul {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .project-proof li { padding-right: 18px; }
+  .project-proof li + li { padding-left: 18px; border-left: 1px solid var(--rule); }
+  .project-proof strong { display: block; color: var(--paper); font: 700 1.35rem var(--mono); }
+  .project-proof span { color: var(--muted); font-size: .78rem; }
+  .project-proof > p { margin: 18px 0 0; color: var(--muted); font-size: .75rem; }
+  .health-links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+  .health-links a { color: var(--cyan); }
+
+  .section-heading { max-width: 790px; }
+  .section-heading > p:not(.eyebrow) { color: var(--muted); }
+  .eyebrow { margin: 0 0 7px; color: var(--muted); font: 600 .76rem/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .benefit-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 34px; background: var(--rule); border: 1px solid var(--rule); }
+  .benefit-grid article { min-height: 160px; padding: 24px; background: var(--ink); }
+  .benefit-grid p { margin: 0; color: var(--muted); font-size: .93rem; }
+  .why-actions { display: flex; flex-wrap: wrap; gap: 22px; margin: 24px 0 0; }
+  .why-actions a { color: var(--cyan); }
 
   h2 {
     margin-bottom: 12px;
@@ -506,6 +570,10 @@ const publications = [
     .quick-start {
       gap: 24px;
     }
+
+    .project-proof ul { grid-template-columns: repeat(2, 1fr); }
+    .project-proof li, .project-proof li + li { padding: 12px; border: 0; border-bottom: 1px solid var(--rule); }
+    .benefit-grid { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 400px) {

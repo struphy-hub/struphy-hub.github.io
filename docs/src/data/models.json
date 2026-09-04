@@ -136,7 +136,7 @@
     "pdeMath": [
       {
         "token": "@@MATH0@@",
-        "latex": "\\begin{aligned} \\rho (\\partial_t \\mathbf{u} + \\mathbf{u} \\cdot \\nabla \\mathbf{u}) = -\\nabla p - \\nabla \\cdot \\boldsymbol{\\sigma}\n\\\\[2mm]\n\\nabla \\cdot \\mathbf{u} = 0\\,. \\end{aligned}",
+        "latex": "\\rho (\\partial_t \\mathbf{u} + \\mathbf{u} \\cdot \\nabla \\mathbf{u}) = -\\nabla p - \\nabla \\cdot \\boldsymbol{\\sigma} \\\\[2mm] \\nabla \\cdot \\mathbf{u} = 0\\,.",
         "display": true
       },
       {
@@ -1424,7 +1424,7 @@
       },
       {
         "token": "@@MATH4@@",
-        "latex": "\\begin{aligned} \\int_\\Omega \\nabla \\psi^\\top \\cdot \\nabla \\phi \\, \\textrm{d} \\mathbf{x}\n&= \\frac{\\alpha^2}{\\varepsilon} \\int_\\Omega \\int_{\\mathbb{R}^3} \\psi \\, \\tilde{f} \\, \\text{d}^3 \\mathbf{v} \\, \\textrm{d} \\mathbf{x}\n\\qquad \\forall \\ \\psi \\in H^1\n\\\\[2mm]\n\\tilde{\\mathbf{E}}(t=0) &= -\\nabla \\phi(t=0) \\end{aligned}",
+        "latex": "\\begin{aligned} \\int_\\Omega \\nabla \\psi^\\top \\cdot \\nabla \\phi \\, \\textrm{d} \\mathbf{x} &= \\frac{\\alpha^2}{\\varepsilon} \\int_\\Omega \\int_{\\mathbb{R}^3} \\psi \\, \\tilde{f} \\, \\text{d}^3 \\mathbf{v} \\, \\textrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1 \\\\[2mm] \\tilde{\\mathbf{E}}(t=0) &= -\\nabla \\phi(t=0) \\end{aligned}",
         "display": true
       },
       {
@@ -1576,7 +1576,7 @@
       },
       {
         "token": "@@MATH2@@",
-        "latex": "\\begin{aligned} \\int_{\\Omega} \\nabla \\psi^{\\top} \\cdot \\nabla \\phi \\, \\mathrm{d} \\mathbf{x} &= \\frac{\\alpha^2}{\\varepsilon} \\int_{\\Omega} \\int_{\\mathbb{R}^3} \\psi \\, (f - f_0) \\, \\mathrm{d}^3 \\mathbf{v} \\, \\mathrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1\n\\\\[2mm]\n\\mathbf{E}(t=0) &= -\\nabla \\phi(t=0) \\end{aligned}",
+        "latex": "\\begin{aligned} \\int_{\\Omega} \\nabla \\psi^{\\top} \\cdot \\nabla \\phi \\, \\mathrm{d} \\mathbf{x} &= \\frac{\\alpha^2}{\\varepsilon} \\int_{\\Omega} \\int_{\\mathbb{R}^3} \\psi \\, (f - f_0) \\, \\mathrm{d}^3 \\mathbf{v} \\, \\mathrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1 \\\\[2mm] \\mathbf{E}(t=0) &= -\\nabla \\phi(t=0) \\end{aligned}",
         "display": true
       },
       {
@@ -1682,7 +1682,7 @@
       },
       {
         "token": "@@MATH3@@",
-        "latex": "\\begin{aligned} \\int_{\\Omega} \\nabla \\psi^{\\top} \\cdot \\nabla \\phi \\, \\textrm{d} \\mathbf{x} &= \\frac{\\alpha^2}{\\varepsilon} \\int_{\\Omega} \\int_{\\mathbb{R}^3} \\psi \\, (f - f_0) \\, \\text{d}^3 \\mathbf{v} \\, \\textrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1\n\\\\[2mm]\n\\mathbf{E}(t=0) &= -\\nabla \\phi(t=0) \\end{aligned}",
+        "latex": "\\begin{aligned} \\int_{\\Omega} \\nabla \\psi^{\\top} \\cdot \\nabla \\phi \\, \\textrm{d} \\mathbf{x} &= \\frac{\\alpha^2}{\\varepsilon} \\int_{\\Omega} \\int_{\\mathbb{R}^3} \\psi \\, (f - f_0) \\, \\text{d}^3 \\mathbf{v} \\, \\textrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1 \\\\[2mm] \\mathbf{E}(t=0) &= -\\nabla \\phi(t=0) \\end{aligned}",
         "display": true
       },
       {
@@ -1771,7 +1771,7 @@
       },
       {
         "token": "@@MATH5@@",
-        "latex": "\\begin{aligned} \\int_\\Omega \\nabla \\psi^\\top \\cdot \\nabla \\phi \\, \\textrm{d} \\mathbf{x}\n&= \\frac{\\alpha^2}{\\varepsilon} \\int_\\Omega \\int_{\\mathbb{R}^3} \\psi \\, \\tilde{f} \\, \\text{d}^3 \\mathbf{v} \\, \\textrm{d} \\mathbf{x}\n\\qquad \\forall \\ \\psi \\in H^1\n\\\\[2mm]\n\\tilde{\\mathbf{E}}(t=0) &= -\\nabla \\phi(t=0) \\end{aligned}",
+        "latex": "\\begin{aligned} \\int_\\Omega \\nabla \\psi^\\top \\cdot \\nabla \\phi \\, \\textrm{d} \\mathbf{x} &= \\frac{\\alpha^2}{\\varepsilon} \\int_\\Omega \\int_{\\mathbb{R}^3} \\psi \\, \\tilde{f} \\, \\text{d}^3 \\mathbf{v} \\, \\textrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1 \\\\[2mm] \\tilde{\\mathbf{E}}(t=0) &= -\\nabla \\phi(t=0) \\end{aligned}",
         "display": true
       },
       {
@@ -1944,7 +1944,7 @@
       },
       {
         "token": "@@MATH8@@",
-        "latex": "\\begin{aligned} B^*_\\parallel = \\mathbf{b}_0 \\cdot \\mathbf{B}^*\n\\\\[2mm]\n\\mathbf{B}^* &= \\mathbf{B} + \\epsilon v_\\parallel \\nabla \\times \\mathbf{b}_0\n\\\\[2mm]\n\\mathbf{E}^* &= -\\tilde{\\mathbf{U}} \\times \\mathbf{B} - \\epsilon \\mu \\nabla (\\mathbf{b}_0 \\cdot \\mathbf{B}) \\end{aligned}",
+        "latex": "\\begin{aligned} B^*_\\parallel = \\mathbf{b}_0 \\cdot \\mathbf{B}^* \\\\[2mm] \\mathbf{B}^* &= \\mathbf{B} + \\epsilon v_\\parallel \\nabla \\times \\mathbf{b}_0 \\\\[2mm] \\mathbf{E}^* &= -\\tilde{\\mathbf{U}} \\times \\mathbf{B} - \\epsilon \\mu \\nabla (\\mathbf{b}_0 \\cdot \\mathbf{B}) \\end{aligned}",
         "display": true
       }
     ],
@@ -1954,7 +1954,7 @@
     "normalizationMath": [
       {
         "token": "@@MATH0@@",
-        "latex": "\\begin{aligned} \\hat U = \\hat v = \\hat v_{A,\\mathrm{bulk}},\\qquad\n\\hat\\mu = A_h m_H \\hat v_h^2 / \\hat B. \\end{aligned}",
+        "latex": "\\hat U = \\hat v = \\hat v_{A,\\mathrm{bulk}},\\qquad \\hat\\mu = A_h m_H \\hat v_h^2 / \\hat B.",
         "display": true
       }
     ],
