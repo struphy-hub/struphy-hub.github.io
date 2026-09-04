@@ -35,15 +35,26 @@ def extract_math(rst: str) -> tuple[str, list[dict]]:
     math_items: list[dict] = []
 
     def save_block(content: str) -> str:
-        lines = [line.strip() for line in content.strip().split("\n") if line.strip()]
-        # Docstrings write bare multi-row systems (linebroken with `\\`,
-        # aligned on `&=`) without the `\begin{aligned}` wrapper Sphinx's
-        # math directive implicitly supplies. KaTeX needs it explicit, or a
-        # lone `&`/`\\` is a syntax error outside an alignment environment.
-        needs_aligned = len(lines) > 1 or any("&" in line for line in lines)
-        latex = "\n".join(lines)
-        if needs_aligned:
-            latex = f"\\begin{{aligned}} {latex} \\end{{aligned}}"
+        raw = "\n".join(line.strip() for line in content.strip().split("\n") if line.strip())
+        # A block that already opens with its own environment (``\begin{bmatrix}``,
+        # ``\begin{aligned}``, ...) is self-contained -- pass it through as-is.
+        if raw.lstrip().startswith("\\begin{"):
+            latex = raw
+        else:
+            # Otherwise docstrings write bare multi-row systems -- either
+            # linebroken with an explicit `\\[2mm]`, or as blank-line-separated
+            # paragraphs each ending in a comma -- relying on Sphinx's math
+            # directive to implicitly lay them out as an aligned system. KaTeX
+            # needs that made explicit, or a lone `&`/`\\` is a syntax error
+            # outside an alignment environment.
+            groups = [
+                " ".join(line.strip() for line in group.split("\n") if line.strip())
+                for group in re.split(r"\n\s*\n", content.strip())
+            ]
+            needs_aligned = len(groups) > 1 or any("&" in group for group in groups)
+            latex = r" \\ ".join(groups)
+            if needs_aligned:
+                latex = f"\\begin{{aligned}} {latex} \\end{{aligned}}"
         token = f"@@MATH{len(math_items)}@@"
         math_items.append({"token": token, "latex": latex, "display": True})
         return token

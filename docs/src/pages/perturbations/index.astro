@@ -1,233 +1,28 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-
-const perturbationDocsBase = 'https://struphy-hub.github.io/struphy/sections/perturbations.html#struphy.initial.perturbations.';
+import { toSlug } from '../../lib/catalogue';
 
 const imported = import.meta.glob('../../data/perturbations/*.json', { eager: true, import: 'default' });
-const perturbations = [...new Map(Object.entries(imported).map(([path, value]) => {
-  const data = value as any;
-  return { ...data, slug: path.split('/').pop()?.replace(/\.json$/, '') ?? data.name };
-}).map((data) => [data.type, data])).values()].sort((a, b) => a.type.localeCompare(b.type));
-
-function cells(values: number[][], size = 28) {
-  const rows = values.length;
-  const cols = rows ? values[0].length : 0;
-  const flat = values.flat();
-  const min = Math.min(...flat), max = Math.max(...flat), span = max - min || 1;
-  return Array.from({ length: size * size }, (_, index) => {
-    const x = index % size, y = Math.floor(index / size);
-    const row = values[Math.min(rows - 1, Math.floor(y * rows / size))];
-    const value = row?.[Math.min(cols - 1, Math.floor(x * cols / size))] ?? 0;
-    return { x, y, value, intensity: (value - min) / span, min, max };
-  });
-}
-
-function diverging(intensity: number) {
-  const i = Math.max(0, Math.min(1, intensity));
-  const t = i * 2 - 1;
-  if (t < 0) {
-    const a = 1 + t;
-    return `rgb(${Math.round(a * 255)},${Math.round(a * 255)},255)`;
-  }
-  const a = 1 - t;
-  return `rgb(255,${Math.round(a * 255)},${Math.round(a * 255)})`;
-}
-
-function linePoints(values: number[], width = 280, height = 150) {
-  const finite = values.map((value) => Number.isFinite(value) ? value : 0);
-  const min = Math.min(...finite), max = Math.max(...finite), span = max - min || 1;
-  return finite.map((value, index) => `${(index / Math.max(1, finite.length - 1)) * width},${height - ((value - min) / span) * height}`).join(' ');
-}
+const perturbations = [...new Map(Object.values(imported).map((value: any) => [value.type, value])).values()]
+  .sort((a: any, b: any) => a.type.localeCompare(b.type));
 ---
-<Layout title="Perturbations — Struphy" description="Initial-condition perturbations available in Struphy.">
+
+<Layout title="Perturbations — Struphy" description="Browse initial-condition perturbations available in Struphy.">
   <main>
-    <section class="intro"><p class="eyebrow">Initial conditions</p><h1>Perturbations</h1><p>Explore the perturbation functions from <code>struphy.initial.perturbations</code> used to seed simulations. Each plot is generated from the corresponding class during the site build, sampled over the logical domain.</p></section>
-    {perturbations.length ? <section class="browser" aria-label="Available perturbations"><aside class="selector"><p class="eyebrow">Select a perturbation</p><input type="search" class="perturbation-filter" data-perturbation-filter placeholder="Filter perturbations…" aria-label="Filter perturbations" /><div class="perturbation-list" data-perturbation-list>{perturbations.map((perturbation, index) => <button type="button" class="perturbation-option" data-perturbation={perturbation.slug} data-perturbation-search={perturbation.type.toLowerCase()} aria-pressed={index === 0}><code>{perturbation.type}</code></button>)}</div><p class="empty-filter" data-perturbation-filter-empty hidden>No perturbations match "<span data-perturbation-filter-query></span>".</p></aside><div class="grid" aria-label="Selected perturbation">
-      {perturbations.map((perturbation, index) => <article class="card" id={perturbation.slug} data-perturbation-card={perturbation.slug} hidden={index !== 0}>
-        <div class="card-heading"><div><p class="eyebrow">Perturbation{perturbation.given_in_basis ? ` · basis: ${perturbation.given_in_basis}` : ''}</p><h2>{perturbation.type}</h2></div><div class="card-heading-actions"><button type="button" class="copy-link" data-copy-link={perturbation.slug} aria-label={`Copy link to ${perturbation.type}`}>Copy link</button><a class="docs-link" href={`${perturbationDocsBase}${perturbation.type}`} target="_blank" rel="noreferrer">Documentation ↗</a></div></div>
-        <div class="slice-tabs" role="tablist" aria-label={`${perturbation.type} slice planes`}>{(['xy', 'xz', 'yz'] as const).map((plane, index) => <button type="button" role="tab" aria-selected={index === 0} tabindex={index === 0 ? 0 : -1} aria-controls={`${perturbation.slug}-${plane}`} data-slice-tab={`${perturbation.slug}-${plane}`}>{plane.toUpperCase()}</button>)}</div>
-        {(['xy', 'xz', 'yz'] as const).map((plane, planeIndex) => { const slice = perturbation.slices[plane]; const data = cells(slice.fields.u.values); const min = data[0]?.min ?? 0; const max = data[0]?.max ?? 0; return <div id={`${perturbation.slug}-${plane}`} class="slice-panel" role="tabpanel" hidden={planeIndex !== 0}><figure><div class="plot-wrap expandable" tabindex="0" role="button" aria-label={`Expand ${perturbation.type} ${plane} plot`}><svg viewBox="0 0 340 300" role="img" aria-label={`${perturbation.type} u ${plane} plot`}><g transform="translate(38 10)">{data.map((cell) => <rect x={cell.x * 8.6} y={cell.y * 8.6} width="8.7" height="8.7" fill={diverging(cell.intensity)} />)}<line x1="0" y1="241" x2="241" y2="241" /><line x1="0" y1="0" x2="0" y2="241" /><text x="120" y="265" text-anchor="middle">{slice.axes[0]}</text><text x="-24" y="120" text-anchor="middle" transform="rotate(-90 -24 120)">{slice.axes[1]}</text><text x="0" y="255">{slice.coordinates[slice.axes[0]][0].toFixed(2)}</text><text x="241" y="255" text-anchor="end">{slice.coordinates[slice.axes[0]].at(-1)?.toFixed(2)}</text><text x="-6" y="8" text-anchor="end">{slice.coordinates[slice.axes[1]].at(-1)?.toFixed(2)}</text><text x="-6" y="241" text-anchor="end">{slice.coordinates[slice.axes[1]][0].toFixed(2)}</text></g><defs><linearGradient id={`div-${perturbation.slug}-${plane}`} x1="0" x2="0" y1="1" y2="0"><stop offset="0%" stop-color={diverging(0)} /><stop offset="50%" stop-color={diverging(.5)} /><stop offset="100%" stop-color={diverging(1)} /></linearGradient></defs><rect x="294" y="10" width="14" height="241" fill={`url(#div-${perturbation.slug}-${plane})`} /><text x="314" y="17">{max.toExponential(1)}</text><text x="314" y="250">{min.toExponential(1)}</text></svg></div><figcaption>Perturbation value <code>u</code></figcaption></figure><p class="meta">Coordinates: {slice.axes.join('–')} · value {slice.value}</p></div>})}
-        <section class="centerline" aria-labelledby={`${perturbation.slug}-centerline`}><h3 id={`${perturbation.slug}-centerline`}>Coordinate-line profiles</h3><p class="meta">Each line varies one logical coordinate while the other two remain fixed at 0.5.</p><div class="line-plots">{(['eta1', 'eta2', 'eta3'] as const).map((axis) => { const line = perturbation.centerlines[axis]; return <figure><figcaption><strong>{axis}</strong><span>(other coordinates = 0.5)</span></figcaption><div class="plot-wrap expandable" tabindex="0" role="button" aria-label={`Expand ${perturbation.type} ${axis} profile`}><svg viewBox="0 0 330 190" role="img" aria-label={`${perturbation.type} ${axis} profile`}><g transform="translate(30 12)"><rect width="280" height="150" fill="none" stroke="var(--rule)" /><polyline points={linePoints(line.fields.u)} fill="none" stroke="var(--cyan)" stroke-width="2" /><text x="140" y="178" text-anchor="middle">{axis}</text><text x="0" y="174">{line.coordinates[0].toFixed(2)}</text><text x="280" y="174" text-anchor="end">{line.coordinates.at(-1)?.toFixed(2)}</text><text x="-18" y="12">max</text><text x="-18" y="162">min</text></g></svg></div></figure>})}</div></section>
-        <section class="parameters" aria-labelledby={`${perturbation.slug}-parameters`}><h3 id={`${perturbation.slug}-parameters`}>Parameters</h3><div class="parameter-table-wrap"><table><thead><tr><th scope="col">Parameter</th><th scope="col">Value</th><th scope="col">Description</th></tr></thead><tbody>{Object.entries(perturbation.parameters ?? {}).filter(([key]) => key !== 'self').map(([key, value]) => <tr><th scope="row"><code>{key}</code></th><td>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</td><td>{perturbation.parameter_descriptions?.[key] ?? '—'}</td></tr>)}</tbody></table></div></section>
-      </article>)}
-    </div></section> : <p class="empty">No perturbation plots are available yet. They are generated automatically in CI.</p>}
+    <section class="intro" aria-labelledby="page-title"><p class="eyebrow">Initial conditions</p><h1 id="page-title">Perturbations</h1><p>Browse functions used to seed Struphy simulations. Each entry has a shareable page with slice plots, profiles, parameters, and a documentation link.</p></section>
+    <section class="directory" aria-labelledby="directory-title">
+      <div class="directory-heading"><div><p class="eyebrow">{perturbations.length} available</p><h2 id="directory-title">Choose a perturbation</h2></div><input type="search" data-filter placeholder="Filter perturbations…" aria-label="Filter perturbations" /></div>
+      <div class="cards">{perturbations.map((item: any) => <a class="card" href={`/perturbations/${toSlug(item.type)}/`} data-search={`${item.type} ${item.given_in_basis ?? ''}`.toLowerCase()}><code>{item.type}</code><span>{item.given_in_basis ? `Basis: ${item.given_in_basis}` : 'Initial-condition function'}</span></a>)}</div>
+      <p data-empty hidden>No perturbations match your search.</p>
+    </section>
   </main>
-  <dialog class="lightbox" data-lightbox aria-label="Expanded plot">
-    <button type="button" class="lightbox-close" data-lightbox-close aria-label="Close">Close ✕</button>
-    <div class="lightbox-content" data-lightbox-content></div>
-  </dialog>
 </Layout>
-<script is:inline>
-  const options = [...document.querySelectorAll('.perturbation-option')];
-  const cards = [...document.querySelectorAll('[data-perturbation-card]')];
-
-  const selectPerturbation = (slug, { updateHash = true } = {}) => {
-    const option = options.find((item) => item.dataset.perturbation === slug);
-    if (!option) return;
-    options.forEach((item) => item.setAttribute('aria-pressed', String(item === option)));
-    cards.forEach((card) => { card.hidden = card.dataset.perturbationCard !== slug; });
-    if (updateHash && history.replaceState) history.replaceState(null, '', `#${slug}`);
-  };
-
-  options.forEach((option, index) => {
-    option.addEventListener('click', () => selectPerturbation(option.dataset.perturbation));
-    option.addEventListener('keydown', (event) => {
-      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
-      event.preventDefault();
-      const next = options[(index + (event.key === 'ArrowRight' ? 1 : -1) + options.length) % options.length];
-      next.focus();
-      selectPerturbation(next.dataset.perturbation);
-    });
-  });
-
-  const setSliceTab = (tab) => {
-    const panelId = tab.getAttribute('aria-controls');
-    const root = tab.closest('.card');
-    root?.querySelectorAll('[data-slice-tab]').forEach((item) => {
-      const active = item === tab;
-      item.setAttribute('aria-selected', String(active));
-      item.tabIndex = active ? 0 : -1;
-    });
-    root?.querySelectorAll('.slice-panel').forEach((panel) => { panel.hidden = panel.id !== panelId; });
-  };
-  document.querySelectorAll('.slice-tabs').forEach((tablist) => {
-    const tabs = [...tablist.querySelectorAll('[data-slice-tab]')];
-    tabs.forEach((tab, index) => {
-      tab.addEventListener('click', () => setSliceTab(tab));
-      tab.addEventListener('keydown', (event) => {
-        if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
-        event.preventDefault();
-        const next = tabs[(index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
-        next.focus();
-        setSliceTab(next);
-      });
-    });
-  });
-
-  const hashSlug = decodeURIComponent(location.hash.replace(/^#/, ''));
-  if (hashSlug && options.some((option) => option.dataset.perturbation === hashSlug)) {
-    selectPerturbation(hashSlug, { updateHash: false });
-  }
-
-  const filterInput = document.querySelector('[data-perturbation-filter]');
-  const filterEmpty = document.querySelector('[data-perturbation-filter-empty]');
-  const filterQuery = document.querySelector('[data-perturbation-filter-query]');
-  filterInput?.addEventListener('input', () => {
-    const query = filterInput.value.trim().toLowerCase();
-    let visibleCount = 0;
-    options.forEach((option) => {
-      const matches = !query || (option.dataset.perturbationSearch || '').includes(query);
-      option.hidden = !matches;
-      if (matches) visibleCount += 1;
-    });
-    if (filterEmpty) filterEmpty.hidden = visibleCount > 0;
-    if (filterQuery) filterQuery.textContent = query;
-  });
-
-  const lightbox = document.querySelector('[data-lightbox]');
-  const lightboxContent = document.querySelector('[data-lightbox-content]');
-  const openLightbox = (wrap) => {
-    if (!lightbox || !lightboxContent) return;
-    const svg = wrap.querySelector('svg');
-    if (!svg) return;
-    lightboxContent.innerHTML = '';
-    const clone = svg.cloneNode(true);
-    clone.removeAttribute('width');
-    clone.removeAttribute('height');
-    lightboxContent.appendChild(clone);
-    const label = wrap.getAttribute('aria-label');
-    if (label) lightbox.setAttribute('aria-label', label);
-    lightbox.showModal();
-  };
-  document.querySelectorAll('.expandable').forEach((wrap) => {
-    wrap.addEventListener('click', () => openLightbox(wrap));
-    wrap.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      event.preventDefault();
-      openLightbox(wrap);
-    });
-  });
-  document.querySelector('[data-lightbox-close]')?.addEventListener('click', () => lightbox?.close());
-  lightbox?.addEventListener('click', (event) => { if (event.target === lightbox) lightbox.close(); });
-
-  document.querySelectorAll('[data-copy-link]').forEach((button) => {
-    button.addEventListener('click', async () => {
-      const slug = button.dataset.copyLink;
-      const url = `${location.origin}${location.pathname}#${slug}`;
-      try {
-        await navigator.clipboard.writeText(url);
-        const original = button.textContent;
-        button.textContent = 'Copied!';
-        setTimeout(() => { button.textContent = original; }, 1800);
-      } catch {
-        button.textContent = 'Copy failed';
-      }
-    });
-  });
+<script>
+  const input = document.querySelector<HTMLInputElement>('[data-filter]');
+  const items = [...document.querySelectorAll<HTMLElement>('[data-search]')];
+  const empty = document.querySelector<HTMLElement>('[data-empty]');
+  input?.addEventListener('input',()=>{const query=input.value.trim().toLowerCase();let count=0;items.forEach((item)=>{const match=!query||(item.dataset.search||'').includes(query);item.hidden=!match;if(match)count+=1});if(empty)empty.hidden=count>0});
 </script>
 <style>
-  .perturbation-option{color:var(--cyan);font-size:.925rem;text-decoration:none}
-  .perturbation-filter{width:100%;margin-bottom:10px;padding:8px 10px;border:1px solid var(--rule);background:var(--ink);color:var(--paper);font:inherit;font-size:.87rem}
-  .perturbation-filter:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
-  .empty-filter{margin:14px 0 0;color:var(--muted);font-size:.85rem}
-  .copy-link{flex:none;padding:6px 11px;border:1px solid var(--rule);background:transparent;color:var(--muted);cursor:pointer;font:600 .78rem/1.4 var(--sans)}
-  .copy-link:hover{color:var(--paper);border-color:var(--cyan)}
-  .card-heading-actions{display:flex;flex:none;align-items:center;gap:12px}
-  .docs-link{color:var(--cyan);font-size:.84rem;text-decoration:none;white-space:nowrap}
-  .docs-link:hover{text-decoration:underline;text-underline-offset:.2em}
-  .intro{padding-block:clamp(56px,8vw,92px);max-width:760px}h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow){color:var(--muted);font-size:1.1rem}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}.browser{display:grid;grid-template-columns:minmax(250px,300px) minmax(0,1fr);gap:48px;border-top:1px solid var(--rule);padding-block:40px 64px}.selector{position:sticky;top:24px;align-self:start;min-width:0}.perturbation-list{max-height:600px;overflow:auto;border-top:1px solid var(--rule)}.perturbation-option{display:block;width:100%;padding:11px 8px;border:0;border-bottom:1px solid var(--rule);background:none;text-align:left;cursor:pointer}.perturbation-option:hover,.perturbation-option:focus-visible,.perturbation-option[aria-pressed="true"]{background:var(--accent-wash);color:var(--paper)}.grid{min-width:0}.card{border:1px solid var(--rule);padding:20px}.card-heading{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.card h2{margin:0 0 18px;font-size:1.45rem;overflow-wrap:anywhere}.slice-tabs{display:flex;gap:0 24px;border-bottom:1px solid var(--rule);margin:4px 0 18px}.slice-tabs button{padding:10px 0 8px;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:.9rem}.slice-tabs button[aria-selected="true"]{border-bottom-color:var(--cyan);color:var(--paper)}.slice-panel figure{margin:0;max-width:340px}.slice-panel svg{display:block;width:100%;height:auto;border:1px solid var(--rule);background:var(--plot-bg)}.slice-panel line{stroke:var(--paper);stroke-width:.7}.slice-panel text{font-size:10px;fill:var(--paper)}figcaption{margin-top:7px;color:var(--muted);font-size:.86rem}.meta{margin:10px 0 0;color:var(--muted);font-size:.82rem}.parameters{margin-top:30px;border-top:1px solid var(--rule);padding-top:20px}.parameters h3{margin:0 0 12px;font-size:1.05rem}.empty{padding:40px 0 64px;color:var(--muted)}
-  .parameter-table-wrap { overflow-x: auto; }
-  .parameter-table-wrap table { width: 100%; border-collapse: collapse; font-size: .84rem; }
-  .parameter-table-wrap th, .parameter-table-wrap td { padding: 9px 12px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
-  .parameter-table-wrap thead th { color: var(--paper); font: 600 .72rem var(--mono); letter-spacing: .06em; text-transform: uppercase; }
-  .parameter-table-wrap tbody th { width: 22%; font-weight: 400; }
-  .parameter-table-wrap tbody td:nth-child(2) { width: 24%; color: var(--paper); font-family: var(--mono); overflow-wrap: anywhere; }
-  .parameter-table-wrap tbody td:nth-child(3) { color: var(--muted); }
-  .centerline { margin-top: 32px; border-top: 1px solid var(--rule); padding-top: 20px; }
-  .centerline h3 { margin: 0; font-size: 1.05rem; }
-  .line-plots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
-  .line-plots figure { margin: 0; }
-  .line-plots svg { display: block; width: 100%; height: auto; background: var(--plot-bg); border: 1px solid var(--rule); }
-  .line-plots text { fill: var(--paper); font: 10px var(--mono); }
-  .line-plots figcaption { margin: 0 0 6px; display: flex; gap: 6px; align-items: baseline; }
-  .line-plots figcaption span { color: var(--muted); font-size: .78rem; }
-  .expandable { position: relative; cursor: zoom-in; }
-  .expandable::after {
-    content: '⤢';
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    padding: 2px 5px;
-    border: 1px solid var(--rule);
-    background: var(--ink);
-    color: var(--muted);
-    font-size: .78rem;
-    line-height: 1.4;
-    pointer-events: none;
-  }
-  .expandable:hover::after,
-  .expandable:focus-visible::after { color: var(--paper); border-color: var(--cyan); }
-  .expandable:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
-  .lightbox {
-    max-width: min(92vw, 900px);
-    max-height: 90vh;
-    padding: 20px;
-    border: 1px solid var(--rule);
-    background: var(--ink);
-    color: var(--paper);
-  }
-  .lightbox::backdrop { background: rgba(0, 0, 0, .6); }
-  .lightbox-close {
-    float: right;
-    padding: 6px 11px;
-    border: 1px solid var(--rule);
-    background: transparent;
-    color: var(--muted);
-    cursor: pointer;
-    font: 600 .78rem/1.4 var(--sans);
-  }
-  .lightbox-close:hover { color: var(--paper); border-color: var(--cyan); }
-  .lightbox-content { clear: both; margin-top: 12px; }
-  .lightbox-content svg { display: block; width: 100%; height: auto; max-height: 78vh; }
-  @media(max-width:600px){main{width:calc(100% - 28px)}.browser{grid-template-columns:1fr;gap:28px}.selector{position:static}.perturbation-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:none}.perturbation-option{border-right:1px solid var(--rule)}.grid{grid-template-columns:1fr}.line-plots{grid-template-columns:1fr}}
+  .intro{max-width:760px;padding-block:clamp(56px,8vw,92px)}h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow),[data-empty]{color:var(--muted)}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}.directory{padding-block:40px 72px;border-top:1px solid var(--rule)}.directory-heading{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:24px}h2{margin:0;font-size:1.6rem}input{width:min(100%,320px);padding:10px 12px;border:1px solid var(--rule);background:var(--ink);color:var(--paper);font:inherit}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.card{display:flex;min-width:0;padding:18px;border:1px solid var(--rule);color:var(--paper);text-decoration:none;flex-direction:column;gap:8px}.card:hover{border-color:var(--cyan);background:var(--accent-wash)}.card code{overflow-wrap:anywhere;color:var(--cyan)}.card span{color:var(--muted);font-size:.82rem}@media(max-width:760px){.directory-heading{align-items:stretch;flex-direction:column}.cards{grid-template-columns:1fr 1fr}}@media(max-width:480px){.cards{grid-template-columns:1fr}}
 </style>
