@@ -1,6 +1,40 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import catalogue from '../../data/models.json';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
+import rawCatalogue from '../../data/models.json';
+
+// Math is extracted server-side (build time) from real LaTeX docstrings and
+// pre-rendered into static KaTeX markup here, so no math-rendering JS ships
+// to the browser -- switching models client-side just swaps in this
+// already-rendered HTML.
+const MATH_FIELDS = [
+  'pde', 'longDescription', 'normalization', 'discretization',
+  'scalarQuantities', 'useCases', 'cannotBeUsedFor', 'examples',
+];
+
+function renderMath(html, mathItems) {
+  if (!mathItems?.length) return html;
+  return mathItems.reduce((result, { token, latex, display }) => {
+    let rendered;
+    try {
+      rendered = katex.renderToString(latex, { displayMode: display, throwOnError: false, output: 'html' });
+    } catch {
+      rendered = `<code>${latex}</code>`;
+    }
+    const wrapped = display ? `<div class="math-display">${rendered}</div>` : rendered;
+    return result.split(token).join(wrapped);
+  }, html);
+}
+
+const catalogue = rawCatalogue.map((model) => {
+  const resolved = { ...model };
+  for (const field of MATH_FIELDS) {
+    resolved[`${field}Html`] = renderMath(model[`${field}Html`], model[`${field}Math`]);
+    delete resolved[`${field}Math`];
+  }
+  return resolved;
+});
 
 const docsBase = 'https://struphy-hub.github.io/struphy/';
 const modelDocsUrl = (modelName) => `https://struphy-hub.github.io/struphy/sections/subsections/models-all.html#struphy.models.${modelName}`;
@@ -118,6 +152,8 @@ const initialModel = catalogue[0];
   .selector-scroll { max-height:600px; overflow:auto; border-top:1px solid var(--rule); } .selector-group+.selector-group { margin-top:20px; } .selector-heading { display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:9px 8px 6px; border-bottom:1px solid var(--rule); } .selector-heading h2 { margin:0; font:600 .72rem/1.4 var(--mono); letter-spacing:.08em; text-transform:uppercase; } .selector-heading span { color:var(--muted); font:.72rem var(--mono); } .model-option { display:block; width:100%; padding:11px 8px; border:0; border-bottom:1px solid var(--rule); background:none; color:var(--cyan); text-align:left; cursor:pointer; } .model-option:hover,.model-option:focus-visible,.model-option[aria-pressed="true"] { background:var(--accent-wash); color:var(--paper); } code { overflow-wrap:anywhere; font:600 .87rem/1.45 var(--mono); } button:focus-visible,a:focus-visible { outline:2px solid var(--cyan); outline-offset:3px; }
   .eyebrow { margin:0 0 7px; color:var(--muted); font:600 .76rem/1.4 var(--mono); text-transform:uppercase; letter-spacing:.08em; } .detail { min-width:0; border:1px solid var(--rule); padding:20px; } .detail-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; } .detail h2 { margin:0 0 18px; font-size:1.45rem; overflow-wrap:anywhere; } .detail-heading-actions { display:flex; align-items:center; gap:12px; flex:none; } .docs-link { padding-top:4px; font-size:.9rem; white-space:nowrap; } .copy-link { flex:none; padding:6px 11px; border:1px solid var(--rule); background:transparent; color:var(--muted); cursor:pointer; font:600 .78rem/1.4 var(--sans); }
   .copy-link:hover { color:var(--paper); border-color:var(--cyan); } .tabs { display:flex; flex-wrap:wrap; gap:0 24px; margin:4px 0 18px; border-bottom:1px solid var(--rule); } .tabs button { padding:10px 0 8px; border:0; border-bottom:2px solid transparent; background:none; color:var(--muted); cursor:pointer; font:inherit; font-size:.9rem; } .tabs button[aria-selected="true"] { border-bottom-color:var(--cyan); color:var(--paper); } .tab-panel { padding-top:0; } .tab-panel>p { color:var(--muted); max-width:72ch; } .generated-content { max-height:560px; overflow:auto; overflow-wrap:anywhere; color:var(--muted); font-size:.94rem; } .generated-content :global(p),.generated-content :global(ul),.generated-content :global(ol),.generated-content :global(h3),.generated-content :global(h4) { margin-block:0 12px; } .generated-content :global(ul),.generated-content :global(ol) { padding-left:1.25rem; } .generated-content :global(h3),.generated-content :global(h4) { color:var(--paper); font-size:.98rem; } .generated-content :global(a) { color:var(--cyan); } .generated-content :global([style*="display:block"]) { max-width:100%; overflow-x:auto; overflow-y:hidden; }
+  .generated-content :global(.math-display) { margin:10px 0; overflow-x:auto; overflow-y:hidden; text-align:center; }
+  .generated-content :global(.katex-display) { margin:0; }
   .documentation-link { margin:0; padding:0 0 52px; color:var(--muted); }
   @media (max-width:760px) { .model-browser { grid-template-columns:1fr; gap:28px; } .selector { position:static; } .selector-scroll { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-height:none; border-left:1px solid var(--rule); } .selector-group,.selector-group+.selector-group { margin:0; min-width:0; } .selector-group:nth-child(odd) { border-right:1px solid var(--rule); } .selector-heading { border-top:1px solid var(--rule); } .detail-heading { flex-direction:column; gap:2px; } .docs-link { padding-top:0; } }
   @media (max-width:400px) { main { width:min(100% - 28px,1120px); } h1 { font-size:2.15rem; } .selector-scroll { display:block; border-left:0; } .selector-group+.selector-group { margin-top:20px; } .selector-group:nth-child(odd) { border-right:0; } .tabs { gap:0 15px; } .tabs button { font-size:.83rem; } }
