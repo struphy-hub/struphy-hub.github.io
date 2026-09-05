@@ -1,0 +1,14 @@
+{
+  "measuredGrowthRate": 0.03927897838094922,
+  "name": "Bump-on-tail instability",
+  "description": "A minority “bump” of fast particles on the tail of an otherwise Maxwellian distribution drives Langmuir waves unstable, feeding energy into the field until particle trapping saturates it.",
+  "model": "VlasovAmpereOneSpecies",
+  "equationsMarkdown": "**PDEs solved by model:**\n\nVlasov equation:\n\n$$\n\\frac{\\partial f}{\\partial t} + \\mathbf{v} \\cdot \\nabla f + \\frac{1}{\\varepsilon} \\left( \\mathbf{E} + \\mathbf{v} \\times \\mathbf{B}_0 \\right) \\cdot \\frac{\\partial f}{\\partial \\mathbf{v}} = 0\n$$\n\nAmpère's law:\n\n$$\n-\\frac{\\partial \\mathbf{E}}{\\partial t} = \\frac{\\alpha^2}{\\varepsilon} \\int_{\\mathbb{R}^3} \\mathbf{v} f \\, \\mathrm{d}^3 \\mathbf{v}\n$$\n\nInitial Poisson equation: At :math:`t=0`, solve weakly for the electric potential :math:`\\phi`:\n\n$$\n\\int_{\\Omega} \\nabla \\psi^{\\top} \\cdot \\nabla \\phi \\, \\mathrm{d} \\mathbf{x} = \\frac{\\alpha^2}{\\varepsilon} \\int_{\\Omega} \\int_{\\mathbb{R}^3} \\psi \\, (f - f_0) \\, \\mathrm{d}^3 \\mathbf{v} \\, \\mathrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1\n\\\\[2mm]\n\\mathbf{E}(t=0) = -\\nabla \\phi(t=0)\n$$\n",
+  "domain": "Cuboid (r1=62.83)",
+  "grid": "32 × 1 × 1",
+  "degree": "3 × 1 × 1",
+  "steps": 600,
+  "visualization": "Plotly",
+  "thumbnail": "/images/examples/bump-on-tail.png",
+  "interactive": "/examples/bump-on-tail.html"
+}

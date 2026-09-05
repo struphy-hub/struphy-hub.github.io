@@ -1,0 +1,19 @@
+{
+  "name": "ITG drift wave",
+  "description": "A magnetized plasma column with radial density and temperature gradients drives a helical drift wave unstable — the basic mechanism behind ion-temperature-gradient (ITG) turbulence.",
+  "model": "DriftKineticElectrostaticAdiabatic",
+  "equationsMarkdown": "**PDEs solved by model:**\n\nDrift-kinetic equation:\n\n$$\n\\frac{\\partial f}{\\partial t} + \\left[ v_\\parallel \\frac{\\mathbf{B}^*}{B^*_\\parallel} + \\frac{\\mathbf{E}^* \\times \\mathbf{b}_0}{B^*_\\parallel} \\right] \\cdot \\frac{\\partial f}{\\partial \\mathbf{X}} + \\left[ \\frac{1}{\\varepsilon} \\frac{\\mathbf{B}^*}{B^*_\\parallel} \\cdot \\mathbf{E}^* \\right] \\cdot \\frac{\\partial f}{\\partial v_\\parallel} = 0\n$$\n\nPoisson equation:\n\n$$\n-\\nabla_\\perp \\cdot \\left( \\frac{n_0}{|B_0|^2} \\nabla_\\perp \\phi \\right) + \\frac{1}{\\varepsilon} n_0 \\left( 1 + \\frac{1}{Z \\varepsilon} \\frac{1}{T_0} \\phi \\right) = \\frac{1}{\\varepsilon} \\int f B^*_\\parallel \\, \\textnormal{d} v_\\parallel \\textnormal{d} \\mu\n$$\n\nwhere :math:`f(\\mathbf{X}, v_\\parallel, \\mu, t)` is the guiding center distribution and\n\n$$\n\\mathbf{E}^* = -\\nabla \\phi - \\varepsilon \\mu \\nabla |B_0|, \\qquad \\mathbf{B}^* = \\mathbf{B}_0 + \\varepsilon v_\\parallel \\nabla \\times \\mathbf{b}_0, \\qquad B^*_\\parallel = \\mathbf{B}^* \\cdot \\mathbf{b}_0\n$$\n\nThe control variate method can be activated in the Poisson equation; if enabled, the following Poisson equation is solved:\n\n$$\n-\\nabla_\\perp \\cdot \\left( \\frac{n_0}{|B_0|^2} \\nabla_\\perp \\phi \\right) +  \\frac{1}{Z \\varepsilon^2} \\frac{n_0}{T_0} \\phi = \\frac{1}{\\varepsilon} \\int (f - f_0) B^*_\\parallel \\, \\textnormal{d} v_\\parallel \\textnormal{d} \\mu\n$$\n",
+  "domain": "HollowCylinder (a1=0.1, a2=14.5, Lz=1506.76)",
+  "grid": "12 × 20 × 4",
+  "degree": "3 × 3 × 3",
+  "steps": 50,
+  "integrator": "Explicit",
+  "visualization": "Plotly",
+  "measuredGrowthRate": 0.025613799924913323,
+  "modeNumbers": [
+    5,
+    1
+  ],
+  "thumbnail": "/images/examples/itg-drift-wave.png",
+  "interactive": "/examples/itg-drift-wave.html"
+}

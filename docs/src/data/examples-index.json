@@ -1,5 +1,32 @@
 [
   {
+    "slug": "bump-on-tail",
+    "href": "/examples/bump-on-tail/",
+    "name": "Bump-on-tail instability",
+    "description": "A minority “bump” of fast particles on the tail of an otherwise Maxwellian distribution drives Langmuir waves unstable, feeding energy into the field until particle trapping saturates it.",
+    "model": "VlasovAmpereOneSpecies",
+    "modelSlug": "vlasov-ampere-one-species",
+    "thumbnail": "/images/examples/bump-on-tail.png"
+  },
+  {
+    "slug": "diocotron-instability",
+    "href": "/examples/diocotron-instability/",
+    "name": "Diocotron instability",
+    "description": "A sheared E×B ring of charge is unstable: a tiny azimuthal perturbation grows, rippling the ring's edges — the onset of a rotating pattern of vortices.",
+    "model": "ToyDrift",
+    "modelSlug": "toy-drift",
+    "thumbnail": "/images/examples/diocotron-instability.png"
+  },
+  {
+    "slug": "itg-drift-wave",
+    "href": "/examples/itg-drift-wave/",
+    "name": "ITG drift wave",
+    "description": "A magnetized plasma column with radial density and temperature gradients drives a helical drift wave unstable — the basic mechanism behind ion-temperature-gradient (ITG) turbulence.",
+    "model": "DriftKineticElectrostaticAdiabatic",
+    "modelSlug": "drift-kinetic-electrostatic-adiabatic",
+    "thumbnail": "/images/examples/itg-drift-wave.png"
+  },
+  {
     "slug": "maxwell-wave",
     "href": "/examples/maxwell-wave/",
     "name": "Maxwell light-wave dispersion",
@@ -18,6 +45,24 @@
     "thumbnail": "/images/examples/poisson-source.png"
   },
   {
+    "slug": "strong-landau-damping",
+    "href": "/examples/strong-landau-damping/",
+    "name": "Strong Landau damping",
+    "description": "A large-amplitude perturbation drives a Vlasov-Ampère plasma into the nonlinear regime — particles trap in the field's potential wells, and the field energy bounces instead of decaying smoothly.",
+    "model": "VlasovAmpereOneSpecies",
+    "modelSlug": "vlasov-ampere-one-species",
+    "thumbnail": "/images/examples/strong-landau-damping.png"
+  },
+  {
+    "slug": "two-stream-instability",
+    "href": "/examples/two-stream-instability/",
+    "name": "Two-stream instability",
+    "description": "Two counter-streaming Maxwellian beams are kinetically unstable — a tiny perturbation grows exponentially, drawing energy from the beams, until particle trapping saturates the growth.",
+    "model": "VlasovAmpereOneSpecies",
+    "modelSlug": "vlasov-ampere-one-species",
+    "thumbnail": "/images/examples/two-stream-instability.png"
+  },
+  {
     "slug": "vlasov-tokamak",
     "href": "/examples/vlasov-tokamak/",
     "name": "Vlasov particle orbits in a tokamak",
@@ -25,5 +70,23 @@
     "model": "Vlasov",
     "modelSlug": "vlasov",
     "thumbnail": "/images/examples/vlasov-tokamak.png"
+  },
+  {
+    "slug": "weak-landau-damping",
+    "href": "/examples/weak-landau-damping/",
+    "name": "Weak Landau damping",
+    "description": "A tiny electrostatic perturbation phase-mixes away in a collisionless plasma — the classic Landau-damping benchmark, compared here against its analytically known damping rate.",
+    "model": "VlasovAmpereOneSpecies",
+    "modelSlug": "vlasov-ampere-one-species",
+    "thumbnail": "/images/examples/weak-landau-damping.png"
+  },
+  {
+    "slug": "weibel-instability",
+    "href": "/examples/weibel-instability/",
+    "name": "Weibel instability",
+    "description": "A temperature-anisotropic plasma spontaneously generates a magnetic field: a tiny seed perturbation grows exponentially, tapping the excess perpendicular thermal energy.",
+    "model": "VlasovMaxwellOneSpecies",
+    "modelSlug": "vlasov-maxwell-one-species",
+    "thumbnail": "/images/examples/weibel-instability.png"
   }
 ]
