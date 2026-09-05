@@ -35,7 +35,9 @@ def extract_math(rst: str) -> tuple[str, list[dict]]:
     math_items: list[dict] = []
 
     def save_block(content: str) -> str:
-        raw = "\n".join(line.strip() for line in content.strip().split("\n") if line.strip())
+        raw = "\n".join(
+            line.strip() for line in content.strip().split("\n") if line.strip()
+        )
         # A block that already opens with its own environment (``\begin{bmatrix}``,
         # ``\begin{aligned}``, ...) is self-contained -- pass it through as-is.
         if raw.lstrip().startswith("\\begin{"):
@@ -70,7 +72,9 @@ def extract_math(rst: str) -> tuple[str, list[dict]]:
     return stripped, math_items
 
 
-def documentation_html(model: type, attribute: str, fallback: str) -> tuple[str, list[dict]]:
+def documentation_html(
+    model: type, attribute: str, fallback: str
+) -> tuple[str, list[dict]]:
     """Convert a model's notebook documentation helper docstring to HTML.
 
     Returns the HTML (with math replaced by placeholder tokens) alongside the
@@ -88,12 +92,27 @@ def documentation_html(model: type, attribute: str, fallback: str) -> tuple[str,
 # Maps each catalogue field to the (docstring attribute, fallback HTML) it is built from.
 DOC_FIELDS = {
     "pde": ("doc_pde", "<p>No PDE description is available.</p>"),
-    "longDescription": ("doc_long_description", "<p>No long description is available.</p>"),
-    "normalization": ("doc_normalization", "<p>No normalization information is available.</p>"),
-    "discretization": ("doc_discretization", "<p>No discretization information is available.</p>"),
-    "scalarQuantities": ("doc_scalar_quantities", "<p>No tracked scalar quantities are documented.</p>"),
+    "longDescription": (
+        "doc_long_description",
+        "<p>No long description is available.</p>",
+    ),
+    "normalization": (
+        "doc_normalization",
+        "<p>No normalization information is available.</p>",
+    ),
+    "discretization": (
+        "doc_discretization",
+        "<p>No discretization information is available.</p>",
+    ),
+    "scalarQuantities": (
+        "doc_scalar_quantities",
+        "<p>No tracked scalar quantities are documented.</p>",
+    ),
     "useCases": ("doc_use_cases", "<p>No use cases are documented.</p>"),
-    "cannotBeUsedFor": ("doc_cannot_be_used_for", "<p>No limitations are documented.</p>"),
+    "cannotBeUsedFor": (
+        "doc_cannot_be_used_for",
+        "<p>No limitations are documented.</p>",
+    ),
     "examples": ("doc_examples", "<p>No examples are available.</p>"),
 }
 

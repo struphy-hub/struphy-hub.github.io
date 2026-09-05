@@ -25,7 +25,6 @@ from struphy import (
 from struphy.diagnostics.diagn_tools import power_spectrum_2d
 from struphy.models import Maxwell
 
-
 # Model and structure-preserving Maxwell propagator.
 model = Maxwell()
 model.propagators.maxwell.options = model.propagators.maxwell.Options(

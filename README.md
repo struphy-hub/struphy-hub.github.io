@@ -35,6 +35,12 @@ These scripts (repo root) import Struphy classes and export the JSON/VTK/image d
 pages are built from:
 
 ```sh
+python generate_all.py
+```
+
+which just runs, in order:
+
+```sh
 python generate_models.py
 python generate_domains.py docs/public/domains
 python generate_equilibrium_slices.py
