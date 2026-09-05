@@ -17,7 +17,8 @@ from __future__ import annotations
 import inspect
 import re
 
-from struphy.utils.docstring_converter import _extract_math_directives, rst_to_html
+from struphy.utils.docstring_converter import (_extract_math_directives,
+                                               rst_to_html)
 
 
 def extract_math(rst: str) -> tuple[str, list[dict]]:
