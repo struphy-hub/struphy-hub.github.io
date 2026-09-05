@@ -112,8 +112,9 @@ to `docs/src/pages/examples/<script-stem>/index.astro` and adapt:
   fields it can't derive).
 - The provenance link at the bottom, if adapted from a specific Struphy test.
 
-The `<p class="eyebrow">` model link (`/models/${toSlug(data.model)}/`) and the shiki/KaTeX
-rendering can be copied as-is.
+The `<p class="eyebrow">` model link and the `<dl>` "Model" row link (both
+`/models/${toSlug(data.model)}/`) and the shiki/KaTeX rendering can be copied as-is — don't
+hardcode the model name as plain text anywhere; always link it via `data.model`.
 
 ## 6. Rebuild
 
