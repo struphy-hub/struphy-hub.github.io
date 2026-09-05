@@ -1,15 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-
-const examples = [
-  {
-    href: '/examples/maxwell-light-wave/',
-    image: '/images/examples/maxwell-dispersion.png',
-    title: 'Maxwell light-wave dispersion',
-    description: 'Measure the vacuum light-wave branch with Struphy’s structure-preserving Maxwell solver.',
-    model: 'Maxwell',
-  },
-];
+import examples from '../../data/examples-index.json';
 ---
 
 <Layout title="Examples — Struphy" description="A visual gallery of reproducible Struphy simulations with complete scripts and generated figures.">
@@ -17,22 +8,21 @@ const examples = [
     <header class="intro">
       <p class="eyebrow">Reproducible simulations</p>
       <h1>Examples</h1>
-      <p>Browse simulations by their output. Select a figure to see the physical setup, numerical method, complete runnable script, and reproduction instructions.</p>
+      <p>Browse simulations by their output. Select a figure to see the physical setup, numerical method, complete runnable script, and reproduction instructions. Each example also appears on its model's page.</p>
     </header>
 
-    <section class="gallery-section" aria-labelledby="waves-title">
+    <section class="gallery-section" aria-labelledby="gallery-title">
       <div class="section-heading">
-        <h2 id="waves-title">Electromagnetic waves</h2>
-        <p>Vacuum wave propagation and electromagnetic field dynamics.</p>
+        <h2 id="gallery-title">All examples</h2>
       </div>
       <div class="gallery-grid">
-        {examples.map((example) => (
+        {examples.map((example: any) => (
           <article class="gallery-item">
-            <a href={example.href} aria-label={`Open ${example.title} example`}>
-              <div class="thumbnail"><img src={example.image} alt="Numerical Maxwell dispersion spectrum from a Struphy simulation" loading="eager" /></div>
+            {example.model && <a class="model-tag" href={`/models/${example.modelSlug}/`}>{example.model}</a>}
+            <a class="card-link" href={example.href} aria-label={`Open ${example.name} example`}>
+              <div class="thumbnail">{example.thumbnail && <img src={example.thumbnail} alt={`Figure from the ${example.name} example`} loading="eager" />}</div>
               <div class="caption">
-                <p>{example.model}</p>
-                <h3>{example.title}</h3>
+                <h3>{example.name}</h3>
                 <span>{example.description}</span>
               </div>
             </a>
@@ -44,7 +34,7 @@ const examples = [
     <section class="contribute" aria-labelledby="contribute-title">
       <p class="eyebrow">Extend the collection</p>
       <h2 id="contribute-title">Add an example</h2>
-      <p>Each gallery entry should include a generated figure, a short physical description, the complete runnable Struphy script, its requirements, and approximate computational cost.</p>
+      <p>Each gallery entry should include a generated figure, a short physical description, the complete runnable Struphy script, its requirements, and approximate computational cost. Set <code>name=</code> and <code>description=</code> on the script's <code>Simulation(...)</code> — running <code>generate_examples.py</code> then picks up the model, equations, and configuration automatically, and links the example from that model's page.</p>
     </section>
   </main>
 </Layout>
@@ -57,9 +47,10 @@ const examples = [
   .gallery-section,.contribute{padding-block:clamp(44px,7vw,72px);border-top:1px solid var(--rule)}
   .section-heading{display:flex;align-items:baseline;justify-content:space-between;gap:24px;margin-bottom:26px}.section-heading h2,.contribute h2{margin:0;font-size:clamp(1.5rem,3vw,2rem)}.section-heading p{margin:0;max-width:520px;text-align:right}
   .gallery-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:34px 24px}
-  .gallery-item{min-width:0}.gallery-item a{display:block;color:var(--paper);text-decoration:none}.thumbnail{aspect-ratio:1;overflow:hidden;border:1px solid var(--rule);background:#fff}.thumbnail img{display:block;width:100%;height:100%;object-fit:contain;transition:transform .2s ease}.gallery-item a:hover .thumbnail{border-color:var(--cyan)}.gallery-item a:hover img{transform:scale(1.018)}
-  .caption{padding-top:12px}.caption p{margin:0 0 3px;color:var(--cyan);font:650 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase}.caption h3{margin:0 0 5px;font-size:1rem}.caption span{display:block;color:var(--muted);font-size:.82rem;line-height:1.45}
-  .contribute{max-width:780px}.contribute h2{margin-bottom:12px}.contribute p{margin-bottom:0}
+  .gallery-item{min-width:0;position:relative}.card-link{display:block;color:var(--paper);text-decoration:none}.thumbnail{aspect-ratio:1;overflow:hidden;border:1px solid var(--rule);background:#fff}.thumbnail img{display:block;width:100%;height:100%;object-fit:contain;transition:transform .2s ease}.card-link:hover .thumbnail{border-color:var(--cyan)}.card-link:hover img{transform:scale(1.018)}
+  .model-tag{position:absolute;top:10px;left:10px;z-index:1;padding:3px 8px;background:var(--ink);color:var(--cyan);font:650 .68rem var(--mono);letter-spacing:.06em;text-transform:uppercase;text-decoration:none;border:1px solid var(--rule)}.model-tag:hover{text-decoration:underline}
+  .caption{padding-top:12px}.caption h3{margin:0 0 5px;font-size:1rem}.caption span{display:block;color:var(--muted);font-size:.82rem;line-height:1.45}
+  .contribute{max-width:780px}.contribute h2{margin-bottom:12px}.contribute p{margin-bottom:0}.contribute code{color:var(--paper)}
   @media(max-width:820px){.gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media(max-width:600px){.section-heading{align-items:flex-start;flex-direction:column;gap:5px}.section-heading p{text-align:left}.gallery-grid{grid-template-columns:1fr}}
 </style>

@@ -10,5 +10,7 @@
   "integrator": "Implicit",
   "visualization": "Plotly",
   "measuredPhaseVelocity": 0.98324,
-  "exactPhaseVelocity": 1.0
+  "exactPhaseVelocity": 1.0,
+  "thumbnail": "/images/examples/maxwell-dispersion.png",
+  "interactive": "/examples/maxwell-dispersion.html"
 }

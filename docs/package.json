@@ -7,9 +7,10 @@
   },
   "scripts": {
     "catalogue:index": "node scripts/generate-catalogue-index.mjs",
-    "predev": "npm run catalogue:index",
+    "examples:index": "node scripts/generate-examples-index.mjs",
+    "predev": "npm run catalogue:index && npm run examples:index",
     "dev": "astro dev",
-    "prebuild": "npm run catalogue:index",
+    "prebuild": "npm run catalogue:index && npm run examples:index",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"

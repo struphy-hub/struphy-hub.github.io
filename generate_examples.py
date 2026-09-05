@@ -6,6 +6,15 @@ That lets this script import each example without running its simulation,
 read the resulting `sim` object, and write out the name, description,
 governing equations, and configuration summary the gallery page needs --
 so the page never duplicates values the script already knows.
+
+The `model` field this writes is also how an example gets linked from its
+model's page automatically: `docs/scripts/generate-examples-index.mjs`
+aggregates every `<script>.metadata.json` this produces into
+`docs/src/data/examples-index.json`, and both `/examples/` and each model's
+page (`/models/<slug>/`) read that index and filter by `model`. A new
+example's detail page should live at `docs/src/pages/examples/<script-stem>/`,
+matching this script's own `<script-stem>.metadata.json` -- that's the only
+place the mapping from metadata file to page URL is assumed.
 """
 
 from __future__ import annotations

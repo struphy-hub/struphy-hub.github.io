@@ -1,0 +1,20 @@
+[
+  {
+    "slug": "maxwell-wave",
+    "href": "/examples/maxwell-wave/",
+    "name": "Maxwell light-wave dispersion",
+    "description": "Excite a broadband electric field and recover the vacuum dispersion relation ω = ck with Struphy’s FEEC Maxwell solver.",
+    "model": "Maxwell",
+    "modelSlug": "maxwell",
+    "thumbnail": "/images/examples/maxwell-dispersion.png"
+  },
+  {
+    "slug": "poisson-source",
+    "href": "/examples/poisson-source/",
+    "name": "Poisson time-dependent source",
+    "description": "Drive a 1D Poisson solve with an oscillating cosine-mode charge density and compare Struphy’s FEEC potential against the exact solution, at every time step.",
+    "model": "Poisson",
+    "modelSlug": "poisson",
+    "thumbnail": "/images/examples/poisson-source.png"
+  }
+]
