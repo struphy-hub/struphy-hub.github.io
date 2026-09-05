@@ -40,7 +40,9 @@ def visualization_of(namespace: dict) -> str | None:
 
 
 def describe_domain(domain) -> str:
-    params = {k: v for k, v in getattr(domain, "params", {}).items() if v not in (0.0, 1.0)}
+    params = {
+        k: v for k, v in getattr(domain, "params", {}).items() if v not in (0.0, 1.0)
+    }
     if not params:
         return type(domain).__name__
     joined = ", ".join(f"{key}={value:g}" for key, value in params.items())
@@ -82,7 +84,9 @@ def main() -> None:
         output_path = OUTPUT_DIR / f"{script.stem}.metadata.json"
         existing = json.loads(output_path.read_text()) if output_path.exists() else {}
         metadata = {**existing, **build_metadata(sim, namespace)}
-        output_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n")
+        output_path.write_text(
+            json.dumps(metadata, indent=2, ensure_ascii=False) + "\n"
+        )
         print(f"Wrote {output_path}")
 
 

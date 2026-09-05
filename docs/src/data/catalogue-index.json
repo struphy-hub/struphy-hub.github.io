@@ -36,6 +36,13 @@
       "description": "Current sheet equilibrium."
     },
     {
+      "file": "equilibria/eqdskequilibrium.json",
+      "type": "EQDSKequilibrium",
+      "slug": "eqdskequilibrium",
+      "parameterCount": 11,
+      "description": "Interface to `EQDSK file format `_."
+    },
+    {
       "file": "equilibria/genericcartesianfluidequilibrium.json",
       "type": "GenericCartesianFluidEquilibrium",
       "slug": "generic-cartesian-fluid-equilibrium",

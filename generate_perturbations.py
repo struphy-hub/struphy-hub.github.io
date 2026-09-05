@@ -58,7 +58,9 @@ def sample_slice(perturbation, plane="xy", value=0.5, extent=(0.02, 0.98), n=41)
         "fields": {
             "u": {
                 "kind": "scalar",
-                "values": np.nan_to_num(values, nan=0.0, posinf=0.0, neginf=0.0).tolist(),
+                "values": np.nan_to_num(
+                    values, nan=0.0, posinf=0.0, neginf=0.0
+                ).tolist(),
             }
         },
     }
@@ -88,7 +90,9 @@ def sample_centerline(perturbation, axis="eta1", extent=(0.02, 0.98), n=121):
 
 def export_perturbation(name, perturbation, output_dir=OUTPUT_DIR):
     """Export one perturbation's slices and centerlines as JSON for the docs site."""
-    slices = {plane: sample_slice(perturbation, plane=plane) for plane in ("xy", "xz", "yz")}
+    slices = {
+        plane: sample_slice(perturbation, plane=plane) for plane in ("xy", "xz", "yz")
+    }
     description_html, description_math = class_description(type(perturbation))
     formula_html, formula_math = equation_html(type(perturbation).formula_markdown())
     data = {
@@ -98,7 +102,8 @@ def export_perturbation(name, perturbation, output_dir=OUTPUT_DIR):
         "slices": slices,
         "centerline": sample_centerline(perturbation, axis="eta1"),
         "centerlines": {
-            axis: sample_centerline(perturbation, axis=axis) for axis in ("eta1", "eta2", "eta3")
+            axis: sample_centerline(perturbation, axis=axis)
+            for axis in ("eta1", "eta2", "eta3")
         },
         "given_in_basis": perturbation.given_in_basis,
         "parameters": _json_parameters(getattr(perturbation, "params", {})),
@@ -123,7 +128,9 @@ def has_variation(data, tolerance=1e-10) -> bool:
     """Return whether the sampled field varies meaningfully anywhere."""
     samples = []
     for slice_data in data.get("slices", {}).values():
-        samples.extend(np.asarray(slice_data["fields"]["u"]["values"], dtype=float).ravel())
+        samples.extend(
+            np.asarray(slice_data["fields"]["u"]["values"], dtype=float).ravel()
+        )
     for line in data.get("centerlines", {}).values():
         samples.extend(np.asarray(line["fields"]["u"], dtype=float).ravel())
     return bool(samples) and np.ptp(np.asarray(samples)) > tolerance
@@ -134,7 +141,9 @@ def _json_parameters(parameters):
 
     def convert(value):
         if isinstance(value, dict):
-            return {str(key): convert(item) for key, item in value.items() if key != "self"}
+            return {
+                str(key): convert(item) for key, item in value.items() if key != "self"
+            }
         if isinstance(value, (list, tuple)):
             return [convert(item) for item in value]
         if isinstance(value, np.generic):
@@ -173,7 +182,9 @@ def parameter_descriptions(cls) -> dict[str, str]:
 def available_perturbations() -> list[tuple[str, object]]:
     """Instantiate every public perturbation that works with its defaults."""
     result = []
-    for name, cls in sorted(vars(perturbations).items(), key=lambda item: item[0].lower()):
+    for name, cls in sorted(
+        vars(perturbations).items(), key=lambda item: item[0].lower()
+    ):
         if not inspect.isclass(cls) or cls.__module__ != perturbations.__name__:
             continue
         if name in SKIP:

@@ -32,7 +32,9 @@ def extract_math(rst: str) -> tuple[str, list[dict]]:
     math_items: list[dict] = []
 
     def save_block(content: str) -> str:
-        raw = "\n".join(line.strip() for line in content.strip().split("\n") if line.strip())
+        raw = "\n".join(
+            line.strip() for line in content.strip().split("\n") if line.strip()
+        )
         if raw.lstrip().startswith("\\begin{"):
             latex = raw
         else:
@@ -90,7 +92,9 @@ def equation_html(markdown: str) -> tuple[str, list[dict]]:
 
     def save_block(match: re.Match) -> str:
         token = f"@@MATH{len(math_items)}@@"
-        math_items.append({"token": token, "latex": match.group(1).strip(), "display": True})
+        math_items.append(
+            {"token": token, "latex": match.group(1).strip(), "display": True}
+        )
         return token
 
     def save_inline(match: re.Match) -> str:
