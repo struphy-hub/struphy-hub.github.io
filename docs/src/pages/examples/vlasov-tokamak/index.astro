@@ -51,7 +51,7 @@ const highlightedSource = await codeToHtml(vlasovTokamak, {
     <figure class="result">
       <div class="plot-frame"><iframe src="/examples/vlasov-tokamak.html" title="Interactive 3D Plotly view of full-orbit particle trajectories in a tokamak" loading="eager"></iframe></div>
       <noscript><img src="/images/examples/vlasov-tokamak.png" alt="Five full-orbit particle trajectories gyrating and circulating around a tokamak's torus" width="2200" height="1700" /></noscript>
-      <figcaption>Actual output from the script below — drag to rotate, scroll to zoom. All {data.trackedParticles} tracked particles conserve their speed to within {data.maxRelativeSpeedDrift.toExponential(1)} (machine precision), since a magnetic field alone does no work.</figcaption>
+      <figcaption>Actual output from the script below — drag to rotate, scroll to zoom. All {data.trackedParticles} tracked particles conserve their speed to within {(data.maxRelativeSpeedDrift * 100).toFixed(3)}%, since a magnetic field alone does no work (the small residual comes from the reflecting boundary at the plasma edge, not the pusher itself).</figcaption>
     </figure>
 
     <section class="explanation" aria-labelledby="setup-title">
