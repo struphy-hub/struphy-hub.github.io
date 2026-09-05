@@ -9,7 +9,7 @@
   "steps": 4000,
   "integrator": "Analytic",
   "visualization": "Plotly",
-  "maxRelativeSpeedDrift": 0.0004689340570137751,
+  "maxRelativeSpeedDrift": 0.0008527283438883028,
   "trackedParticles": 5,
   "thumbnail": "/images/examples/vlasov-tokamak.png",
   "interactive": "/examples/vlasov-tokamak.html"
