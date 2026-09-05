@@ -8,7 +8,8 @@ import re
 from pathlib import Path
 
 from struphy.models.utils import get_models
-from struphy.utils.docstring_converter import _extract_math_directives, rst_to_html
+from struphy.utils.docstring_converter import (_extract_math_directives,
+                                               rst_to_html)
 
 OUTPUT_FILE = Path(__file__).parent / "docs" / "src" / "data" / "models.json"
 CATEGORIES = ("Fluid", "Kinetic", "Hybrid", "Toy")
