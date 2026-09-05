@@ -1,0 +1,16 @@
+{
+  "name": "Vlasov particle orbits in a tokamak",
+  "description": "Trace full-orbit test particles through a tokamak’s magnetic field and watch them gyrate around field lines while circulating -- or bouncing -- through the torus.",
+  "model": "Vlasov",
+  "equationsMarkdown": "**PDEs solved by model:**\n\nVlasov equation:\n\n$$\n\\frac{\\partial f}{\\partial t} + \\mathbf{v} \\cdot \\nabla f + \\left( \\mathbf{v} \\times \\mathbf{B}_0 \\right) \\cdot \\frac{\\partial f}{\\partial \\mathbf{v}} = 0\n$$\n",
+  "domain": "Tokamak (psi_power=0.75, r0=0.3)",
+  "grid": "8 × 12 × 4",
+  "degree": "1 × 2 × 1",
+  "steps": 4000,
+  "integrator": "Analytic",
+  "visualization": "Plotly",
+  "maxRelativeSpeedDrift": 2.141045173552653e-14,
+  "trackedParticles": 5,
+  "thumbnail": "/images/examples/vlasov-tokamak.png",
+  "interactive": "/examples/vlasov-tokamak.html"
+}

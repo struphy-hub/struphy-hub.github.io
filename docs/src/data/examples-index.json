@@ -16,5 +16,14 @@
     "model": "Poisson",
     "modelSlug": "poisson",
     "thumbnail": "/images/examples/poisson-source.png"
+  },
+  {
+    "slug": "vlasov-tokamak",
+    "href": "/examples/vlasov-tokamak/",
+    "name": "Vlasov particle orbits in a tokamak",
+    "description": "Trace full-orbit test particles through a tokamak’s magnetic field and watch them gyrate around field lines while circulating -- or bouncing -- through the torus.",
+    "model": "Vlasov",
+    "modelSlug": "vlasov",
+    "thumbnail": "/images/examples/vlasov-tokamak.png"
   }
 ]

@@ -1,9 +1,10 @@
 # Adding an example
 
-Every file here is a complete, runnable Struphy simulation shown on `/examples/`. Two
-scripts exist today (`maxwell-wave.py`, `poisson-source.py`) — use whichever is closer to
-your model as a template. This walks through adding a new one, using `poisson-source.py` as
-the worked reference.
+Every file here is a complete, runnable Struphy simulation shown on `/examples/`. Three
+scripts exist today (`maxwell-wave.py`, `poisson-source.py`, `vlasov-tokamak.py`) — use
+whichever is closer to your model as a template (`vlasov-tokamak.py` for a kinetic/PIC
+model with a 3D `Scatter3d` trajectory plot instead of a 2D field plot). This walks through
+adding a new one, using `poisson-source.py` as the worked reference.
 
 The one rule that ties everything together: **an example's page lives at
 `docs/src/pages/examples/<script-stem>/`, matching its `<script-stem>.metadata.json`.**

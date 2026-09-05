@@ -49,13 +49,17 @@ def visualization_of(namespace: dict) -> str | None:
 
 
 def describe_domain(domain) -> str:
-    params = {
-        k: v for k, v in getattr(domain, "params", {}).items() if v not in (0.0, 1.0)
-    }
-    if not params:
+    # Only scalar numeric params make a readable summary -- some domains (e.g.
+    # Tokamak) also carry object-valued params (an equilibrium instance) or
+    # tuples/strings that don't format as `:g`.
+    interesting = [
+        f"{key}={value:g}"
+        for key, value in getattr(domain, "params", {}).items()
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and value not in (0.0, 1.0)
+    ]
+    if not interesting:
         return type(domain).__name__
-    joined = ", ".join(f"{key}={value:g}" for key, value in params.items())
-    return f"{type(domain).__name__} ({joined})"
+    return f"{type(domain).__name__} ({', '.join(interesting)})"
 
 
 def build_metadata(sim, namespace: dict) -> dict:
