@@ -45,6 +45,7 @@ python generate_models.py
 python generate_domains.py docs/public/domains
 python generate_equilibrium_slices.py
 python generate_perturbations.py
+python generate_model_graph.py
 ```
 
 Each one prints what it generated (and skips) as it runs. Their output lives under `docs/src/data/`

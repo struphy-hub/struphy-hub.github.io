@@ -1,0 +1,2406 @@
+{
+  "nodes": [
+    {
+      "id": "ColdPlasma",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "e_field",
+          "space": "Hcurl",
+          "isFeec": true
+        },
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "electrons",
+          "name": "current",
+          "space": "Hcurl",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "JxBCold",
+        "MaxwellWeakAmpere",
+        "OhmCold"
+      ],
+      "degree": 4,
+      "x": 72.74,
+      "y": 33.58
+    },
+    {
+      "id": "HasegawaWakatani",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "phi",
+          "space": "H1",
+          "isFeec": true
+        },
+        {
+          "species": "plasma",
+          "name": "density",
+          "space": "H1",
+          "isFeec": true
+        },
+        {
+          "species": "plasma",
+          "name": "vorticity",
+          "space": "H1",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "HasegawaWakataniStep",
+        "PoissonSolve"
+      ],
+      "degree": 3,
+      "x": 69.02,
+      "y": 35.24
+    },
+    {
+      "id": "IncompressibleNavierStokesSPH",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "lagrange_multiplier",
+          "name": "pressure",
+          "space": "H1",
+          "isFeec": true
+        },
+        {
+          "species": "fluid",
+          "name": "density",
+          "space": "ParticlesSPH",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "PoissonSolve",
+        "PushEta",
+        "PushVinEfield",
+        "PushVinViscousPotential",
+        "PushVxB"
+      ],
+      "degree": 13,
+      "x": 70.8,
+      "y": 35.29
+    },
+    {
+      "id": "LinearExtendedMHDuniform",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hcurl",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "pressure",
+          "space": "L2",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "Hall",
+        "MagnetosonicUniform",
+        "ShearAlfvenB1"
+      ],
+      "degree": 0,
+      "x": 8.0,
+      "y": 33.92
+    },
+    {
+      "id": "LinearMHD",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "pressure",
+          "space": "L2",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "Magnetosonic",
+        "ShearAlfvenPropagator"
+      ],
+      "degree": 4,
+      "x": 71.42,
+      "y": 37.34
+    },
+    {
+      "id": "Poisson",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "phi",
+          "space": "H1",
+          "isFeec": true
+        },
+        {
+          "species": "em_fields",
+          "name": "source",
+          "space": "H1",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "PoissonSolve"
+      ],
+      "degree": 3,
+      "x": 68.93,
+      "y": 35.8
+    },
+    {
+      "id": "PressureLessSPH",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "cold_fluid",
+          "name": "var",
+          "space": "ParticlesSPH",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "PushEta",
+        "PushVinEfield"
+      ],
+      "degree": 9,
+      "x": 72.22,
+      "y": 35.38
+    },
+    {
+      "id": "ShearAlfven",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "Hdiv",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "ShearAlfvenPropagator"
+      ],
+      "degree": 3,
+      "x": 72.28,
+      "y": 37.36
+    },
+    {
+      "id": "TwoFluidQuasiNeutralToy",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "phi",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "ions",
+          "name": "u",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "electrons",
+          "name": "u",
+          "space": "Hdiv",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "TwoFluidQuasiNeutralFull"
+      ],
+      "degree": 0,
+      "x": 99.83,
+      "y": 92.0
+    },
+    {
+      "id": "VariationalBarotropicFluid",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "fluid",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "fluid",
+          "name": "velocity",
+          "space": "H1vec",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "degree": 10,
+      "x": 71.5,
+      "y": 10.0
+    },
+    {
+      "id": "VariationalCompressibleFluid",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "fluid",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "fluid",
+          "name": "velocity",
+          "space": "H1vec",
+          "isFeec": true
+        },
+        {
+          "species": "fluid",
+          "name": "entropy",
+          "space": "L2",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "VariationalDensityEvolve",
+        "VariationalEntropyEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "degree": 10,
+      "x": 72.48,
+      "y": 9.83
+    },
+    {
+      "id": "VariationalPressurelessFluid",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "fluid",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "fluid",
+          "name": "velocity",
+          "space": "H1vec",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "degree": 10,
+      "x": 72.07,
+      "y": 9.6
+    },
+    {
+      "id": "ViscoResistiveDeltafMHD",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "H1vec",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "pressure",
+          "space": "L2",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalPBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "degree": 10,
+      "x": 72.29,
+      "y": 10.66
+    },
+    {
+      "id": "ViscoResistiveDeltafMHD_with_q",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "H1vec",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "sqrt_p",
+          "space": "L2",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalQBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "degree": 10,
+      "x": 71.78,
+      "y": 10.74
+    },
+    {
+      "id": "ViscoResistiveLinearMHD",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "H1vec",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "pressure",
+          "space": "L2",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "VariationalDensityEvolve",
+        "VariationalPBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "degree": 10,
+      "x": 72.64,
+      "y": 10.57
+    },
+    {
+      "id": "ViscoResistiveLinearMHD_with_q",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "H1vec",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "sqrt_p",
+          "space": "L2",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "VariationalDensityEvolve",
+        "VariationalQBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "degree": 10,
+      "x": 72.09,
+      "y": 10.96
+    },
+    {
+      "id": "ViscoResistiveMHD",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "H1vec",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "entropy",
+          "space": "L2",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "VariationalDensityEvolve",
+        "VariationalEntropyEvolve",
+        "VariationalMagFieldEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "degree": 10,
+      "x": 72.03,
+      "y": 10.32
+    },
+    {
+      "id": "ViscoResistiveMHD_with_p",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "H1vec",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "pressure",
+          "space": "L2",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalPBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "degree": 10,
+      "x": 72.43,
+      "y": 10.22
+    },
+    {
+      "id": "ViscoResistiveMHD_with_q",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "H1vec",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "sqrt_p",
+          "space": "L2",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalQBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "degree": 10,
+      "x": 71.62,
+      "y": 10.45
+    },
+    {
+      "id": "ViscousEulerSPH",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "euler_fluid",
+          "name": "var",
+          "space": "ParticlesSPH",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "PushEta",
+        "PushVinSPHpressure",
+        "PushVinViscousPotential",
+        "PushVxB"
+      ],
+      "degree": 10,
+      "x": 71.79,
+      "y": 35.34
+    },
+    {
+      "id": "ViscousFluid",
+      "type": "Fluid",
+      "variables": [
+        {
+          "species": "fluid",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "fluid",
+          "name": "velocity",
+          "space": "H1vec",
+          "isFeec": true
+        },
+        {
+          "species": "fluid",
+          "name": "entropy",
+          "space": "L2",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "VariationalDensityEvolve",
+        "VariationalEntropyEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalViscosity"
+      ],
+      "degree": 10,
+      "x": 71.88,
+      "y": 9.93
+    },
+    {
+      "id": "DeterministicParticleDiffusion",
+      "type": "Kinetic",
+      "variables": [
+        {
+          "species": "hydrogen",
+          "name": "var",
+          "space": "Particles3D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "PushDeterministicDiffusion"
+      ],
+      "degree": 0,
+      "x": 130.36,
+      "y": 56.49
+    },
+    {
+      "id": "DriftKineticElectrostaticAdiabatic",
+      "type": "Kinetic",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "phi",
+          "space": "H1",
+          "isFeec": true
+        },
+        {
+          "species": "kinetic_ions",
+          "name": "var",
+          "space": "Particles5D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "PoissonAdiabaticGyrokinetic",
+        "PushGuidingCenterBxEstar",
+        "PushGuidingCenterParallel"
+      ],
+      "degree": 3,
+      "x": 68.8,
+      "y": 37.95
+    },
+    {
+      "id": "GuidingCenter",
+      "type": "Kinetic",
+      "variables": [
+        {
+          "species": "kinetic_ions",
+          "name": "var",
+          "space": "Particles5D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "PushGuidingCenterBxEstar",
+        "PushGuidingCenterParallel"
+      ],
+      "degree": 3,
+      "x": 69.25,
+      "y": 38.34
+    },
+    {
+      "id": "LinearVlasovAmpereOneSpecies",
+      "type": "Kinetic",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "e_field",
+          "space": "Hcurl",
+          "isFeec": true
+        },
+        {
+          "species": "em_fields",
+          "name": "phi",
+          "space": "H1",
+          "isFeec": true
+        },
+        {
+          "species": "kinetic_ions",
+          "name": "var",
+          "space": "DeltaFParticles6D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "EfieldWeightsCoupling",
+        "PushEta",
+        "PushVinEfield",
+        "PushVxB"
+      ],
+      "degree": 10,
+      "x": 71.49,
+      "y": 35.13
+    },
+    {
+      "id": "RandomParticleDiffusion",
+      "type": "Kinetic",
+      "variables": [
+        {
+          "species": "hydrogen",
+          "name": "var",
+          "space": "Particles3D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "PushRandomDiffusion"
+      ],
+      "degree": 0,
+      "x": 132.0,
+      "y": 8.0
+    },
+    {
+      "id": "Vlasov",
+      "type": "Kinetic",
+      "variables": [
+        {
+          "species": "kinetic_ions",
+          "name": "var",
+          "space": "Particles6D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "degree": 10,
+      "x": 71.48,
+      "y": 34.59
+    },
+    {
+      "id": "VlasovAmpereOneSpecies",
+      "type": "Kinetic",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "e_field",
+          "space": "Hcurl",
+          "isFeec": true
+        },
+        {
+          "species": "em_fields",
+          "name": "phi",
+          "space": "H1",
+          "isFeec": true
+        },
+        {
+          "species": "kinetic_ions",
+          "name": "var",
+          "space": "Particles6D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "PushEta",
+        "PushVxB",
+        "VlasovAmpereCoupling"
+      ],
+      "degree": 10,
+      "x": 71.24,
+      "y": 34.8
+    },
+    {
+      "id": "VlasovMaxwellOneSpecies",
+      "type": "Kinetic",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "e_field",
+          "space": "Hcurl",
+          "isFeec": true
+        },
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "em_fields",
+          "name": "phi",
+          "space": "H1",
+          "isFeec": true
+        },
+        {
+          "species": "kinetic_ions",
+          "name": "var",
+          "space": "Particles6D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "MaxwellWeakAmpere",
+        "PushEta",
+        "PushVxB",
+        "VlasovAmpereCoupling"
+      ],
+      "degree": 12,
+      "x": 71.88,
+      "y": 34.49
+    },
+    {
+      "id": "LinearVlasovMaxwellOneSpecies",
+      "type": "Kinetic",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "e_field",
+          "space": "Hcurl",
+          "isFeec": true
+        },
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "em_fields",
+          "name": "phi",
+          "space": "H1",
+          "isFeec": true
+        },
+        {
+          "species": "kinetic_ions",
+          "name": "var",
+          "space": "DeltaFParticles6D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "EfieldWeightsCoupling",
+        "MaxwellWeakAmpere",
+        "PushEta",
+        "PushVinEfield",
+        "PushVxB"
+      ],
+      "degree": 12,
+      "x": 72.15,
+      "y": 34.91
+    },
+    {
+      "id": "ColdPlasmaVlasov",
+      "type": "Hybrid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "e_field",
+          "space": "Hcurl",
+          "isFeec": true
+        },
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "em_fields",
+          "name": "phi",
+          "space": "H1",
+          "isFeec": true
+        },
+        {
+          "species": "thermal_elec",
+          "name": "current",
+          "space": "Hcurl",
+          "isFeec": true
+        },
+        {
+          "species": "hot_elec",
+          "name": "var",
+          "space": "Particles6D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "JxBCold",
+        "MaxwellWeakAmpere",
+        "OhmCold",
+        "PushEta",
+        "PushVxB",
+        "VlasovAmpereCoupling"
+      ],
+      "degree": 12,
+      "x": 72.18,
+      "y": 34.6
+    },
+    {
+      "id": "LinearMHDDriftkineticCC",
+      "type": "Hybrid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "pressure",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "energetic_ions",
+          "name": "var",
+          "space": "Particles5D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "CurrentCoupling5DCurlb",
+        "CurrentCoupling5DDensity",
+        "CurrentCoupling5DGradB",
+        "Magnetosonic",
+        "PushGuidingCenterBxEstar",
+        "PushGuidingCenterParallel",
+        "ShearAlfvenCurrentCoupling5D"
+      ],
+      "degree": 6,
+      "x": 70.2,
+      "y": 37.35
+    },
+    {
+      "id": "LinearMHDVlasovCC",
+      "type": "Hybrid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "pressure",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "energetic_ions",
+          "name": "var",
+          "space": "Particles6D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "CurrentCoupling6DCurrent",
+        "CurrentCoupling6DDensity",
+        "Magnetosonic",
+        "PushEta",
+        "PushVxB",
+        "ShearAlfvenPropagator"
+      ],
+      "degree": 13,
+      "x": 71.46,
+      "y": 35.84
+    },
+    {
+      "id": "LinearMHDVlasovPC",
+      "type": "Hybrid",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "density",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "pressure",
+          "space": "L2",
+          "isFeec": true
+        },
+        {
+          "species": "mhd",
+          "name": "velocity",
+          "space": "Hdiv",
+          "isFeec": true
+        },
+        {
+          "species": "energetic_ions",
+          "name": "var",
+          "space": "Particles6D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "Magnetosonic",
+        "PressureCoupling6D",
+        "PushEtaPC",
+        "PushVxB",
+        "ShearAlfvenPropagator"
+      ],
+      "degree": 12,
+      "x": 71.62,
+      "y": 36.09
+    },
+    {
+      "id": "Maxwell",
+      "type": "Toy",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "e_field",
+          "space": "Hcurl",
+          "isFeec": true
+        },
+        {
+          "species": "em_fields",
+          "name": "b_field",
+          "space": "Hdiv",
+          "isFeec": true
+        }
+      ],
+      "propagators": [
+        "MaxwellWeakAmpere"
+      ],
+      "degree": 4,
+      "x": 73.25,
+      "y": 34.04
+    },
+    {
+      "id": "ToyDrift",
+      "type": "Toy",
+      "variables": [
+        {
+          "species": "em_fields",
+          "name": "phi",
+          "space": "H1",
+          "isFeec": true
+        },
+        {
+          "species": "kinetic_ions",
+          "name": "var",
+          "space": "Particles5D",
+          "isFeec": false
+        }
+      ],
+      "propagators": [
+        "PoissonSolve",
+        "PushGuidingCenterBxEstar"
+      ],
+      "degree": 6,
+      "x": 69.26,
+      "y": 36.74
+    }
+  ],
+  "edges": [
+    {
+      "source": "ColdPlasma",
+      "target": "VlasovMaxwellOneSpecies",
+      "shared": [
+        "MaxwellWeakAmpere"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "ColdPlasma",
+      "target": "LinearVlasovMaxwellOneSpecies",
+      "shared": [
+        "MaxwellWeakAmpere"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "ColdPlasma",
+      "target": "ColdPlasmaVlasov",
+      "shared": [
+        "JxBCold",
+        "MaxwellWeakAmpere",
+        "OhmCold"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ColdPlasma",
+      "target": "Maxwell",
+      "shared": [
+        "MaxwellWeakAmpere"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "HasegawaWakatani",
+      "target": "IncompressibleNavierStokesSPH",
+      "shared": [
+        "PoissonSolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "HasegawaWakatani",
+      "target": "Poisson",
+      "shared": [
+        "PoissonSolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "HasegawaWakatani",
+      "target": "ToyDrift",
+      "shared": [
+        "PoissonSolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "Poisson",
+      "shared": [
+        "PoissonSolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "PressureLessSPH",
+      "shared": [
+        "PushEta",
+        "PushVinEfield"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "ViscousEulerSPH",
+      "shared": [
+        "PushEta",
+        "PushVinViscousPotential",
+        "PushVxB"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "LinearVlasovAmpereOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVinEfield",
+        "PushVxB"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "Vlasov",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "VlasovAmpereOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "VlasovMaxwellOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "LinearVlasovMaxwellOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVinEfield",
+        "PushVxB"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "ColdPlasmaVlasov",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "PushVxB"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "IncompressibleNavierStokesSPH",
+      "target": "ToyDrift",
+      "shared": [
+        "PoissonSolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "LinearMHD",
+      "target": "ShearAlfven",
+      "shared": [
+        "ShearAlfvenPropagator"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "LinearMHD",
+      "target": "LinearMHDDriftkineticCC",
+      "shared": [
+        "Magnetosonic"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "LinearMHD",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "Magnetosonic",
+        "ShearAlfvenPropagator"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "LinearMHD",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "Magnetosonic",
+        "ShearAlfvenPropagator"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "Poisson",
+      "target": "ToyDrift",
+      "shared": [
+        "PoissonSolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "PressureLessSPH",
+      "target": "ViscousEulerSPH",
+      "shared": [
+        "PushEta"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "PressureLessSPH",
+      "target": "LinearVlasovAmpereOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVinEfield"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "PressureLessSPH",
+      "target": "Vlasov",
+      "shared": [
+        "PushEta"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "PressureLessSPH",
+      "target": "VlasovAmpereOneSpecies",
+      "shared": [
+        "PushEta"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "PressureLessSPH",
+      "target": "VlasovMaxwellOneSpecies",
+      "shared": [
+        "PushEta"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "PressureLessSPH",
+      "target": "LinearVlasovMaxwellOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVinEfield"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "PressureLessSPH",
+      "target": "ColdPlasmaVlasov",
+      "shared": [
+        "PushEta"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "PressureLessSPH",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "PushEta"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "ShearAlfven",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "ShearAlfvenPropagator"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "ShearAlfven",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "ShearAlfvenPropagator"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "VariationalBarotropicFluid",
+      "target": "VariationalCompressibleFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalBarotropicFluid",
+      "target": "VariationalPressurelessFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalBarotropicFluid",
+      "target": "ViscoResistiveDeltafMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalBarotropicFluid",
+      "target": "ViscoResistiveDeltafMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalBarotropicFluid",
+      "target": "ViscoResistiveLinearMHD",
+      "shared": [
+        "VariationalDensityEvolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "VariationalBarotropicFluid",
+      "target": "ViscoResistiveLinearMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "VariationalBarotropicFluid",
+      "target": "ViscoResistiveMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalBarotropicFluid",
+      "target": "ViscoResistiveMHD_with_p",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalBarotropicFluid",
+      "target": "ViscoResistiveMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalBarotropicFluid",
+      "target": "ViscousFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalCompressibleFluid",
+      "target": "VariationalPressurelessFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalCompressibleFluid",
+      "target": "ViscoResistiveDeltafMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalCompressibleFluid",
+      "target": "ViscoResistiveDeltafMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalCompressibleFluid",
+      "target": "ViscoResistiveLinearMHD",
+      "shared": [
+        "VariationalDensityEvolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "VariationalCompressibleFluid",
+      "target": "ViscoResistiveLinearMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "VariationalCompressibleFluid",
+      "target": "ViscoResistiveMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalEntropyEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "VariationalCompressibleFluid",
+      "target": "ViscoResistiveMHD_with_p",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalCompressibleFluid",
+      "target": "ViscoResistiveMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalCompressibleFluid",
+      "target": "ViscousFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalEntropyEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "VariationalPressurelessFluid",
+      "target": "ViscoResistiveDeltafMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalPressurelessFluid",
+      "target": "ViscoResistiveDeltafMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalPressurelessFluid",
+      "target": "ViscoResistiveLinearMHD",
+      "shared": [
+        "VariationalDensityEvolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "VariationalPressurelessFluid",
+      "target": "ViscoResistiveLinearMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "VariationalPressurelessFluid",
+      "target": "ViscoResistiveMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalPressurelessFluid",
+      "target": "ViscoResistiveMHD_with_p",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalPressurelessFluid",
+      "target": "ViscoResistiveMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VariationalPressurelessFluid",
+      "target": "ViscousFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD",
+      "target": "ViscoResistiveDeltafMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD",
+      "target": "ViscoResistiveLinearMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalPBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD",
+      "target": "ViscoResistiveLinearMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD",
+      "target": "ViscoResistiveMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD",
+      "target": "ViscoResistiveMHD_with_p",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalPBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 5
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD",
+      "target": "ViscoResistiveMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD",
+      "target": "ViscousFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalViscosity"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD_with_q",
+      "target": "ViscoResistiveLinearMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD_with_q",
+      "target": "ViscoResistiveLinearMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalQBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD_with_q",
+      "target": "ViscoResistiveMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD_with_q",
+      "target": "ViscoResistiveMHD_with_p",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD_with_q",
+      "target": "ViscoResistiveMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalQBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 5
+    },
+    {
+      "source": "ViscoResistiveDeltafMHD_with_q",
+      "target": "ViscousFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalViscosity"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ViscoResistiveLinearMHD",
+      "target": "ViscoResistiveLinearMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ViscoResistiveLinearMHD",
+      "target": "ViscoResistiveMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ViscoResistiveLinearMHD",
+      "target": "ViscoResistiveMHD_with_p",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalPBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveLinearMHD",
+      "target": "ViscoResistiveMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ViscoResistiveLinearMHD",
+      "target": "ViscousFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalViscosity"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "ViscoResistiveLinearMHD_with_q",
+      "target": "ViscoResistiveMHD",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ViscoResistiveLinearMHD_with_q",
+      "target": "ViscoResistiveMHD_with_p",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ViscoResistiveLinearMHD_with_q",
+      "target": "ViscoResistiveMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalQBEvolve",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveLinearMHD_with_q",
+      "target": "ViscousFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalViscosity"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "ViscoResistiveMHD",
+      "target": "ViscoResistiveMHD_with_p",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveMHD",
+      "target": "ViscoResistiveMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveMHD",
+      "target": "ViscousFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalEntropyEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveMHD_with_p",
+      "target": "ViscoResistiveMHD_with_q",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalResistivity",
+        "VariationalViscosity"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "ViscoResistiveMHD_with_p",
+      "target": "ViscousFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalViscosity"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ViscoResistiveMHD_with_q",
+      "target": "ViscousFluid",
+      "shared": [
+        "VariationalDensityEvolve",
+        "VariationalMomentumAdvection",
+        "VariationalViscosity"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "ViscousEulerSPH",
+      "target": "LinearVlasovAmpereOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "ViscousEulerSPH",
+      "target": "Vlasov",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "ViscousEulerSPH",
+      "target": "VlasovAmpereOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "ViscousEulerSPH",
+      "target": "VlasovMaxwellOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "ViscousEulerSPH",
+      "target": "LinearVlasovMaxwellOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "ViscousEulerSPH",
+      "target": "ColdPlasmaVlasov",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "ViscousEulerSPH",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "ViscousEulerSPH",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "PushVxB"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "DriftKineticElectrostaticAdiabatic",
+      "target": "GuidingCenter",
+      "shared": [
+        "PushGuidingCenterBxEstar",
+        "PushGuidingCenterParallel"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "DriftKineticElectrostaticAdiabatic",
+      "target": "LinearMHDDriftkineticCC",
+      "shared": [
+        "PushGuidingCenterBxEstar",
+        "PushGuidingCenterParallel"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "DriftKineticElectrostaticAdiabatic",
+      "target": "ToyDrift",
+      "shared": [
+        "PushGuidingCenterBxEstar"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "GuidingCenter",
+      "target": "LinearMHDDriftkineticCC",
+      "shared": [
+        "PushGuidingCenterBxEstar",
+        "PushGuidingCenterParallel"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "GuidingCenter",
+      "target": "ToyDrift",
+      "shared": [
+        "PushGuidingCenterBxEstar"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "LinearVlasovAmpereOneSpecies",
+      "target": "Vlasov",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "LinearVlasovAmpereOneSpecies",
+      "target": "VlasovAmpereOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "LinearVlasovAmpereOneSpecies",
+      "target": "VlasovMaxwellOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "LinearVlasovAmpereOneSpecies",
+      "target": "LinearVlasovMaxwellOneSpecies",
+      "shared": [
+        "EfieldWeightsCoupling",
+        "PushEta",
+        "PushVinEfield",
+        "PushVxB"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "LinearVlasovAmpereOneSpecies",
+      "target": "ColdPlasmaVlasov",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "LinearVlasovAmpereOneSpecies",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "LinearVlasovAmpereOneSpecies",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "PushVxB"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "Vlasov",
+      "target": "VlasovAmpereOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "Vlasov",
+      "target": "VlasovMaxwellOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "Vlasov",
+      "target": "LinearVlasovMaxwellOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "Vlasov",
+      "target": "ColdPlasmaVlasov",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "Vlasov",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "Vlasov",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "PushVxB"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "VlasovAmpereOneSpecies",
+      "target": "VlasovMaxwellOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB",
+        "VlasovAmpereCoupling"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "VlasovAmpereOneSpecies",
+      "target": "LinearVlasovMaxwellOneSpecies",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VlasovAmpereOneSpecies",
+      "target": "ColdPlasmaVlasov",
+      "shared": [
+        "PushEta",
+        "PushVxB",
+        "VlasovAmpereCoupling"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "VlasovAmpereOneSpecies",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VlasovAmpereOneSpecies",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "PushVxB"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "VlasovMaxwellOneSpecies",
+      "target": "LinearVlasovMaxwellOneSpecies",
+      "shared": [
+        "MaxwellWeakAmpere",
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "VlasovMaxwellOneSpecies",
+      "target": "ColdPlasmaVlasov",
+      "shared": [
+        "MaxwellWeakAmpere",
+        "PushEta",
+        "PushVxB",
+        "VlasovAmpereCoupling"
+      ],
+      "weight": 4
+    },
+    {
+      "source": "VlasovMaxwellOneSpecies",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "VlasovMaxwellOneSpecies",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "PushVxB"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "VlasovMaxwellOneSpecies",
+      "target": "Maxwell",
+      "shared": [
+        "MaxwellWeakAmpere"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "LinearVlasovMaxwellOneSpecies",
+      "target": "ColdPlasmaVlasov",
+      "shared": [
+        "MaxwellWeakAmpere",
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 3
+    },
+    {
+      "source": "LinearVlasovMaxwellOneSpecies",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "LinearVlasovMaxwellOneSpecies",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "PushVxB"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "LinearVlasovMaxwellOneSpecies",
+      "target": "Maxwell",
+      "shared": [
+        "MaxwellWeakAmpere"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "ColdPlasmaVlasov",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "PushEta",
+        "PushVxB"
+      ],
+      "weight": 2
+    },
+    {
+      "source": "ColdPlasmaVlasov",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "PushVxB"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "ColdPlasmaVlasov",
+      "target": "Maxwell",
+      "shared": [
+        "MaxwellWeakAmpere"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "LinearMHDDriftkineticCC",
+      "target": "LinearMHDVlasovCC",
+      "shared": [
+        "Magnetosonic"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "LinearMHDDriftkineticCC",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "Magnetosonic"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "LinearMHDDriftkineticCC",
+      "target": "ToyDrift",
+      "shared": [
+        "PushGuidingCenterBxEstar"
+      ],
+      "weight": 1
+    },
+    {
+      "source": "LinearMHDVlasovCC",
+      "target": "LinearMHDVlasovPC",
+      "shared": [
+        "Magnetosonic",
+        "PushVxB",
+        "ShearAlfvenPropagator"
+      ],
+      "weight": 3
+    }
+  ]
+}

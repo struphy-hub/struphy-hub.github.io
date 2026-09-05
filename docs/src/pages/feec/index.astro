@@ -1,0 +1,275 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import graph from '../../data/model-graph.json';
+import { toSlug } from '../../lib/catalogue';
+
+const SPACES = [
+  { id: 'H1', label: 'H¹', form: '0-form', description: 'Scalar potentials — continuous, no derivative constraint.' },
+  { id: 'Hcurl', label: 'H(curl)', form: '1-form', description: 'Vector fields with a well-defined curl (e.g. electric fields).' },
+  { id: 'Hdiv', label: 'H(div)', form: '2-form', description: 'Vector fields with a well-defined divergence (e.g. magnetic fields).' },
+  { id: 'L2', label: 'L²', form: '3-form', description: 'Densities — no continuity constraint at all.' },
+];
+
+const usageBySpace: Record<string, { model: string; variable: string }[]> = {};
+for (const node of graph.nodes as any[]) {
+  for (const variable of node.variables) {
+    if (!variable.isFeec) continue;
+    if (!usageBySpace[variable.space]) usageBySpace[variable.space] = [];
+    usageBySpace[variable.space].push({ model: node.id, variable: variable.name });
+  }
+}
+---
+
+<Layout
+  title="FEEC basics — Struphy"
+  description="An interactive look at Struphy's finite element exterior calculus: the discrete de Rham complex and the B-spline basis functions behind it."
+>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">How it works</p>
+      <h1 id="page-title">Finite Element Exterior Calculus</h1>
+      <p>
+        Struphy discretizes fields with B-splines arranged into a <strong>de Rham complex</strong>: four spline
+        spaces connected by the exact differential operators gradient, curl, and divergence,
+        <code>V₀ --grad--&gt; V₁ --curl--&gt; V₂ --div--&gt; V₃</code>. Every model's variables live in one of
+        these four spaces, chosen so the discretization preserves the underlying vector calculus exactly — not
+        just approximately.
+      </p>
+    </section>
+
+    <section class="section" aria-labelledby="complex-title">
+      <h2 id="complex-title">The de Rham complex</h2>
+      <p class="lead">Click a space to see which Struphy models place a variable there.</p>
+
+      <div class="complex" role="group" aria-label="De Rham complex spaces">
+        {SPACES.map((space, index) => (
+          <>
+            <button type="button" class="space-node" data-space={space.id} aria-pressed="false">
+              <span class="space-label">{space.label}</span>
+              <span class="space-form">{space.form}</span>
+            </button>
+            {index < SPACES.length - 1 && (
+              <span class="arrow" aria-hidden="true">
+                {index === 0 ? 'grad' : index === 1 ? 'curl' : 'div'} →
+              </span>
+            )}
+          </>
+        ))}
+      </div>
+
+      <div class="space-detail" data-space-detail>
+        <p class="hint" data-space-hint>Select a space above.</p>
+        {SPACES.map((space) => (
+          <div class="space-panel" data-space-panel={space.id} hidden>
+            <p>{space.description}</p>
+            <p class="count">{(usageBySpace[space.id] || []).length} variable(s) across Struphy's models:</p>
+            <ul class="tag-list">
+              {(usageBySpace[space.id] || []).map(({ model, variable }) => (
+                <li><a href={`/models/${toSlug(model)}/`}>{model}</a> <span class="muted">· {variable}</span></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="spline-title">
+      <h2 id="spline-title">B-spline basis functions</h2>
+      <p class="lead">
+        Every space above is spanned by B-splines of some degree. Adjust the degree and element count to see how
+        the basis changes — degree <code>p</code> splines are <code>C^(p−1)</code>-continuous across element
+        boundaries, and always sum to exactly 1 everywhere (the "partition of unity").
+      </p>
+
+      <div class="spline-controls">
+        <label>
+          Degree p = <output data-degree-out>2</output>
+          <input type="range" min="0" max="4" step="1" value="2" data-degree />
+        </label>
+        <label>
+          Elements N = <output data-elements-out>6</output>
+          <input type="range" min="2" max="12" step="1" value="6" data-elements />
+        </label>
+      </div>
+
+      <div class="spline-plot-frame">
+        <svg data-spline-svg viewBox="0 0 100 46" preserveAspectRatio="none" role="img" aria-label="B-spline basis functions">
+          <line x1="0" y1="40" x2="100" y2="40" class="axis" />
+          <g data-curves></g>
+          <line data-crosshair x1="0" y1="0" x2="0" y2="40" hidden />
+        </svg>
+        <div class="spline-readout" data-spline-readout>Hover the plot to check the partition of unity at a point.</div>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<script define:vars={{ usageBySpace }}>
+  function mountComplex() {
+    const buttons = [...document.querySelectorAll('[data-space]')];
+    const hint = document.querySelector('[data-space-hint]');
+    const panels = [...document.querySelectorAll('[data-space-panel]')];
+    for (const button of buttons) {
+      button.addEventListener('click', () => {
+        const target = button.dataset.space;
+        const alreadyOpen = button.getAttribute('aria-pressed') === 'true';
+        for (const b of buttons) b.setAttribute('aria-pressed', 'false');
+        for (const panel of panels) panel.hidden = true;
+        if (alreadyOpen) {
+          hint.hidden = false;
+          return;
+        }
+        button.setAttribute('aria-pressed', 'true');
+        hint.hidden = true;
+        document.querySelector(`[data-space-panel="${target}"]`).hidden = false;
+      });
+    }
+  }
+
+  function mountSpline() {
+    const degreeInput = document.querySelector('[data-degree]');
+    const elementsInput = document.querySelector('[data-elements]');
+    const degreeOut = document.querySelector('[data-degree-out]');
+    const elementsOut = document.querySelector('[data-elements-out]');
+    const curvesGroup = document.querySelector('[data-curves]');
+    const svg = document.querySelector('[data-spline-svg]');
+    const crosshair = document.querySelector('[data-crosshair]');
+    const readout = document.querySelector('[data-spline-readout]');
+    if (!degreeInput || !elementsInput || !curvesGroup) return;
+
+    const PLOT_W = 100;
+    const PLOT_H = 40;
+
+    function clampedKnots(p, n) {
+      const knots = [];
+      for (let i = 0; i < p + 1; i++) knots.push(0);
+      for (let i = 1; i < n; i++) knots.push(i / n);
+      for (let i = 0; i < p + 1; i++) knots.push(1);
+      return knots;
+    }
+
+    function basis(i, p, knots, x) {
+      if (p === 0) {
+        if (x >= knots[i] && x < knots[i + 1]) return 1;
+        if (x >= 1 && i === knots.length - 2) return 1;
+        return 0;
+      }
+      let term1 = 0;
+      const denom1 = knots[i + p] - knots[i];
+      if (denom1 > 0) term1 = ((x - knots[i]) / denom1) * basis(i, p - 1, knots, x);
+      let term2 = 0;
+      const denom2 = knots[i + p + 1] - knots[i + 1];
+      if (denom2 > 0) term2 = ((knots[i + p + 1] - x) / denom2) * basis(i + 1, p - 1, knots, x);
+      return term1 + term2;
+    }
+
+    let state = { p: 2, n: 6, knots: [], numBasis: 0 };
+
+    function seriesColor(index, count) {
+      // Sequential single-hue ramp (light -> dark), matching the dataviz skill's
+      // rule for magnitude/index-ordered series rather than a categorical cycle.
+      const t = count <= 1 ? 0 : index / (count - 1);
+      const lightness = 74 - t * 44; // 74% -> 30%
+      return `hsl(210, 70%, ${lightness}%)`;
+    }
+
+    function render() {
+      const p = Number(degreeInput.value);
+      const n = Number(elementsInput.value);
+      degreeOut.textContent = String(p);
+      elementsOut.textContent = String(n);
+
+      const knots = clampedKnots(p, n);
+      const numBasis = n + p;
+      state = { p, n, knots, numBasis };
+
+      const samples = 220;
+      curvesGroup.replaceChildren();
+      for (let i = 0; i < numBasis; i++) {
+        const points = [];
+        for (let s = 0; s <= samples; s++) {
+          const x = s / samples;
+          const y = basis(i, p, knots, x);
+          points.push(`${(x * PLOT_W).toFixed(2)},${(PLOT_H - y * PLOT_H).toFixed(2)}`);
+        }
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('points', points.join(' '));
+        polyline.setAttribute('fill', 'none');
+        polyline.setAttribute('stroke', seriesColor(i, numBasis));
+        polyline.setAttribute('stroke-width', '0.5');
+        curvesGroup.appendChild(polyline);
+      }
+    }
+
+    function readAt(x) {
+      let sum = 0;
+      let nonzero = 0;
+      for (let i = 0; i < state.numBasis; i++) {
+        const value = basis(i, state.p, state.knots, x);
+        if (value > 1e-6) nonzero++;
+        sum += value;
+      }
+      return { sum, nonzero };
+    }
+
+    svg?.addEventListener('mousemove', (event) => {
+      const rect = svg.getBoundingClientRect();
+      const fraction = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+      crosshair.setAttribute('x1', String(fraction * PLOT_W));
+      crosshair.setAttribute('x2', String(fraction * PLOT_W));
+      crosshair.hidden = false;
+      const { sum, nonzero } = readAt(fraction);
+      readout.textContent = `x = ${fraction.toFixed(2)} — ${nonzero} basis function(s) nonzero, sum = ${sum.toFixed(3)} (partition of unity)`;
+    });
+    svg?.addEventListener('mouseleave', () => {
+      crosshair.hidden = true;
+      readout.textContent = 'Hover the plot to check the partition of unity at a point.';
+    });
+
+    degreeInput.addEventListener('input', render);
+    elementsInput.addEventListener('input', render);
+    render();
+  }
+
+  mountComplex();
+  mountSpline();
+  document.addEventListener('astro:page-load', () => { mountComplex(); mountSpline(); });
+</script>
+
+<style>
+  .intro { max-width: 780px; padding-block: clamp(48px, 7vw, 78px); }
+  .eyebrow { margin: 0 0 7px; color: var(--muted); font: 600 .76rem/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  h1 { margin: 0 0 16px; font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.08; }
+  .intro > p:not(.eyebrow) { color: var(--muted); font-size: 1.02rem; }
+  .intro code, .lead code { color: var(--paper); font-size: .92em; }
+
+  .section { padding-block: clamp(40px, 6vw, 60px); border-top: 1px solid var(--rule); }
+  h2 { margin: 0 0 8px; }
+  .lead { color: var(--muted); max-width: 720px; }
+
+  .complex { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 24px; }
+  .space-node { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 18px; border: 1px solid var(--rule); background: none; color: var(--paper); cursor: pointer; }
+  .space-node[aria-pressed="true"] { border-color: var(--cyan); background: var(--accent-wash); }
+  .space-label { font: 700 1rem var(--mono); }
+  .space-form { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; }
+  .arrow { color: var(--muted); font: 600 .78rem var(--mono); }
+
+  .space-detail { margin-top: 22px; padding: 18px 20px; border: 1px solid var(--rule); min-height: 90px; }
+  .space-detail .hint { margin: 0; color: var(--muted); }
+  .space-panel p { margin: 0 0 10px; color: var(--muted); }
+  .space-panel .count { color: var(--paper); font: 600 .82rem var(--sans); }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+  .tag-list li { padding: 4px 9px; border: 1px solid var(--rule); font: .78rem var(--mono); }
+  .tag-list a { color: var(--cyan); }
+  .tag-list .muted { color: var(--muted); }
+
+  .spline-controls { display: flex; flex-wrap: wrap; gap: 28px; margin: 22px 0; }
+  .spline-controls label { display: flex; flex-direction: column; gap: 6px; font: 600 .82rem var(--sans); color: var(--paper); min-width: 200px; }
+  .spline-controls input[type="range"] { accent-color: var(--cyan); }
+
+  .spline-plot-frame { border: 1px solid var(--rule); background: var(--plot-bg); padding: 14px; }
+  svg[data-spline-svg] { width: 100%; height: auto; aspect-ratio: 100 / 46; display: block; }
+  .axis { stroke: var(--rule); stroke-width: .3; }
+  [data-crosshair] { stroke: var(--cyan); stroke-width: .3; stroke-dasharray: 1.2 1; }
+  .spline-readout { margin-top: 10px; color: var(--muted); font: .82rem var(--mono); }
+</style>
