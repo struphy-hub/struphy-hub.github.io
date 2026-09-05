@@ -63,7 +63,8 @@ npm run build
 
 The built site is written to `docs/dist/`. Use `npm run dev` instead for a local dev server
 (both `dev` and `build` automatically regenerate `docs/src/data/catalogue-index.json` /
-`catalogue-details.json` from the data produced in step 3 via their `pre*` npm hooks).
+`catalogue-details.json` and `docs/src/data/examples-index.json` from the data produced in
+step 3, via their `pre*` npm hooks).
 
 The full pipeline (including the CI-specific steps) is defined in
 `.github/workflows/deploy.yml`, which is the source of truth if these instructions drift.
@@ -76,3 +77,10 @@ separate from the data pipeline above. They need `struphy compile` and a heavier
 required to build the site. `generate_examples.py` (repo root) generates their page metadata
 (name, description, equations, config summary) by importing each script without running its
 simulation — see `docs/public/examples/README.md` for details.
+
+Each example's page lives at `docs/src/pages/examples/<script-stem>/`, matching its
+`<script-stem>.metadata.json`. `docs/scripts/generate-examples-index.mjs` (run automatically by
+the `pre*` npm hooks above) collects every example's metadata — including the `model` field
+`generate_examples.py` fills in — into `docs/src/data/examples-index.json`, which both
+`/examples/` and each model's `/models/<slug>/` page read to link examples to their model
+automatically. No manual list to keep in sync.

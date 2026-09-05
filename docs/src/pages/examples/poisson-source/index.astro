@@ -1,10 +1,11 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
-import maxwellWave from '../../../examples/maxwell-wave.py?raw';
-import data from '../../../../public/examples/maxwell-wave.metadata.json';
+import poissonSource from '../../../examples/poisson-source.py?raw';
+import data from '../../../../public/examples/poisson-source.metadata.json';
 import { codeToHtml } from 'shiki';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { toSlug } from '../../../lib/catalogue';
 
 function pdeMarkdownToHtml(markdown: string): string {
   return markdown
@@ -23,7 +24,13 @@ function pdeMarkdownToHtml(markdown: string): string {
         .split(/\n{2,}/)
         .map((p) => p.trim())
         .filter(Boolean)
-        .map((p) => `<p>${p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`)
+        .map((p) => `<p>${p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/:math:`([^`]+)`/g, (_m, latex) => {
+          try {
+            return katex.renderToString(latex, { throwOnError: false, strict: false, output: 'html' });
+          } catch {
+            return `<code>${latex}</code>`;
+          }
+        })}</p>`)
         .join('');
     })
     .join('');
@@ -31,7 +38,7 @@ function pdeMarkdownToHtml(markdown: string): string {
 
 const equationsHtml = pdeMarkdownToHtml(data.equationsMarkdown);
 
-const highlightedSource = await codeToHtml(maxwellWave, {
+const highlightedSource = await codeToHtml(poissonSource, {
   lang: 'python',
   themes: { light: 'github-light', dark: 'github-dark' },
   defaultColor: false,
@@ -41,31 +48,31 @@ const highlightedSource = await codeToHtml(maxwellWave, {
 <Layout title={`${data.name} — Struphy Examples`} description={data.description}>
   <main>
     <header class="intro">
-      <p class="eyebrow">{data.model} · Electromagnetic waves</p>
+      <p class="eyebrow"><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a> · Electrostatics</p>
       <h1>{data.name}</h1>
       <p>{data.description}</p>
       <a class="back" href="/examples/">← All examples</a>
     </header>
 
     <figure class="result">
-      <div class="plot-frame"><iframe src="/examples/maxwell-dispersion.html" title="Interactive Plotly power spectrum of the Struphy Maxwell simulation" loading="eager"></iframe></div>
-      <noscript><img src="/images/examples/maxwell-dispersion.png" alt="Power spectrum of a simulated Struphy Maxwell simulation, with the fitted numerical branch closely following the exact light-wave dispersion line" width="2200" height="1300" /></noscript>
-      <figcaption>Actual output from the script below. The fitted numerical branch gives c = {data.measuredPhaseVelocity}, compared with the normalized exact value c = {data.exactPhaseVelocity}.</figcaption>
+      <div class="plot-frame"><iframe src="/examples/poisson-source.html" title="Interactive Plotly comparison of the Struphy Poisson potential against its exact solution" loading="eager"></iframe></div>
+      <noscript><img src="/images/examples/poisson-source.png" alt="Struphy's FEEC Poisson potential closely tracking the exact cosine-mode solution at t = 0" width="2200" height="1300" /></noscript>
+      <figcaption>Actual output from the script below. Drag the slider (or press Play) to scrub through time — the maximum relative error over the whole run is {(data.maxRelativeError * 100).toFixed(2)}%.</figcaption>
     </figure>
 
     <section class="explanation" aria-labelledby="setup-title">
       <div>
         <p class="eyebrow">Physical problem</p>
-        <h2 id="setup-title">A broadband vacuum light wave</h2>
-        <p>Small deterministic noise perturbations excite several modes of the electric field in a periodic one-dimensional domain. A two-dimensional Fourier spectrum reveals the numerical relation between angular frequency and wavenumber.</p>
-        <div class="equations prose" aria-label="Maxwell equations" set:html={equationsHtml}></div>
+        <h2 id="setup-title">A driven electrostatic potential</h2>
+        <p>A single cosine spatial mode of charge density oscillates in time. Struphy solves the resulting Poisson equation at every step with a structure-preserving FEEC discretization in <code>H¹</code>, and the result is compared here against the closed-form solution.</p>
+        <div class="equations prose" aria-label="Poisson equation" set:html={equationsHtml}></div>
       </div>
       <dl>
         <div><dt>Model</dt><dd>{data.model}</dd></div>
         <div><dt>Domain</dt><dd>{data.domain}</dd></div>
         <div><dt>Grid</dt><dd>{data.grid}</dd></div>
         <div><dt>FEEC degree</dt><dd>{data.degree}</dd></div>
-        <div><dt>Integrator</dt><dd>{data.integrator}</dd></div>
+        {data.integrator && <div><dt>Integrator</dt><dd>{data.integrator}</dd></div>}
         <div><dt>Evolution</dt><dd>{data.steps.toLocaleString()} steps</dd></div>
         <div><dt>Visualization</dt><dd>{data.visualization}</dd></div>
       </dl>
@@ -74,11 +81,11 @@ const highlightedSource = await codeToHtml(maxwellWave, {
     <section class="source" aria-labelledby="source-title">
       <div class="source-heading">
         <div><p class="eyebrow">Complete source</p><h2 id="source-title">Run the simulation</h2></div>
-        <div class="source-actions"><button type="button" data-copy>Copy script</button><a href="/examples/maxwell-wave.py" download>Download .py</a></div>
+        <div class="source-actions"><button type="button" data-copy>Copy script</button><a href="/examples/poisson-source.py" download>Download .py</a></div>
       </div>
-      <p class="requirements">Requires Struphy 3.2 with compiled kernels and Plotly. Run <code>struphy compile</code> once, then execute <code>python maxwell-wave.py</code>.</p>
+      <p class="requirements">Requires Struphy 3.2 with compiled kernels and Plotly. Run <code>struphy compile</code> once, then execute <code>python poisson-source.py</code>.</p>
       <div class="highlight" data-source set:html={highlightedSource}></div>
-      <p class="provenance">Adapted from Struphy’s maintained <a href="https://github.com/struphy-hub/struphy/blob/devel/src/struphy/models/tests/verification/test_verif_Maxwell.py">Maxwell verification test</a>. See the <a href="https://struphy-hub.github.io/struphy/sections/userguide.html#post-processing-and-visualization">post-processing guide</a> for more ways to inspect the result.</p>
+      <p class="provenance">Adapted from Struphy’s maintained <a href="https://github.com/struphy-hub/struphy/blob/devel/src/struphy/models/tests/verification/test_verif_Poisson.py">Poisson verification test</a>. See the <a href="https://struphy-hub.github.io/struphy/sections/userguide.html#post-processing-and-visualization">post-processing guide</a> for more ways to inspect the result.</p>
     </section>
   </main>
 </Layout>
@@ -95,9 +102,9 @@ const highlightedSource = await codeToHtml(maxwellWave, {
 </script>
 
 <style>
-  .intro{max-width:850px;padding-block:clamp(52px,7vw,84px)}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}h1{margin:0 0 18px;font-size:clamp(2.2rem,5vw,3.8rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow){color:var(--muted);font-size:1.05rem}.back{display:inline-block;margin-top:12px;color:var(--cyan)}
+  .intro{max-width:850px;padding-block:clamp(52px,7vw,84px)}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}h1{margin:0 0 18px;font-size:clamp(2.2rem,5vw,3.8rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow){color:var(--muted);font-size:1.05rem}.eyebrow a{color:var(--cyan);text-decoration:none}.eyebrow a:hover{text-decoration:underline}.back{display:inline-block;margin-top:12px;color:var(--cyan)}
   .result{margin:0;padding-block:40px 52px;border-top:1px solid var(--rule)}.plot-frame{width:min(100%,1100px);aspect-ratio:1100/650;margin-inline:auto}.result iframe{display:block;width:100%;height:100%;border:1px solid var(--rule);background:#fff}.result img{display:block;width:min(100%,1100px);height:auto;margin-inline:auto;border:1px solid var(--rule);background:#fff}.result figcaption{width:min(100%,1100px);margin:10px auto 0;color:var(--muted);font-size:.84rem}
-  .explanation,.source{padding-block:clamp(44px,7vw,68px);border-top:1px solid var(--rule)}.explanation{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.48fr);gap:clamp(40px,8vw,100px)}h2{margin:0 0 14px;font-size:clamp(1.55rem,3vw,2.1rem)}.explanation>div>p:not(.eyebrow),.requirements,.provenance{color:var(--muted)}.equations{margin-top:24px;padding:18px 20px;border-left:2px solid var(--cyan);background:var(--accent-wash);font-size:.95rem}.equations :global(p){margin:0 0 6px;color:inherit}.equations :global(p:last-child){margin-bottom:0}.equations :global(strong){color:var(--cyan)}.equations :global(.math-display){overflow-x:auto;margin:6px 0}
+  .explanation,.source{padding-block:clamp(44px,7vw,68px);border-top:1px solid var(--rule)}.explanation{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.48fr);gap:clamp(40px,8vw,100px)}h2{margin:0 0 14px;font-size:clamp(1.55rem,3vw,2.1rem)}.explanation>div>p:not(.eyebrow),.requirements,.provenance{color:var(--muted)}.explanation>div>p code{color:var(--paper)}.equations{margin-top:24px;padding:18px 20px;border-left:2px solid var(--cyan);background:var(--accent-wash);font-size:.95rem}.equations :global(p){margin:0 0 6px;color:inherit}.equations :global(p:last-child){margin-bottom:0}.equations :global(strong){color:var(--cyan)}.equations :global(.math-display){overflow-x:auto;margin:6px 0}
   dl{margin:0;border-top:1px solid var(--rule)}dl div{display:flex;justify-content:space-between;gap:24px;padding:10px 0;border-bottom:1px solid var(--rule)}dt{color:var(--muted);font-size:.82rem}dd{margin:0;text-align:right;font:700 .8rem var(--mono)}
   .source-heading{display:flex;align-items:end;justify-content:space-between;gap:24px}.source-actions{display:flex;gap:12px}.source-actions button,.source-actions a{padding:8px 12px;border:1px solid var(--cyan);background:none;color:var(--cyan);cursor:pointer;font:650 .78rem var(--sans);text-decoration:none}.source-actions button:hover,.source-actions a:hover{background:var(--accent-wash)}.requirements code{color:var(--paper)}.highlight{max-height:720px;margin:24px 0 0;overflow:auto;border:1px solid var(--rule);background:var(--code-bg)}.highlight :global(.shiki){min-width:max-content;margin:0;padding:22px;background:var(--code-bg)!important;font:.79rem/1.65 var(--mono);tab-size:4}.highlight :global(.shiki code){display:block}.provenance{font-size:.82rem}.provenance a{color:var(--cyan)}
   .highlight :global(.shiki),.highlight :global(.shiki span){color:var(--shiki-light)}
