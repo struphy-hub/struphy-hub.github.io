@@ -18,11 +18,17 @@ const navLinks = [
   { href: 'https://github.com/struphy-hub/struphy', label: 'GitHub' },
 ];
 
+const moreLinks = [
+  { href: '/feec/', label: 'FEEC basics' },
+];
+
 const buildDate = new Date().toISOString().slice(0, 10);
 const path = Astro.url.pathname;
 const isCurrent = (href: string) => href === path || (href !== '/' && path.startsWith(href));
 
-const pageName = navLinks.find((link) => link.href.startsWith('/') && isCurrent(link.href))?.label;
+const pageName =
+  navLinks.find((link) => link.href.startsWith('/') && isCurrent(link.href))?.label ??
+  moreLinks.find((link) => isCurrent(link.href))?.label;
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -88,7 +94,30 @@ const structuredData = {
         <span></span>
       </button>
       <nav id="primary-nav" aria-label="Primary navigation">
-        {navLinks.map((link) => (
+        {navLinks.slice(0, 5).map((link) => (
+          <a
+            href={link.href}
+            class={isCurrent(link.href) ? 'current' : ''}
+            aria-current={isCurrent(link.href) ? 'page' : undefined}
+          >
+            {link.label}
+          </a>
+        ))}
+        <details class="nav-more" data-nav-more>
+          <summary class={moreLinks.some((link) => isCurrent(link.href)) ? 'current' : ''}>More</summary>
+          <div class="nav-more-menu">
+            {moreLinks.map((link) => (
+              <a
+                href={link.href}
+                class={isCurrent(link.href) ? 'current' : ''}
+                aria-current={isCurrent(link.href) ? 'page' : undefined}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </details>
+        {navLinks.slice(5).map((link) => (
           <a
             href={link.href}
             class={isCurrent(link.href) ? 'current' : ''}
@@ -186,10 +215,27 @@ const structuredData = {
         }));
       }
 
+      function mountNavMore() {
+        const details = document.querySelector<HTMLDetailsElement>('[data-nav-more]');
+        if (!details) return;
+
+        details.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => {
+          details.open = false;
+        }));
+        document.addEventListener('click', (event) => {
+          if (details.open && !details.contains(event.target as Node)) details.open = false;
+        });
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && details.open) details.open = false;
+        });
+      }
+
       mountThemeToggle();
       mountNavToggle();
+      mountNavMore();
       document.addEventListener('astro:page-load', mountThemeToggle);
       document.addEventListener('astro:page-load', mountNavToggle);
+      document.addEventListener('astro:page-load', mountNavMore);
       document.addEventListener('astro:after-swap', mountThemeToggle);
     </script>
   </body>
@@ -297,6 +343,45 @@ const structuredData = {
   nav a:hover,
   nav a.current {
     text-decoration: underline;
+  }
+
+  .nav-more { position: relative; }
+
+  .nav-more summary {
+    color: var(--cyan);
+    font-size: 0.925rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .nav-more summary::-webkit-details-marker { display: none; }
+  .nav-more summary:hover,
+  .nav-more summary.current {
+    text-decoration: underline;
+  }
+  .nav-more summary::after {
+    content: '';
+    display: inline-block;
+    margin-left: 5px;
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+  }
+  .nav-more[open] summary::after { transform: translateY(1px) rotate(225deg); }
+
+  .nav-more-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 160px;
+    padding: 12px 16px;
+    border: 1px solid var(--rule);
+    background: var(--ink);
   }
 
   .theme-toggle {
@@ -410,6 +495,15 @@ const structuredData = {
     }
 
     nav[aria-label="Primary navigation"].open { display: flex; }
+
+    .nav-more-menu {
+      position: static;
+      margin-top: 8px;
+      padding: 0 0 0 14px;
+      border: 0;
+      border-left: 1px solid var(--rule);
+      background: none;
+    }
 
     .theme-toggle { margin-top: 4px; }
   }
