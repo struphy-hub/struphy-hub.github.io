@@ -27,16 +27,21 @@ from struphy import (
 from struphy.fields_background import equils
 from struphy.kinetic_background import maxwellians
 from struphy.models import Vlasov
-from struphy.pic.base import LoadingParameters, SavingParameters
+from struphy.pic.base import BoundaryParameters, LoadingParameters, SavingParameters
 
 model = Vlasov(charge_number=1, mass_number=1.0)
 model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D())
 
 # Load a small population; only a handful of markers have their full orbit saved.
+# eta1 is the radial flux coordinate on this domain, so it must reflect at the
+# plasma edge/axis rather than wrap periodically like the two angular
+# coordinates (eta2, eta3) -- periodic in eta1 would teleport a particle from
+# the outer edge back to the magnetic axis.
 n_tracked = 5
 model.kinetic_ions.set_markers(
     loading_params=LoadingParameters(Np=300, seed=7),
     saving_params=SavingParameters(n_markers=n_tracked),
+    boundary_params=BoundaryParameters(bc=("reflect", "periodic", "periodic")),
 )
 
 # A flux-aligned tokamak domain, built by field-line tracing an analytic
@@ -82,10 +87,7 @@ if __name__ == "__main__":
     print(f"Max relative drift in particle speed (should be ~0): {max_relative_speed_drift:.5f}")
 
     # The plasma boundary (outer flux surface), for visual context around the orbits.
-    n_poloidal, n_toroidal = 40, 80
-    eta2 = np.linspace(0.0, 1.0, n_poloidal)
-    eta3 = np.linspace(0.0, 1.0, n_toroidal)
-    boundary_x, boundary_y, boundary_z = domain(1.0, eta2, eta3, squeeze_out=True)
+    boundary_x, boundary_y, boundary_z = domain.outer_boundary_mesh(n2=40, n3=80)
 
     figure = go.Figure()
     figure.add_trace(
