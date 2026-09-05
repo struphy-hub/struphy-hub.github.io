@@ -45,8 +45,10 @@ model.kinetic_ions.set_markers(
 )
 
 # A flux-aligned tokamak domain, built by field-line tracing an analytic
-# axisymmetric MHD equilibrium.
-equil = equils.AdhocTorus()
+# axisymmetric MHD equilibrium. A stronger-than-default field (B0) shrinks the
+# Larmor radius, so gyration shows up as tight loops on top of the smooth
+# guiding-center motion instead of dominating it.
+equil = equils.AdhocTorus(B0=8.0)
 domain = domains.Tokamak(equilibrium=equil, num_elements=(4, 16), degree=(2, 3))
 grid = grids.TensorProductGrid(num_elements=(8, 12, 4))
 derham_opts = DerhamOptions(degree=(1, 2, 1))
