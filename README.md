@@ -76,7 +76,8 @@ separate from the data pipeline above. They need `struphy compile` and a heavier
 (`pip install './submodules/struphy[mpi]'`, or whatever extras the example needs) and aren't
 required to build the site. `generate_examples.py` (repo root) generates their page metadata
 (name, description, equations, config summary) by importing each script without running its
-simulation — see `docs/public/examples/README.md` for details.
+simulation — see `docs/src/examples/README.md` for the full step-by-step guide to adding a
+new example.
 
 Each example's page lives at `docs/src/pages/examples/<script-stem>/`, matching its
 `<script-stem>.metadata.json`. `docs/scripts/generate-examples-index.mjs` (run automatically by
