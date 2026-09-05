@@ -36,10 +36,13 @@ model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D())
 # eta1 is the radial flux coordinate on this domain, so it must reflect at the
 # plasma edge/axis rather than wrap periodically like the two angular
 # coordinates (eta2, eta3) -- periodic in eta1 would teleport a particle from
-# the outer edge back to the magnetic axis.
+# the outer edge back to the magnetic axis. The tracked markers start at a
+# modest radius (rather than anywhere in [0, 1]) so their orbits stay clear of
+# that reflecting boundary for most of the run.
 n_tracked = 5
+tracked_start = tuple((0.35, None, None, None, None, None) for _ in range(n_tracked))
 model.kinetic_ions.set_markers(
-    loading_params=LoadingParameters(Np=300, seed=7),
+    loading_params=LoadingParameters(Np=300, seed=7, specific_markers=tracked_start),
     saving_params=SavingParameters(n_markers=n_tracked),
     boundary_params=BoundaryParameters(bc=("reflect", "periodic", "periodic")),
 )
