@@ -1,10 +1,14 @@
 # Adding an example
 
-Every file here is a complete, runnable Struphy simulation shown on `/examples/`. Three
-scripts exist today (`maxwell-wave.py`, `poisson-source.py`, `vlasov-tokamak.py`) — use
-whichever is closer to your model as a template (`vlasov-tokamak.py` for a kinetic/PIC
-model with a 3D `Scatter3d` trajectory plot instead of a 2D field plot). This walks through
-adding a new one, using `poisson-source.py` as the worked reference.
+Every file here is a complete, runnable Struphy simulation shown on `/examples/`. Several
+scripts exist today — use whichever is closest to your model and diagnostic as a template:
+
+- `poisson-source.py` / `weak-landau-damping.py` — a field-vs-exact-solution comparison (1D line plot / log-scale energy plot)
+- `vlasov-tokamak.py` — kinetic/PIC 3D particle trajectories (`Scatter3d`)
+- `diocotron-instability.py` — a 2D binned density animated over time (`Heatmap` + frames)
+- `strong-landau-damping.py`, `two-stream-instability.py`, `bump-on-tail.py`, `weibel-instability.py` — other Vlasov-Ampère/Maxwell instability benchmarks, all sharing the same field-energy-vs-time diagnostic pattern
+
+This walks through adding a new one, using `poisson-source.py` as the worked reference.
 
 The one rule that ties everything together: **an example's page lives at
 `docs/src/pages/examples/<script-stem>/`, matching its `<script-stem>.metadata.json`.**

@@ -1,0 +1,16 @@
+{
+  "name": "Diocotron instability",
+  "description": "A sheared E×B ring of charge is unstable: a tiny azimuthal perturbation grows, rippling the ring's edges — the onset of a rotating pattern of vortices.",
+  "model": "ToyDrift",
+  "equationsMarkdown": "**PDEs solved by model:**\n\nDrift equation:\n\n$$\n\\frac{\\partial f}{\\partial t} + \\frac{\\mathbf{E} \\times \\mathbf{b}_0}{B^{*}_{\\parallel}} \\cdot \\frac{\\partial f}{\\partial \\mathbf{X}} = 0\n$$\n\nPoisson equation:\n\n$$\n-\\nabla \\cdot \\nabla \\phi = \\int f B^*_\\parallel \\, \\textnormal{d} v_\\parallel \\textnormal{d} \\mu\n$$\n\nwhere :math:`f(\\mathbf{X}, v_\\parallel, \\mu, t)` is the guiding center distribution and\n\n$$\n\\mathbf{E} = -\\nabla \\phi, \\qquad \\mathbf{B}^* = \\mathbf{B}_0 + \\varepsilon v_\\parallel \\nabla \\times \\mathbf{b}_0, \\qquad B^*_\\parallel = \\mathbf{B}^* \\cdot \\mathbf{b}_0\n$$\n\nThe control variate method can be activated in the Poisson equation; if enabled, the following Poisson equation is solved:\n\n$$\n-\\nabla \\cdot \\nabla \\phi = \\int (f - f_0) B^*_\\parallel \\, \\textnormal{d} v_\\parallel \\textnormal{d} \\mu\n$$\n",
+  "domain": "HollowCylinder (a2=10, Lz=10)",
+  "grid": "32 × 64 × 1",
+  "degree": "3 × 3 × 1",
+  "steps": 1250,
+  "integrator": "Discrete_gradient_1st_order_newton",
+  "visualization": "Plotly",
+  "measuredGrowthRate": 0.03601409094119229,
+  "modeNumber": 4,
+  "thumbnail": "/images/examples/diocotron-instability.png",
+  "interactive": "/examples/diocotron-instability.html"
+}

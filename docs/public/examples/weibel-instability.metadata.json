@@ -1,0 +1,15 @@
+{
+  "measuredGrowthRate": 0.02127259971900713,
+  "name": "Weibel instability",
+  "description": "A temperature-anisotropic plasma spontaneously generates a magnetic field: a tiny seed perturbation grows exponentially, tapping the excess perpendicular thermal energy.",
+  "model": "VlasovMaxwellOneSpecies",
+  "equationsMarkdown": "**PDEs solved by model:**\n\nVlasov equation:\n\n$$\n\\frac{\\partial f}{\\partial t} + \\mathbf{v} \\cdot \\nabla f + \\frac{1}{\\varepsilon} \\left( \\mathbf{E} + \\mathbf{v} \\times \\left( \\mathbf{B} + \\mathbf{B}_0 \\right) \\right) \\cdot \\frac{\\partial f}{\\partial \\mathbf{v}} = 0\n$$\n\nAmpère's law:\n\n$$\n-\\frac{\\partial \\mathbf{E}}{\\partial t} + \\nabla \\times \\mathbf{B} = \\frac{\\alpha^2}{\\varepsilon} \\int_{\\mathbb{R}^3} \\mathbf{v} f \\, \\text{d}^3 \\mathbf{v}\n$$\n\nFaraday's law:\n\n$$\n\\frac{\\partial \\mathbf{B}}{\\partial t} + \\nabla \\times \\mathbf{E} = 0\n$$\n\nwhere :math:`Z=-1` and :math:`A=1/1836` for electrons.\n\nAt initial time the weak Poisson equation is solved once to weakly satisfy Gauss' law,\n\n$$\n\\int_{\\Omega} \\nabla \\psi^{\\top} \\cdot \\nabla \\phi \\, \\textrm{d} \\mathbf{x} &= \\frac{\\alpha^2}{\\varepsilon} \\int_{\\Omega} \\int_{\\mathbb{R}^3} \\psi \\, (f - f_0) \\, \\text{d}^3 \\mathbf{v} \\, \\textrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1\n\\\\[2mm]\n\\mathbf{E}(t=0) &= -\\nabla \\phi(t=0)\n$$\n\nMoreover, it is assumed that\n\n$$\n\\nabla \\times \\mathbf{B}_0 = \\frac{\\alpha^2}{\\varepsilon} \\int_{\\mathbb{R}^3} \\mathbf{v} f_0 \\, \\text{d}^3 \\mathbf{v}\n$$\n\nwhere :math:`\\mathbf{B}_0` is the static equilibrium magnetic field.\n",
+  "domain": "Cuboid (r1=5.02655)",
+  "grid": "32 × 1 × 1",
+  "degree": "3 × 1 × 1",
+  "steps": 2000,
+  "integrator": "Implicit",
+  "visualization": "Plotly",
+  "thumbnail": "/images/examples/weibel-instability.png",
+  "interactive": "/examples/weibel-instability.html"
+}

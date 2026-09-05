@@ -1,0 +1,114 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import itgDriftWave from '../../../examples/itg-drift-wave.py?raw';
+import data from '../../../../public/examples/itg-drift-wave.metadata.json';
+import { codeToHtml } from 'shiki';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
+import { toSlug } from '../../../lib/catalogue';
+
+function pdeMarkdownToHtml(markdown: string): string {
+  return markdown
+    .split(/\$\$([\s\S]*?)\$\$/g)
+    .map((part, i) => {
+      if (i % 2 === 1) {
+        let rendered;
+        try {
+          rendered = katex.renderToString(part.trim(), { displayMode: true, throwOnError: false, strict: false, output: 'html' });
+        } catch {
+          rendered = `<code>${part}</code>`;
+        }
+        return `<div class="math-display">${rendered}</div>`;
+      }
+      return part
+        .split(/\n{2,}/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .map((p) => `<p>${p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/:math:`([^`]+)`/g, (_m, latex) => {
+          try {
+            return katex.renderToString(latex, { throwOnError: false, strict: false, output: 'html' });
+          } catch {
+            return `<code>${latex}</code>`;
+          }
+        })}</p>`)
+        .join('');
+    })
+    .join('');
+}
+
+const equationsHtml = pdeMarkdownToHtml(data.equationsMarkdown);
+
+const highlightedSource = await codeToHtml(itgDriftWave, {
+  lang: 'python',
+  themes: { light: 'github-light', dark: 'github-dark' },
+  defaultColor: false,
+});
+---
+
+<Layout title={`${data.name} — Struphy Examples`} description={data.description}>
+  <main>
+    <header class="intro">
+      <p class="eyebrow"><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a> · Drift-kinetic turbulence</p>
+      <h1>{data.name}</h1>
+      <p>{data.description}</p>
+      <a class="back" href="/examples/">← All examples</a>
+    </header>
+
+    <figure class="result">
+      <div class="plot-frame"><iframe src="/examples/itg-drift-wave.html" title="Interactive Plotly plot of the ITG density perturbation energy growth" loading="eager"></iframe></div>
+      <noscript><img src="/images/examples/itg-drift-wave.png" alt="Density perturbation energy growing exponentially over six orders of magnitude as the ITG drift wave develops" width="2200" height="1300" /></noscript>
+      <figcaption>Actual output from the script below. The seeded m = {data.modeNumbers[0]}, n = {data.modeNumbers[1]} helical perturbation grows at a measured rate of γ ≈ {data.measuredGrowthRate.toFixed(4)}, tapping the free energy in the radial temperature gradient.</figcaption>
+    </figure>
+
+    <section class="explanation" aria-labelledby="setup-title">
+      <div>
+        <p class="eyebrow">Physical problem</p>
+        <h2 id="setup-title">Drift waves from a temperature gradient</h2>
+        <p>A magnetized cylindrical plasma column has smooth radial density and temperature profiles, each peaked at mid-radius and falling off toward the edges — a simplified stand-in for a fusion device's confined profiles. A tiny helical density ripple, seeded at the same radius, taps the temperature gradient's free energy and grows into a drift wave: the basic linear mechanism behind ion-temperature-gradient (ITG) turbulence.</p>
+        <div class="equations prose" aria-label="Drift-kinetic Poisson equations" set:html={equationsHtml}></div>
+      </div>
+      <dl>
+        <div><dt>Model</dt><dd><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a></dd></div>
+        <div><dt>Domain</dt><dd><a href={`/domains/#${data.domain.split(' ')[0]}`}>{data.domain}</a></dd></div>
+        <div><dt>Grid</dt><dd>{data.grid}</dd></div>
+        <div><dt>FEEC degree</dt><dd>{data.degree}</dd></div>
+        {data.integrator && <div><dt>Integrator</dt><dd>{data.integrator}</dd></div>}
+        <div><dt>Evolution</dt><dd>{data.steps.toLocaleString()} steps</dd></div>
+        <div><dt>Mode numbers</dt><dd>m = {data.modeNumbers[0]}, n = {data.modeNumbers[1]}</dd></div>
+        <div><dt>Visualization</dt><dd>{data.visualization}</dd></div>
+      </dl>
+    </section>
+
+    <section class="source" aria-labelledby="source-title">
+      <div class="source-heading">
+        <div><p class="eyebrow">Complete source</p><h2 id="source-title">Run the simulation</h2></div>
+        <div class="source-actions"><button type="button" data-copy>Copy script</button><a href="/examples/itg-drift-wave.py" download>Download .py</a></div>
+      </div>
+      <p class="requirements">Requires Struphy 3.2 with compiled kernels and Plotly. Run <code>struphy compile</code> once, then execute <code>python itg-drift-wave.py</code> (reduced from the original example's resolution and run length, still under a minute).</p>
+      <div class="highlight" data-source set:html={highlightedSource}></div>
+      <p class="provenance">Adapted from Struphy’s maintained <a href="https://github.com/struphy-hub/struphy/blob/devel/examples/DriftKineticElectrostaticAdiabatic/itg_cylindre/params_drift_kinetic.py">ITG cylinder example</a>. See the <a href="https://struphy-hub.github.io/struphy/sections/userguide.html#post-processing-and-visualization">post-processing guide</a> for more ways to inspect the result.</p>
+    </section>
+  </main>
+</Layout>
+
+<script>
+  function mountCopyButton() {
+    const button=document.querySelector<HTMLButtonElement>('[data-copy]');
+    const source=document.querySelector<HTMLElement>('[data-source]');
+    if(!button||!source)return;
+    button.onclick=async()=>{try{await navigator.clipboard.writeText(source.textContent||'');button.textContent='Copied'}catch{button.textContent='Copy failed'}setTimeout(()=>{button.textContent='Copy script'},1800)};
+  }
+  mountCopyButton();
+  document.addEventListener('astro:page-load',mountCopyButton);
+</script>
+
+<style>
+  .intro{max-width:850px;padding-block:clamp(52px,7vw,84px)}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}h1{margin:0 0 18px;font-size:clamp(2.2rem,5vw,3.8rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow){color:var(--muted);font-size:1.05rem}.eyebrow a{color:var(--cyan);text-decoration:none}.eyebrow a:hover{text-decoration:underline}.back{display:inline-block;margin-top:12px;color:var(--cyan)}
+  .result{margin:0;padding-block:40px 52px;border-top:1px solid var(--rule)}.plot-frame{width:min(100%,1100px);aspect-ratio:1100/650;margin-inline:auto}.result iframe{display:block;width:100%;height:100%;border:1px solid var(--rule);background:#fff}.result img{display:block;width:min(100%,1100px);height:auto;margin-inline:auto;border:1px solid var(--rule);background:#fff}.result figcaption{width:min(100%,1100px);margin:10px auto 0;color:var(--muted);font-size:.84rem}
+  .explanation,.source{padding-block:clamp(44px,7vw,68px);border-top:1px solid var(--rule)}.explanation{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.48fr);gap:clamp(40px,8vw,100px)}h2{margin:0 0 14px;font-size:clamp(1.55rem,3vw,2.1rem)}.explanation>div>p:not(.eyebrow),.requirements,.provenance{color:var(--muted)}.provenance code{color:var(--paper)}.equations{margin-top:24px;padding:18px 20px;border-left:2px solid var(--cyan);background:var(--accent-wash);font-size:.95rem}.equations :global(p){margin:0 0 6px;color:inherit}.equations :global(p:last-child){margin-bottom:0}.equations :global(strong){color:var(--cyan)}.equations :global(.math-display){overflow-x:auto;margin:6px 0}
+  dl{margin:0;border-top:1px solid var(--rule)}dl div{display:flex;justify-content:space-between;gap:24px;padding:10px 0;border-bottom:1px solid var(--rule)}dt{color:var(--muted);font-size:.82rem}dd{margin:0;text-align:right;font:700 .8rem var(--mono)}dd a{color:var(--cyan);text-decoration:none}dd a:hover{text-decoration:underline}
+  .source-heading{display:flex;align-items:end;justify-content:space-between;gap:24px}.source-actions{display:flex;gap:12px}.source-actions button,.source-actions a{padding:8px 12px;border:1px solid var(--cyan);background:none;color:var(--cyan);cursor:pointer;font:650 .78rem var(--sans);text-decoration:none}.source-actions button:hover,.source-actions a:hover{background:var(--accent-wash)}.requirements code{color:var(--paper)}.highlight{max-height:720px;margin:24px 0 0;overflow:auto;border:1px solid var(--rule);background:var(--code-bg)}.highlight :global(.shiki){min-width:max-content;margin:0;padding:22px;background:var(--code-bg)!important;font:.79rem/1.65 var(--mono);tab-size:4}.highlight :global(.shiki code){display:block}.provenance{font-size:.82rem}.provenance a{color:var(--cyan)}
+  .highlight :global(.shiki),.highlight :global(.shiki span){color:var(--shiki-light)}
+  :global(html[data-theme='dark'] .highlight .shiki),:global(html[data-theme='dark'] .highlight .shiki span){color:var(--shiki-dark)!important}
+  @media(max-width:720px){.explanation{grid-template-columns:1fr}.source-heading{align-items:flex-start;flex-direction:column}.source-actions{flex-wrap:wrap}.highlight :global(.shiki){padding:16px}}
+</style>
