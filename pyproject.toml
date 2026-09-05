@@ -1,0 +1,11 @@
+[tool.black]
+extend-exclude = '''
+(
+    ^/submodules/
+  | ^/\.venv/
+  | ^/docs/
+)
+'''
+
+[tool.isort]
+extend_skip_glob = ["submodules/*", ".venv/*", "docs/*"]
