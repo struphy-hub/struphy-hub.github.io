@@ -63,7 +63,7 @@ const highlightedSource = await codeToHtml(maxwellWave, {
       </div>
       <dl>
         <div><dt>Model</dt><dd><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a></dd></div>
-        <div><dt>Domain</dt><dd>{data.domain}</dd></div>
+        <div><dt>Domain</dt><dd><a href={`/domains/#${data.domain.split(' ')[0]}`}>{data.domain}</a></dd></div>
         <div><dt>Grid</dt><dd>{data.grid}</dd></div>
         <div><dt>FEEC degree</dt><dd>{data.degree}</dd></div>
         <div><dt>Integrator</dt><dd>{data.integrator}</dd></div>
