@@ -1,5 +1,5 @@
 {
-  "measuredGrowthRate": 0.03927897838094922,
+  "measuredGrowthRate": 0.0401499357305935,
   "name": "Bump-on-tail instability",
   "description": "A minority “bump” of fast particles on the tail of an otherwise Maxwellian distribution drives Langmuir waves unstable, feeding energy into the field until particle trapping saturates it.",
   "model": "VlasovAmpereOneSpecies",
