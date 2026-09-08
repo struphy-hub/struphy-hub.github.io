@@ -94,6 +94,22 @@ if __name__ == "__main__":
     # The plasma boundary (outer flux surface), for visual context around the orbits.
     boundary_x, boundary_y, boundary_z = domain.outer_boundary_mesh(n2=40, n3=80)
 
+    n_particles = orbits.shape[1]
+    n_samples = orbits.shape[0]
+    palette = ["#168aad", "#d62828", "#f77f00", "#6a4c93", "#43aa8b"]
+
+    # A moving "comet" per particle: a short, fading trail ending in a bright
+    # head marker, animated along the (already-computed) trajectory. The full
+    # path stays visible underneath, dimmed, for context.
+    n_frames = 150
+    tail_length = 250
+    frame_indices = np.linspace(0, n_samples - 1, n_frames, dtype=int)
+    comet_trace_start = 1 + n_particles  # after the boundary surface + dimmed full paths
+
+    def comet_arrays(p: int, idx: int):
+        start = max(0, idx - tail_length)
+        return orbits[start : idx + 1, p, 0], orbits[start : idx + 1, p, 1], orbits[start : idx + 1, p, 2]
+
     figure = go.Figure()
     figure.add_trace(
         go.Surface(
@@ -108,18 +124,51 @@ if __name__ == "__main__":
             showlegend=True,
         ),
     )
-    palette = ["#168aad", "#d62828", "#f77f00", "#6a4c93", "#43aa8b"]
-    for p in range(orbits.shape[1]):
+    for p in range(n_particles):
         figure.add_trace(
             go.Scatter3d(
                 x=orbits[:, p, 0],
                 y=orbits[:, p, 1],
                 z=orbits[:, p, 2],
                 mode="lines",
-                line={"width": 4, "color": palette[p % len(palette)]},
+                line={"width": 1.5, "color": palette[p % len(palette)]},
+                opacity=0.25,
+                showlegend=False,
+                hoverinfo="skip",
+            ),
+        )
+    # Default to a well-developed moment (not t=0) -- both for the interactive
+    # page's initial view and for the static PNG export, which can only ever
+    # capture the base `data`, not the animation frames.
+    default_frame_index = len(frame_indices) // 2
+    default_idx = frame_indices[default_frame_index]
+    for p in range(n_particles):
+        cx, cy, cz = comet_arrays(p, default_idx)
+        sizes = [3] * (len(cx) - 1) + [7]
+        figure.add_trace(
+            go.Scatter3d(
+                x=cx,
+                y=cy,
+                z=cz,
+                mode="lines+markers",
+                line={"width": 5, "color": palette[p % len(palette)]},
+                marker={"size": sizes, "color": palette[p % len(palette)]},
                 name=f"particle {p + 1}",
             ),
         )
+
+    frames = []
+    for idx in frame_indices:
+        frame_data = []
+        for p in range(n_particles):
+            cx, cy, cz = comet_arrays(p, idx)
+            sizes = [3] * (len(cx) - 1) + [7]
+            frame_data.append(
+                go.Scatter3d(x=cx, y=cy, z=cz, mode="lines+markers", marker={"size": sizes}),
+            )
+        frames.append(go.Frame(name=f"{idx * time_opts.dt:.2f}", data=frame_data, traces=list(range(comet_trace_start, comet_trace_start + n_particles))))
+    figure.frames = frames
+
     figure.update_layout(
         title="Full-orbit particle trajectories in a tokamak",
         scene={
@@ -129,8 +178,43 @@ if __name__ == "__main__":
             "aspectmode": "data",
         },
         template="plotly_white",
-        margin={"l": 0, "r": 0, "t": 60, "b": 0},
+        margin={"l": 0, "r": 0, "t": 60, "b": 90},
         legend={"x": 0.01, "y": 0.99, "bgcolor": "rgba(255,255,255,0.75)"},
+        updatemenus=[
+            {
+                "type": "buttons",
+                "showactive": False,
+                "x": 0.0,
+                "xanchor": "left",
+                "y": -0.08,
+                "yanchor": "top",
+                "buttons": [
+                    {
+                        "label": "Play",
+                        "method": "animate",
+                        "args": [None, {"frame": {"duration": 13, "redraw": False}, "fromcurrent": False, "transition": {"duration": 0}}],
+                    },
+                    {
+                        "label": "Pause",
+                        "method": "animate",
+                        "args": [[None], {"frame": {"duration": 0, "redraw": False}, "mode": "immediate"}],
+                    },
+                ],
+            },
+        ],
+        sliders=[
+            {
+                "steps": [
+                    {"args": [[frame.name], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate"}], "label": frame.name, "method": "animate"}
+                    for frame in frames
+                ],
+                "active": default_frame_index,
+                "x": 0.12,
+                "len": 0.88,
+                "y": -0.02,
+                "currentvalue": {"prefix": "t = "},
+            },
+        ],
     )
 
     png_path = Path("vlasov-tokamak.png")

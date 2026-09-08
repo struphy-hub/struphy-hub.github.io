@@ -1,0 +1,83 @@
+{
+    "name": "Weak Landau damping",
+    "description": "A tiny electrostatic perturbation phase-mixes away in a collisionless plasma \u2014 the classic Landau-damping benchmark, compared here against its analytically known damping rate.",
+    "model": {
+        "model": "VlasovAmpereOneSpecies"
+    },
+    "params_path": null,
+    "env": {
+        "out_folders": "struphy_gallery_runs",
+        "sim_folder": "weak_landau_damping",
+        "sim_label": null,
+        "restart": false,
+        "max_runtime": 300,
+        "save_step": 1,
+        "save_restart": true,
+        "sort_step": 0,
+        "num_clones": 1
+    },
+    "time_opts": {
+        "dt": 0.05,
+        "Tend": 20.0,
+        "split_algo": "LieTrotter"
+    },
+    "domain": {
+        "type": "Cuboid",
+        "params": {
+            "l1": 0.0,
+            "r1": 12.56,
+            "l2": 0.0,
+            "r2": 1.0,
+            "l3": 0.0,
+            "r3": 1.0
+        }
+    },
+    "equil": null,
+    "grid": {
+        "num_elements": [
+            32,
+            1,
+            1
+        ],
+        "mpi_dims_mask": [
+            true,
+            true,
+            true
+        ]
+    },
+    "derham_opts": {
+        "degree": [
+            3,
+            1,
+            1
+        ],
+        "bcs": [
+            null,
+            null,
+            null
+        ],
+        "nquads": null,
+        "nquads_proj": null,
+        "polar_splines": false,
+        "local_projectors": false
+    },
+    "profiling_opts": {
+        "file_path": null,
+        "label": null,
+        "use_likwid": null,
+        "use_line_profiler": null,
+        "deactivate_profiling": null,
+        "use_nvtx": null,
+        "use_gpu_timing": null,
+        "gpu_timing_backend": null,
+        "deactivate_file_output": null,
+        "recursive_profile": null,
+        "aggregation_mode": null,
+        "capture_region_source": null,
+        "buffer_limit": null,
+        "output_mode": null,
+        "hdf5_compression": null,
+        "hdf5_compression_level": null,
+        "hdf5_chunk_size": null
+    }
+}

@@ -40,7 +40,7 @@ model = VlasovAmpereOneSpecies(alpha=1.0, epsilon=-1.0, with_B0=False)
 model.em_fields.e_field.save_data = True
 
 domain = domains.Cuboid(r1=31.42)
-grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
+grid = grids.TensorProductGrid(num_elements=(128, 1, 1))
 derham_opts = DerhamOptions(degree=(3, 1, 1))
 time_opts = Time(dt=0.1, Tend=50.0, split_algo="LieTrotter")
 
@@ -184,7 +184,7 @@ if __name__ == "__main__":
                     {
                         "label": "Play",
                         "method": "animate",
-                        "args": [None, {"frame": {"duration": 120, "redraw": True}, "fromcurrent": True}],
+                        "args": [None, {"frame": {"duration": 30, "redraw": True}, "fromcurrent": True}],
                     },
                 ],
             },

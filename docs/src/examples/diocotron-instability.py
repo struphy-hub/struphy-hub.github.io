@@ -151,7 +151,7 @@ if __name__ == "__main__":
                     {
                         "label": "Play",
                         "method": "animate",
-                        "args": [None, {"frame": {"duration": 120, "redraw": True}, "fromcurrent": True}],
+                        "args": [None, {"frame": {"duration": 30, "redraw": True}, "fromcurrent": True}],
                     },
                 ],
             },

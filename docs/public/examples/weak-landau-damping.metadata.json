@@ -8,7 +8,7 @@
   "degree": "3 × 1 × 1",
   "steps": 400,
   "visualization": "Plotly",
-  "measuredDampingRate": -0.17210470927188085,
+  "measuredDampingRate": -0.1512681476723918,
   "exactDampingRate": -0.1533,
   "thumbnail": "/images/examples/weak-landau-damping.png",
   "interactive": "/examples/weak-landau-damping.html"
