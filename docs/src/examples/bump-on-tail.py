@@ -12,6 +12,8 @@ Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 
 import json
 import os
+import shutil
+import subprocess
 from pathlib import Path
 
 import h5py
@@ -85,7 +87,9 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    sim.run()
+    # scope-profiler is built into Struphy: this instruments every propagator,
+    # pusher and solver call during the run and writes a timing HDF5 file.
+    sim.run(profiling_activated=True)
 
     with h5py.File(os.path.join(env.path_out, "data", "data_proc0.hdf5"), "r") as f:
         time = np.asarray(f["time"]["value"])
@@ -124,8 +128,23 @@ if __name__ == "__main__":
     print(f"Saved {png_path.resolve()}")
     print(f"Saved {html_path.resolve()}")
 
+    # Bundle the profiling run into a standalone, self-contained HTML report
+    # (durations table, gantt timeline, flame graph, ...) via scope-profiler,
+    # Struphy's built-in profiler. The raw HDF5 is kept alongside for download.
+    profile_h5_path = Path("bump-on-tail-profile.h5")
+    profile_html_path = Path("bump-on-tail-profile.html")
+    shutil.copyfile(sim.profiling_filepath, profile_h5_path)
+    subprocess.run(
+        ["scope-profiler", "report", str(profile_h5_path), "-o", str(profile_html_path)],
+        check=True,
+    )
+    print(f"Saved {profile_h5_path.resolve()}")
+    print(f"Saved {profile_html_path.resolve()}")
+
     metadata_path = Path("bump-on-tail.metadata.json")
     metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
     metadata["measuredGrowthRate"] = growth_rate
+    metadata["profilingReport"] = "/examples/bump-on-tail-profile.html"
+    metadata["profilingData"] = "/examples/bump-on-tail-profile.h5"
     metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False))
     print(f"Saved {metadata_path.resolve()}")

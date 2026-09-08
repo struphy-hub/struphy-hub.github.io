@@ -12,6 +12,8 @@ Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 
 import json
 import os
+import shutil
+import subprocess
 from pathlib import Path
 
 import h5py
@@ -85,7 +87,9 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    sim.run()
+    # scope-profiler is built into Struphy: this instruments every propagator,
+    # pusher and solver call during the run and writes a timing HDF5 file.
+    sim.run(profiling_activated=True)
 
     # The exact linear damping rate/frequency for k = 0.5 (Cuboid r1 = 4*pi),
     # from the Vlasov-Ampère dispersion relation (see the struphy verification test).
@@ -146,9 +150,24 @@ if __name__ == "__main__":
     print(f"Saved {png_path.resolve()}")
     print(f"Saved {html_path.resolve()}")
 
+    # Bundle the profiling run into a standalone, self-contained HTML report
+    # (durations table, gantt timeline, flame graph, ...) via scope-profiler,
+    # Struphy's built-in profiler. The raw HDF5 is kept alongside for download.
+    profile_h5_path = Path("weak-landau-damping-profile.h5")
+    profile_html_path = Path("weak-landau-damping-profile.html")
+    shutil.copyfile(sim.profiling_filepath, profile_h5_path)
+    subprocess.run(
+        ["scope-profiler", "report", str(profile_h5_path), "-o", str(profile_html_path)],
+        check=True,
+    )
+    print(f"Saved {profile_h5_path.resolve()}")
+    print(f"Saved {profile_html_path.resolve()}")
+
     metadata_path = Path("weak-landau-damping.metadata.json")
     metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
     metadata["measuredDampingRate"] = measured_rate
     metadata["exactDampingRate"] = -0.1533
+    metadata["profilingReport"] = "/examples/weak-landau-damping-profile.html"
+    metadata["profilingData"] = "/examples/weak-landau-damping-profile.h5"
     metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False))
     print(f"Saved {metadata_path.resolve()}")

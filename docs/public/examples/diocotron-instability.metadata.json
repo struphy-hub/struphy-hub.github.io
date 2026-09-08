@@ -9,8 +9,10 @@
   "steps": 1250,
   "integrator": "Discrete_gradient_1st_order_newton",
   "visualization": "Plotly",
-  "measuredGrowthRate": 0.03715091943959264,
+  "measuredGrowthRate": 0.03601409094119229,
   "modeNumber": 4,
   "thumbnail": "/images/examples/diocotron-instability.png",
-  "interactive": "/examples/diocotron-instability.html"
+  "interactive": "/examples/diocotron-instability.html",
+  "profilingReport": "/examples/diocotron-instability-profile.html",
+  "profilingData": "/examples/diocotron-instability-profile.h5"
 }

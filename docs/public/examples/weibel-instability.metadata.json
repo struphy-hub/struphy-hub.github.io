@@ -11,5 +11,7 @@
   "integrator": "Implicit",
   "visualization": "Plotly",
   "thumbnail": "/images/examples/weibel-instability.png",
-  "interactive": "/examples/weibel-instability.html"
+  "interactive": "/examples/weibel-instability.html",
+  "profilingReport": "/examples/weibel-instability-profile.html",
+  "profilingData": "/examples/weibel-instability-profile.h5"
 }

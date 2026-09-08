@@ -10,5 +10,7 @@
   "visualization": "Plotly",
   "maxRelativeError": 0.005691951238010893,
   "thumbnail": "/images/examples/poisson-source.png",
-  "interactive": "/examples/poisson-source.html"
+  "interactive": "/examples/poisson-source.html",
+  "profilingReport": "/examples/poisson-source-profile.html",
+  "profilingData": "/examples/poisson-source-profile.h5"
 }

@@ -12,5 +12,7 @@
   "maxRelativeSpeedDrift": 0.00034774052729781644,
   "trackedParticles": 5,
   "thumbnail": "/images/examples/vlasov-tokamak.png",
-  "interactive": "/examples/vlasov-tokamak.html"
+  "interactive": "/examples/vlasov-tokamak.html",
+  "profilingReport": "/examples/vlasov-tokamak-profile.html",
+  "profilingData": "/examples/vlasov-tokamak-profile.h5"
 }
