@@ -8,6 +8,8 @@ Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -65,7 +67,9 @@ sim = Simulation(
 
 if __name__ == "__main__":
     # Run, evaluate the FEEC fields on a grid, and load the result.
-    sim.run()
+    # scope-profiler is built into Struphy: this instruments every propagator,
+    # pusher and solver call during the run and writes a timing HDF5 file.
+    sim.run(profiling_activated=True)
     sim.pproc(create_vtk=False)
     sim.load_plotting_data()
 
@@ -159,9 +163,24 @@ if __name__ == "__main__":
 
     # Fold this run's measured result into the page metadata that
     # generate_examples.py already wrote for this script's static setup.
+    # Bundle the profiling run into a standalone, self-contained HTML report
+    # (durations table, gantt timeline, flame graph, ...) via scope-profiler,
+    # Struphy's built-in profiler. The raw HDF5 is kept alongside for download.
+    profile_h5_path = Path("maxwell-wave-profile.h5")
+    profile_html_path = Path("maxwell-wave-profile.html")
+    shutil.copyfile(sim.profiling_filepath, profile_h5_path)
+    subprocess.run(
+        ["scope-profiler", "report", str(profile_h5_path), "-o", str(profile_html_path)],
+        check=True,
+    )
+    print(f"Saved {profile_h5_path.resolve()}")
+    print(f"Saved {profile_html_path.resolve()}")
+
     metadata_path = Path("maxwell-wave.metadata.json")
     metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
     metadata["measuredPhaseVelocity"] = phase_velocity
     metadata["exactPhaseVelocity"] = 1.0
+    metadata["profilingReport"] = "/examples/maxwell-wave-profile.html"
+    metadata["profilingData"] = "/examples/maxwell-wave-profile.h5"
     metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False))
     print(f"Saved {metadata_path.resolve()}")

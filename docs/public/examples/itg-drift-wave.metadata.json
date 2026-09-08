@@ -15,5 +15,7 @@
     1
   ],
   "thumbnail": "/images/examples/itg-drift-wave.png",
-  "interactive": "/examples/itg-drift-wave.html"
+  "interactive": "/examples/itg-drift-wave.html",
+  "profilingReport": "/examples/itg-drift-wave-profile.html",
+  "profilingData": "/examples/itg-drift-wave-profile.h5"
 }
