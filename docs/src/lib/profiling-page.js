@@ -129,6 +129,7 @@ export function mountProfilingSection(root) {
 
   const ganttContainer = root.querySelector('#pf-plot-gantt');
   const ganttFilter = root.querySelector('#pf-filter-gantt');
+  if (ganttFilter && !ganttFilter.value) ganttFilter.value = DEFAULT_REGION_FILTER;
   if (gantt && ganttContainer) {
     mountChart(gantt, ganttContainer, { kind: 'gantt', filterInput: ganttFilter }).catch((error) => {
       ganttContainer.innerHTML = `<p class="pf-error">Could not load gantt chart: ${esc(error)}</p>`;
