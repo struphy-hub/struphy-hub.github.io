@@ -25,6 +25,13 @@ export const plotConfig = {
   modeBarButtonsToRemove: ['lasso2d', 'select2d'],
 };
 
+// What the durations chart starts filtered to: the top-level integration
+// loop, the merged setup span, and the propagators -- not every "kernel:"/
+// "accum:"/"setup var:" line, which is what makes an unfiltered chart
+// hundreds of pixels taller than useful. "^prop:" is anchored so it doesn't
+// also pull in "setup prop: X"; clearing the box shows everything.
+export const DEFAULT_REGION_FILTER = 'model.integrate, ^prop:, setup: total';
+
 // A region filter is a comma-separated list of terms, each matched as a
 // case-insensitive substring of the region name; a leading "^" anchors a
 // term to the start of the name. An empty filter matches every region.
