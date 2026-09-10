@@ -2,7 +2,7 @@
 // scope-profiler's plot-data JSON (durations/gantt/flame + region stats) and
 // renders it as native Plotly figures, re-rendering on theme change.
 import Plotly from 'plotly.js-dist-min';
-import { matchesRegionFilter, parseRegionFilter, renderFigure } from './profiling-charts.js';
+import { DEFAULT_REGION_FILTER, matchesRegionFilter, parseRegionFilter, renderFigure } from './profiling-charts.js';
 
 const fmt = (value) => {
   if (typeof value !== 'number' || Number.isNaN(value)) return '-';
@@ -114,6 +114,11 @@ export function mountProfilingSection(root) {
   const durationsContainer = root.querySelector('#pf-plot-durations');
   const durationsMetric = root.querySelector('#pf-metric');
   const durationsFilter = root.querySelector('#pf-filter-durations');
+  // Unfiltered, this is one bar per region -- including every fine-grained
+  // "kernel:"/"accum:"/"setup var:" line -- which makes for an absurdly tall
+  // chart. Start narrowed to the top-level view; clearing the box (or typing
+  // a different filter) shows everything.
+  if (durationsFilter && !durationsFilter.value) durationsFilter.value = DEFAULT_REGION_FILTER;
   if (durations && durationsContainer) {
     mountChart(durations, durationsContainer, { kind: 'durations', metricSelect: durationsMetric, filterInput: durationsFilter }).catch(
       (error) => {
