@@ -1,0 +1,947 @@
+{
+  "format": "scope-profiler-plot-data",
+  "format_version": 1,
+  "plot": "region_statistics",
+  "units": {
+    "durations": "seconds"
+  },
+  "filters": {
+    "include": null,
+    "exclude": null,
+    "ranks": [
+      0
+    ]
+  },
+  "common_regions": [
+    "scope_profiler.session",
+    "setup: total",
+    "setup: allocate",
+    "setup: feec",
+    "setup: derham",
+    "setup: mass ops",
+    "setup: basis ops",
+    "setup: projected equil",
+    "setup: variables",
+    "setup var: em_fields.phi",
+    "setup var: kinetic_ions.var",
+    "do_sort",
+    "put_particles_in_boxes",
+    "setup: propagators",
+    "setup prop: PoissonSolve",
+    "setup prop: PushGuidingCenterBxEstar",
+    "setup: helpers",
+    "setup: run metadata",
+    "setup: data storage",
+    "setup: geometry vtk",
+    "setup: plasma params",
+    "setup: initial diagnostics",
+    "setup: hdf5 datasets",
+    "model.integrate",
+    "prop: PoissonSolve",
+    "accum: gc_density_0form",
+    "kernel: gc_density_0form",
+    "accum comm: gc_density_0form",
+    "solve: PoissonSolve",
+    "update_feec_variables",
+    "prop: PushGuidingCenterBxEstar",
+    "pusher: push_gc_bxEstar_discrete_gradient_1st_order_newton",
+    "kernel: driftkinetic_hamiltonian",
+    "kernel: bstar_parallel_3form",
+    "kernel: unit_b_1form",
+    "kernel: grad_driftkinetic_hamiltonian",
+    "kernel: push_gc_bxEstar_discrete_gradient_1st_order_newton",
+    "apply_kinetic_bc",
+    "diagnostics",
+    "save data"
+  ],
+  "files": [
+    {
+      "label": "profiling_data",
+      "file_path": "/Users/max/git_repos/struphy-hub.github.io/docs/public/examples/struphy_gallery_runs/diocotron_instability/profiling_data.h5",
+      "num_ranks": 1,
+      "total_time_seconds": 291.0635884590156,
+      "region_statistics": {
+        "scope_profiler.session": {
+          "count": 1,
+          "average_duration_seconds": 291.054518083,
+          "min_duration_seconds": 291.054518083,
+          "max_duration_seconds": 291.054518083,
+          "first_duration_seconds": 291.054518083,
+          "last_duration_seconds": 291.054518083,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 291.054518083,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 291.054518083,
+              "min_duration_seconds": 291.054518083,
+              "max_duration_seconds": 291.054518083,
+              "first_duration_seconds": 291.054518083,
+              "last_duration_seconds": 291.054518083,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 291.054518083
+            }
+          }
+        },
+        "setup: total": {
+          "count": 1,
+          "average_duration_seconds": 1.003333208,
+          "min_duration_seconds": 1.003333208,
+          "max_duration_seconds": 1.003333208,
+          "first_duration_seconds": 1.003333208,
+          "last_duration_seconds": 1.003333208,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 1.003333208,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 1.003333208,
+              "min_duration_seconds": 1.003333208,
+              "max_duration_seconds": 1.003333208,
+              "first_duration_seconds": 1.003333208,
+              "last_duration_seconds": 1.003333208,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 1.003333208
+            }
+          }
+        },
+        "setup: allocate": {
+          "count": 1,
+          "average_duration_seconds": 0.85322675,
+          "min_duration_seconds": 0.85322675,
+          "max_duration_seconds": 0.85322675,
+          "first_duration_seconds": 0.85322675,
+          "last_duration_seconds": 0.85322675,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.85322675,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.85322675,
+              "min_duration_seconds": 0.85322675,
+              "max_duration_seconds": 0.85322675,
+              "first_duration_seconds": 0.85322675,
+              "last_duration_seconds": 0.85322675,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.85322675
+            }
+          }
+        },
+        "setup: feec": {
+          "count": 1,
+          "average_duration_seconds": 0.057349542,
+          "min_duration_seconds": 0.057349542,
+          "max_duration_seconds": 0.057349542,
+          "first_duration_seconds": 0.057349542,
+          "last_duration_seconds": 0.057349542,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.057349542,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.057349542,
+              "min_duration_seconds": 0.057349542,
+              "max_duration_seconds": 0.057349542,
+              "first_duration_seconds": 0.057349542,
+              "last_duration_seconds": 0.057349542,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.057349542
+            }
+          }
+        },
+        "setup: derham": {
+          "count": 1,
+          "average_duration_seconds": 0.057229666,
+          "min_duration_seconds": 0.057229666,
+          "max_duration_seconds": 0.057229666,
+          "first_duration_seconds": 0.057229666,
+          "last_duration_seconds": 0.057229666,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.057229666,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.057229666,
+              "min_duration_seconds": 0.057229666,
+              "max_duration_seconds": 0.057229666,
+              "first_duration_seconds": 0.057229666,
+              "last_duration_seconds": 0.057229666,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.057229666
+            }
+          }
+        },
+        "setup: mass ops": {
+          "count": 1,
+          "average_duration_seconds": 1.2792e-05,
+          "min_duration_seconds": 1.2792e-05,
+          "max_duration_seconds": 1.2792e-05,
+          "first_duration_seconds": 1.2792e-05,
+          "last_duration_seconds": 1.2792e-05,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 1.2792e-05,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 1.2792e-05,
+              "min_duration_seconds": 1.2792e-05,
+              "max_duration_seconds": 1.2792e-05,
+              "first_duration_seconds": 1.2792e-05,
+              "last_duration_seconds": 1.2792e-05,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 1.2792e-05
+            }
+          }
+        },
+        "setup: basis ops": {
+          "count": 1,
+          "average_duration_seconds": 7.125e-06,
+          "min_duration_seconds": 7.125e-06,
+          "max_duration_seconds": 7.125e-06,
+          "first_duration_seconds": 7.125e-06,
+          "last_duration_seconds": 7.125e-06,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 7.125e-06,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 7.125e-06,
+              "min_duration_seconds": 7.125e-06,
+              "max_duration_seconds": 7.125e-06,
+              "first_duration_seconds": 7.125e-06,
+              "last_duration_seconds": 7.125e-06,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 7.125e-06
+            }
+          }
+        },
+        "setup: projected equil": {
+          "count": 1,
+          "average_duration_seconds": 2.5125e-05,
+          "min_duration_seconds": 2.5125e-05,
+          "max_duration_seconds": 2.5125e-05,
+          "first_duration_seconds": 2.5125e-05,
+          "last_duration_seconds": 2.5125e-05,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 2.5125e-05,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 2.5125e-05,
+              "min_duration_seconds": 2.5125e-05,
+              "max_duration_seconds": 2.5125e-05,
+              "first_duration_seconds": 2.5125e-05,
+              "last_duration_seconds": 2.5125e-05,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 2.5125e-05
+            }
+          }
+        },
+        "setup: variables": {
+          "count": 1,
+          "average_duration_seconds": 0.585098166,
+          "min_duration_seconds": 0.585098166,
+          "max_duration_seconds": 0.585098166,
+          "first_duration_seconds": 0.585098166,
+          "last_duration_seconds": 0.585098166,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.585098166,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.585098166,
+              "min_duration_seconds": 0.585098166,
+              "max_duration_seconds": 0.585098166,
+              "first_duration_seconds": 0.585098166,
+              "last_duration_seconds": 0.585098166,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.585098166
+            }
+          }
+        },
+        "setup var: em_fields.phi": {
+          "count": 1,
+          "average_duration_seconds": 3.9833e-05,
+          "min_duration_seconds": 3.9833e-05,
+          "max_duration_seconds": 3.9833e-05,
+          "first_duration_seconds": 3.9833e-05,
+          "last_duration_seconds": 3.9833e-05,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 3.9833e-05,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 3.9833e-05,
+              "min_duration_seconds": 3.9833e-05,
+              "max_duration_seconds": 3.9833e-05,
+              "first_duration_seconds": 3.9833e-05,
+              "last_duration_seconds": 3.9833e-05,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 3.9833e-05
+            }
+          }
+        },
+        "setup var: kinetic_ions.var": {
+          "count": 1,
+          "average_duration_seconds": 0.584852042,
+          "min_duration_seconds": 0.584852042,
+          "max_duration_seconds": 0.584852042,
+          "first_duration_seconds": 0.584852042,
+          "last_duration_seconds": 0.584852042,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.584852042,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.584852042,
+              "min_duration_seconds": 0.584852042,
+              "max_duration_seconds": 0.584852042,
+              "first_duration_seconds": 0.584852042,
+              "last_duration_seconds": 0.584852042,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.584852042
+            }
+          }
+        },
+        "do_sort": {
+          "count": 1,
+          "average_duration_seconds": 0.009654166,
+          "min_duration_seconds": 0.009654166,
+          "max_duration_seconds": 0.009654166,
+          "first_duration_seconds": 0.009654166,
+          "last_duration_seconds": 0.009654166,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.009654166,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.009654166,
+              "min_duration_seconds": 0.009654166,
+              "max_duration_seconds": 0.009654166,
+              "first_duration_seconds": 0.009654166,
+              "last_duration_seconds": 0.009654166,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.009654166
+            }
+          }
+        },
+        "put_particles_in_boxes": {
+          "count": 1,
+          "average_duration_seconds": 0.007048041,
+          "min_duration_seconds": 0.007048041,
+          "max_duration_seconds": 0.007048041,
+          "first_duration_seconds": 0.007048041,
+          "last_duration_seconds": 0.007048041,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.007048041,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.007048041,
+              "min_duration_seconds": 0.007048041,
+              "max_duration_seconds": 0.007048041,
+              "first_duration_seconds": 0.007048041,
+              "last_duration_seconds": 0.007048041,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.007048041
+            }
+          }
+        },
+        "setup: propagators": {
+          "count": 1,
+          "average_duration_seconds": 0.205189709,
+          "min_duration_seconds": 0.205189709,
+          "max_duration_seconds": 0.205189709,
+          "first_duration_seconds": 0.205189709,
+          "last_duration_seconds": 0.205189709,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.205189709,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.205189709,
+              "min_duration_seconds": 0.205189709,
+              "max_duration_seconds": 0.205189709,
+              "first_duration_seconds": 0.205189709,
+              "last_duration_seconds": 0.205189709,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.205189709
+            }
+          }
+        },
+        "setup prop: PoissonSolve": {
+          "count": 1,
+          "average_duration_seconds": 0.180027084,
+          "min_duration_seconds": 0.180027084,
+          "max_duration_seconds": 0.180027084,
+          "first_duration_seconds": 0.180027084,
+          "last_duration_seconds": 0.180027084,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.180027084,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.180027084,
+              "min_duration_seconds": 0.180027084,
+              "max_duration_seconds": 0.180027084,
+              "first_duration_seconds": 0.180027084,
+              "last_duration_seconds": 0.180027084,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.180027084
+            }
+          }
+        },
+        "setup prop: PushGuidingCenterBxEstar": {
+          "count": 1,
+          "average_duration_seconds": 0.025055375,
+          "min_duration_seconds": 0.025055375,
+          "max_duration_seconds": 0.025055375,
+          "first_duration_seconds": 0.025055375,
+          "last_duration_seconds": 0.025055375,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.025055375,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.025055375,
+              "min_duration_seconds": 0.025055375,
+              "max_duration_seconds": 0.025055375,
+              "first_duration_seconds": 0.025055375,
+              "last_duration_seconds": 0.025055375,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.025055375
+            }
+          }
+        },
+        "setup: helpers": {
+          "count": 1,
+          "average_duration_seconds": 0.005533709,
+          "min_duration_seconds": 0.005533709,
+          "max_duration_seconds": 0.005533709,
+          "first_duration_seconds": 0.005533709,
+          "last_duration_seconds": 0.005533709,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.005533709,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.005533709,
+              "min_duration_seconds": 0.005533709,
+              "max_duration_seconds": 0.005533709,
+              "first_duration_seconds": 0.005533709,
+              "last_duration_seconds": 0.005533709,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.005533709
+            }
+          }
+        },
+        "setup: run metadata": {
+          "count": 1,
+          "average_duration_seconds": 0.000510709,
+          "min_duration_seconds": 0.000510709,
+          "max_duration_seconds": 0.000510709,
+          "first_duration_seconds": 0.000510709,
+          "last_duration_seconds": 0.000510709,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.000510709,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.000510709,
+              "min_duration_seconds": 0.000510709,
+              "max_duration_seconds": 0.000510709,
+              "first_duration_seconds": 0.000510709,
+              "last_duration_seconds": 0.000510709,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.000510709
+            }
+          }
+        },
+        "setup: data storage": {
+          "count": 1,
+          "average_duration_seconds": 0.023422417,
+          "min_duration_seconds": 0.023422417,
+          "max_duration_seconds": 0.023422417,
+          "first_duration_seconds": 0.023422417,
+          "last_duration_seconds": 0.023422417,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.023422417,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.023422417,
+              "min_duration_seconds": 0.023422417,
+              "max_duration_seconds": 0.023422417,
+              "first_duration_seconds": 0.023422417,
+              "last_duration_seconds": 0.023422417,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.023422417
+            }
+          }
+        },
+        "setup: geometry vtk": {
+          "count": 1,
+          "average_duration_seconds": 0.046196125,
+          "min_duration_seconds": 0.046196125,
+          "max_duration_seconds": 0.046196125,
+          "first_duration_seconds": 0.046196125,
+          "last_duration_seconds": 0.046196125,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.046196125,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.046196125,
+              "min_duration_seconds": 0.046196125,
+              "max_duration_seconds": 0.046196125,
+              "first_duration_seconds": 0.046196125,
+              "last_duration_seconds": 0.046196125,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.046196125
+            }
+          }
+        },
+        "setup: plasma params": {
+          "count": 1,
+          "average_duration_seconds": 0.003313417,
+          "min_duration_seconds": 0.003313417,
+          "max_duration_seconds": 0.003313417,
+          "first_duration_seconds": 0.003313417,
+          "last_duration_seconds": 0.003313417,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.003313417,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.003313417,
+              "min_duration_seconds": 0.003313417,
+              "max_duration_seconds": 0.003313417,
+              "first_duration_seconds": 0.003313417,
+              "last_duration_seconds": 0.003313417,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.003313417
+            }
+          }
+        },
+        "setup: initial diagnostics": {
+          "count": 1,
+          "average_duration_seconds": 0.012565125,
+          "min_duration_seconds": 0.012565125,
+          "max_duration_seconds": 0.012565125,
+          "first_duration_seconds": 0.012565125,
+          "last_duration_seconds": 0.012565125,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.012565125,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.012565125,
+              "min_duration_seconds": 0.012565125,
+              "max_duration_seconds": 0.012565125,
+              "first_duration_seconds": 0.012565125,
+              "last_duration_seconds": 0.012565125,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.012565125
+            }
+          }
+        },
+        "setup: hdf5 datasets": {
+          "count": 1,
+          "average_duration_seconds": 0.061477084,
+          "min_duration_seconds": 0.061477084,
+          "max_duration_seconds": 0.061477084,
+          "first_duration_seconds": 0.061477084,
+          "last_duration_seconds": 0.061477084,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.061477084,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.061477084,
+              "min_duration_seconds": 0.061477084,
+              "max_duration_seconds": 0.061477084,
+              "first_duration_seconds": 0.061477084,
+              "last_duration_seconds": 0.061477084,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.061477084
+            }
+          }
+        },
+        "model.integrate": {
+          "count": 1250,
+          "average_duration_seconds": 0.2219233548016,
+          "min_duration_seconds": 0.1659995,
+          "max_duration_seconds": 0.502891875,
+          "first_duration_seconds": 0.295962,
+          "last_duration_seconds": 0.316760417,
+          "std_duration_seconds": 0.0315895449998361,
+          "total_duration_seconds": 277.404193502,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 0.2219233548016,
+              "min_duration_seconds": 0.1659995,
+              "max_duration_seconds": 0.502891875,
+              "first_duration_seconds": 0.295962,
+              "last_duration_seconds": 0.316760417,
+              "std_duration_seconds": 0.0315895449998361,
+              "total_duration_seconds": 277.404193502
+            }
+          }
+        },
+        "prop: PoissonSolve": {
+          "count": 1250,
+          "average_duration_seconds": 0.1530182374816,
+          "min_duration_seconds": 0.107546708,
+          "max_duration_seconds": 0.385287,
+          "first_duration_seconds": 0.20852275,
+          "last_duration_seconds": 0.210395041,
+          "std_duration_seconds": 0.02453698037127545,
+          "total_duration_seconds": 191.272796852,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 0.1530182374816,
+              "min_duration_seconds": 0.107546708,
+              "max_duration_seconds": 0.385287,
+              "first_duration_seconds": 0.20852275,
+              "last_duration_seconds": 0.210395041,
+              "std_duration_seconds": 0.02453698037127545,
+              "total_duration_seconds": 191.272796852
+            }
+          }
+        },
+        "accum: gc_density_0form": {
+          "count": 1250,
+          "average_duration_seconds": 0.0017508999568000001,
+          "min_duration_seconds": 0.001422542,
+          "max_duration_seconds": 0.006698667,
+          "first_duration_seconds": 0.003244042,
+          "last_duration_seconds": 0.002010625,
+          "std_duration_seconds": 0.00027750132865071714,
+          "total_duration_seconds": 2.188624946,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 0.0017508999568000001,
+              "min_duration_seconds": 0.001422542,
+              "max_duration_seconds": 0.006698667,
+              "first_duration_seconds": 0.003244042,
+              "last_duration_seconds": 0.002010625,
+              "std_duration_seconds": 0.00027750132865071714,
+              "total_duration_seconds": 2.188624946
+            }
+          }
+        },
+        "kernel: gc_density_0form": {
+          "count": 1250,
+          "average_duration_seconds": 0.0016724156096,
+          "min_duration_seconds": 0.001359125,
+          "max_duration_seconds": 0.006578459,
+          "first_duration_seconds": 0.002967,
+          "last_duration_seconds": 0.001923459,
+          "std_duration_seconds": 0.0002653366069125472,
+          "total_duration_seconds": 2.090519512,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 0.0016724156096,
+              "min_duration_seconds": 0.001359125,
+              "max_duration_seconds": 0.006578459,
+              "first_duration_seconds": 0.002967,
+              "last_duration_seconds": 0.001923459,
+              "std_duration_seconds": 0.0002653366069125472,
+              "total_duration_seconds": 2.090519512
+            }
+          }
+        },
+        "accum comm: gc_density_0form": {
+          "count": 1250,
+          "average_duration_seconds": 6.349528879999999e-05,
+          "min_duration_seconds": 5e-05,
+          "max_duration_seconds": 0.000189458,
+          "first_duration_seconds": 0.000136709,
+          "last_duration_seconds": 7.0625e-05,
+          "std_duration_seconds": 1.0076163052302921e-05,
+          "total_duration_seconds": 0.07936911099999999,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 6.349528879999999e-05,
+              "min_duration_seconds": 5e-05,
+              "max_duration_seconds": 0.000189458,
+              "first_duration_seconds": 0.000136709,
+              "last_duration_seconds": 7.0625e-05,
+              "std_duration_seconds": 1.0076163052302921e-05,
+              "total_duration_seconds": 0.07936911099999999
+            }
+          }
+        },
+        "solve: PoissonSolve": {
+          "count": 1250,
+          "average_duration_seconds": 0.1484204088896,
+          "min_duration_seconds": 0.103736,
+          "max_duration_seconds": 0.374049333,
+          "first_duration_seconds": 0.200711209,
+          "last_duration_seconds": 0.205018791,
+          "std_duration_seconds": 0.02405009530192755,
+          "total_duration_seconds": 185.525511112,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 0.1484204088896,
+              "min_duration_seconds": 0.103736,
+              "max_duration_seconds": 0.374049333,
+              "first_duration_seconds": 0.200711209,
+              "last_duration_seconds": 0.205018791,
+              "std_duration_seconds": 0.02405009530192755,
+              "total_duration_seconds": 185.525511112
+            }
+          }
+        },
+        "update_feec_variables": {
+          "count": 1250,
+          "average_duration_seconds": 6.13161016e-05,
+          "min_duration_seconds": 4.4167e-05,
+          "max_duration_seconds": 0.000604417,
+          "first_duration_seconds": 0.000119375,
+          "last_duration_seconds": 0.000172458,
+          "std_duration_seconds": 2.4541517789804232e-05,
+          "total_duration_seconds": 0.07664512700000001,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 6.13161016e-05,
+              "min_duration_seconds": 4.4167e-05,
+              "max_duration_seconds": 0.000604417,
+              "first_duration_seconds": 0.000119375,
+              "last_duration_seconds": 0.000172458,
+              "std_duration_seconds": 2.4541517789804232e-05,
+              "total_duration_seconds": 0.07664512700000001
+            }
+          }
+        },
+        "prop: PushGuidingCenterBxEstar": {
+          "count": 1250,
+          "average_duration_seconds": 0.06889171334800001,
+          "min_duration_seconds": 0.057965334,
+          "max_duration_seconds": 0.168515375,
+          "first_duration_seconds": 0.087350709,
+          "last_duration_seconds": 0.106327834,
+          "std_duration_seconds": 0.009019602833236825,
+          "total_duration_seconds": 86.11464168500001,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 0.06889171334800001,
+              "min_duration_seconds": 0.057965334,
+              "max_duration_seconds": 0.168515375,
+              "first_duration_seconds": 0.087350709,
+              "last_duration_seconds": 0.106327834,
+              "std_duration_seconds": 0.009019602833236825,
+              "total_duration_seconds": 86.11464168500001
+            }
+          }
+        },
+        "pusher: push_gc_bxEstar_discrete_gradient_1st_order_newton": {
+          "count": 1250,
+          "average_duration_seconds": 0.06601094268239999,
+          "min_duration_seconds": 0.055543542,
+          "max_duration_seconds": 0.162659125,
+          "first_duration_seconds": 0.08451375,
+          "last_duration_seconds": 0.102138917,
+          "std_duration_seconds": 0.008702579145018253,
+          "total_duration_seconds": 82.51367835299999,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 0.06601094268239999,
+              "min_duration_seconds": 0.055543542,
+              "max_duration_seconds": 0.162659125,
+              "first_duration_seconds": 0.08451375,
+              "last_duration_seconds": 0.102138917,
+              "std_duration_seconds": 0.008702579145018253,
+              "total_duration_seconds": 82.51367835299999
+            }
+          }
+        },
+        "kernel: driftkinetic_hamiltonian": {
+          "count": 8918,
+          "average_duration_seconds": 0.0018509980993496298,
+          "min_duration_seconds": 0.001447333,
+          "max_duration_seconds": 0.009471375,
+          "first_duration_seconds": 0.002892333,
+          "last_duration_seconds": 0.002665333,
+          "std_duration_seconds": 0.0002760439491899244,
+          "total_duration_seconds": 16.50720105,
+          "per_rank": {
+            "0": {
+              "count": 8918,
+              "average_duration_seconds": 0.0018509980993496298,
+              "min_duration_seconds": 0.001447333,
+              "max_duration_seconds": 0.009471375,
+              "first_duration_seconds": 0.002892333,
+              "last_duration_seconds": 0.002665333,
+              "std_duration_seconds": 0.0002760439491899244,
+              "total_duration_seconds": 16.50720105
+            }
+          }
+        },
+        "kernel: bstar_parallel_3form": {
+          "count": 1250,
+          "average_duration_seconds": 0.001932722732,
+          "min_duration_seconds": 0.001579958,
+          "max_duration_seconds": 0.006677333,
+          "first_duration_seconds": 0.0022125,
+          "last_duration_seconds": 0.002964458,
+          "std_duration_seconds": 0.0002894878629199134,
+          "total_duration_seconds": 2.415903415,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 0.001932722732,
+              "min_duration_seconds": 0.001579958,
+              "max_duration_seconds": 0.006677333,
+              "first_duration_seconds": 0.0022125,
+              "last_duration_seconds": 0.002964458,
+              "std_duration_seconds": 0.0002894878629199134,
+              "total_duration_seconds": 2.415903415
+            }
+          }
+        },
+        "kernel: unit_b_1form": {
+          "count": 1250,
+          "average_duration_seconds": 0.0018584046752,
+          "min_duration_seconds": 0.00152,
+          "max_duration_seconds": 0.00561025,
+          "first_duration_seconds": 0.002096833,
+          "last_duration_seconds": 0.002609958,
+          "std_duration_seconds": 0.0002723730325171978,
+          "total_duration_seconds": 2.323005844,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 0.0018584046752,
+              "min_duration_seconds": 0.00152,
+              "max_duration_seconds": 0.00561025,
+              "first_duration_seconds": 0.002096833,
+              "last_duration_seconds": 0.002609958,
+              "std_duration_seconds": 0.0002723730325171978,
+              "total_duration_seconds": 2.323005844
+            }
+          }
+        },
+        "kernel: grad_driftkinetic_hamiltonian": {
+          "count": 7668,
+          "average_duration_seconds": 0.0022354745533385498,
+          "min_duration_seconds": 0.001819583,
+          "max_duration_seconds": 0.023978833,
+          "first_duration_seconds": 0.002309666,
+          "last_duration_seconds": 0.003289042,
+          "std_duration_seconds": 0.00041356250262209365,
+          "total_duration_seconds": 17.141618875,
+          "per_rank": {
+            "0": {
+              "count": 7668,
+              "average_duration_seconds": 0.0022354745533385498,
+              "min_duration_seconds": 0.001819583,
+              "max_duration_seconds": 0.023978833,
+              "first_duration_seconds": 0.002309666,
+              "last_duration_seconds": 0.003289042,
+              "std_duration_seconds": 0.00041356250262209365,
+              "total_duration_seconds": 17.141618875
+            }
+          }
+        },
+        "kernel: push_gc_bxEstar_discrete_gradient_1st_order_newton": {
+          "count": 3834,
+          "average_duration_seconds": 0.002725916510693792,
+          "min_duration_seconds": 0.0004725,
+          "max_duration_seconds": 0.007426333,
+          "first_duration_seconds": 0.004177084,
+          "last_duration_seconds": 0.007024458,
+          "std_duration_seconds": 0.0005632743786479436,
+          "total_duration_seconds": 10.451163902,
+          "per_rank": {
+            "0": {
+              "count": 3834,
+              "average_duration_seconds": 0.002725916510693792,
+              "min_duration_seconds": 0.0004725,
+              "max_duration_seconds": 0.007426333,
+              "first_duration_seconds": 0.004177084,
+              "last_duration_seconds": 0.007024458,
+              "std_duration_seconds": 0.0005632743786479436,
+              "total_duration_seconds": 10.451163902
+            }
+          }
+        },
+        "apply_kinetic_bc": {
+          "count": 5084,
+          "average_duration_seconds": 0.003147433093627065,
+          "min_duration_seconds": 0.002649292,
+          "max_duration_seconds": 0.02494175,
+          "first_duration_seconds": 0.003395584,
+          "last_duration_seconds": 0.005045125,
+          "std_duration_seconds": 0.0005547983910427741,
+          "total_duration_seconds": 16.001549848,
+          "per_rank": {
+            "0": {
+              "count": 5084,
+              "average_duration_seconds": 0.003147433093627065,
+              "min_duration_seconds": 0.002649292,
+              "max_duration_seconds": 0.02494175,
+              "first_duration_seconds": 0.003395584,
+              "last_duration_seconds": 0.005045125,
+              "std_duration_seconds": 0.0005547983910427741,
+              "total_duration_seconds": 16.001549848
+            }
+          }
+        },
+        "diagnostics": {
+          "count": 1250,
+          "average_duration_seconds": 0.0071736762368,
+          "min_duration_seconds": 0.005898917,
+          "max_duration_seconds": 0.020982709,
+          "first_duration_seconds": 0.006846833,
+          "last_duration_seconds": 0.009679959,
+          "std_duration_seconds": 0.001124321999782095,
+          "total_duration_seconds": 8.967095296,
+          "per_rank": {
+            "0": {
+              "count": 1250,
+              "average_duration_seconds": 0.0071736762368,
+              "min_duration_seconds": 0.005898917,
+              "max_duration_seconds": 0.020982709,
+              "first_duration_seconds": 0.006846833,
+              "last_duration_seconds": 0.009679959,
+              "std_duration_seconds": 0.001124321999782095,
+              "total_duration_seconds": 8.967095296
+            }
+          }
+        },
+        "save data": {
+          "count": 1251,
+          "average_duration_seconds": 0.002730377782573941,
+          "min_duration_seconds": 0.001935834,
+          "max_duration_seconds": 0.065130583,
+          "first_duration_seconds": 0.002738666,
+          "last_duration_seconds": 0.05305875,
+          "std_duration_seconds": 0.0023857021618091715,
+          "total_duration_seconds": 3.415702606,
+          "per_rank": {
+            "0": {
+              "count": 1251,
+              "average_duration_seconds": 0.002730377782573941,
+              "min_duration_seconds": 0.001935834,
+              "max_duration_seconds": 0.065130583,
+              "first_duration_seconds": 0.002738666,
+              "last_duration_seconds": 0.05305875,
+              "std_duration_seconds": 0.0023857021618091715,
+              "total_duration_seconds": 3.415702606
+            }
+          }
+        }
+      }
+    }
+  ]
+}

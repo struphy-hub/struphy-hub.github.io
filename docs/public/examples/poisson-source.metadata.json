@@ -11,6 +11,9 @@
   "maxRelativeError": 0.005691951238010893,
   "thumbnail": "/images/examples/poisson-source.png",
   "interactive": "/examples/poisson-source.html",
-  "profilingReport": "/examples/poisson-source-profile.html",
-  "profilingData": "/examples/poisson-source-profile.h5"
+  "profilingData": "/examples/poisson-source-profile.h5",
+  "profilingDurations": "/examples/poisson-source-durations.json",
+  "profilingGantt": "/examples/poisson-source-gantt.json",
+  "profilingFlame": "/examples/poisson-source-flame.json",
+  "profilingRegionStats": "/examples/poisson-source-region-stats.json"
 }

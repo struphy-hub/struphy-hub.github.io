@@ -13,6 +13,9 @@
   "exactPhaseVelocity": 1.0,
   "thumbnail": "/images/examples/maxwell-dispersion.png",
   "interactive": "/examples/maxwell-dispersion.html",
-  "profilingReport": "/examples/maxwell-wave-profile.html",
-  "profilingData": "/examples/maxwell-wave-profile.h5"
+  "profilingData": "/examples/maxwell-wave-profile.h5",
+  "profilingDurations": "/examples/maxwell-wave-durations.json",
+  "profilingGantt": "/examples/maxwell-wave-gantt.json",
+  "profilingFlame": "/examples/maxwell-wave-flame.json",
+  "profilingRegionStats": "/examples/maxwell-wave-region-stats.json"
 }

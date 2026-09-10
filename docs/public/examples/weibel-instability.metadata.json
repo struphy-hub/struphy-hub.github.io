@@ -12,6 +12,9 @@
   "visualization": "Plotly",
   "thumbnail": "/images/examples/weibel-instability.png",
   "interactive": "/examples/weibel-instability.html",
-  "profilingReport": "/examples/weibel-instability-profile.html",
-  "profilingData": "/examples/weibel-instability-profile.h5"
+  "profilingData": "/examples/weibel-instability-profile.h5",
+  "profilingDurations": "/examples/weibel-instability-durations.json",
+  "profilingGantt": "/examples/weibel-instability-gantt.json",
+  "profilingFlame": "/examples/weibel-instability-flame.json",
+  "profilingRegionStats": "/examples/weibel-instability-region-stats.json"
 }

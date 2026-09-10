@@ -1,0 +1,1317 @@
+{
+  "format": "scope-profiler-plot-data",
+  "format_version": 1,
+  "plot": "gantt",
+  "intervals": [
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "scope_profiler.session",
+      "start_seconds": 0.0,
+      "end_seconds": 0.1939300420053769
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: total",
+      "start_seconds": 2.1584011847153306e-05,
+      "end_seconds": 0.1121044589963276
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: allocate",
+      "start_seconds": 4.050001734867692e-05,
+      "end_seconds": 0.06149483399349265
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: feec",
+      "start_seconds": 5.337499896995723e-05,
+      "end_seconds": 0.0553145419980865
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: derham",
+      "start_seconds": 9.058401337824762e-05,
+      "end_seconds": 0.054764917003922164
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: mass ops",
+      "start_seconds": 0.054788875015219674,
+      "end_seconds": 0.05489054200006649
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: basis ops",
+      "start_seconds": 0.05490283400285989,
+      "end_seconds": 0.05531237501418218
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: variables",
+      "start_seconds": 0.0553268340008799,
+      "end_seconds": 0.05656075000297278
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup var: em_fields.phi",
+      "start_seconds": 0.055654666997725144,
+      "end_seconds": 0.05571454201708548
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup var: em_fields.source",
+      "start_seconds": 0.05572370899608359,
+      "end_seconds": 0.056512209004722536
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: propagators",
+      "start_seconds": 0.056571624998468906,
+      "end_seconds": 0.060239375015953556
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup prop: TimeDependentSource",
+      "start_seconds": 0.05663974999333732,
+      "end_seconds": 0.05666504200780764
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup prop: PoissonSolve",
+      "start_seconds": 0.056675625004572794,
+      "end_seconds": 0.06023695899057202
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: helpers",
+      "start_seconds": 0.06025570901692845,
+      "end_seconds": 0.06149420898873359
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.060982625000178814,
+      "end_seconds": 0.06144566700095311
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.14224541699513793,
+      "end_seconds": 0.14277958401362412
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.14559612501761876,
+      "end_seconds": 0.14600241699372418
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.1479938339907676,
+      "end_seconds": 0.14840541701414622
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.1499669589975383,
+      "end_seconds": 0.15051987499464303
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.1519200839975383,
+      "end_seconds": 0.15263595900614746
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.15423991699935868,
+      "end_seconds": 0.15512733400100842
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.15659695901558734,
+      "end_seconds": 0.15731591699295677
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.15880162501707673,
+      "end_seconds": 0.1596949590020813
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.1611332920147106,
+      "end_seconds": 0.1620176669966895
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.1634152499900665,
+      "end_seconds": 0.16445691700209863
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.16590262501267716,
+      "end_seconds": 0.1667925420042593
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.16827429199474864,
+      "end_seconds": 0.16932870901655406
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.17070308400434442,
+      "end_seconds": 0.17141633399296552
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.17287520901300013,
+      "end_seconds": 0.1739381249935832
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.17539462499553338,
+      "end_seconds": 0.17644966699299403
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.17790687500382774,
+      "end_seconds": 0.1789452499942854
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.18026995900436305,
+      "end_seconds": 0.18148533400380984
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.18325054200249724,
+      "end_seconds": 0.18448087500291876
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.1859981669986155,
+      "end_seconds": 0.1868852500047069
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "solve: PoissonSolve",
+      "start_seconds": 0.1884003340092022,
+      "end_seconds": 0.18946954200509936
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.06145116701372899,
+      "end_seconds": 0.0614917500060983
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.14174495899351314,
+      "end_seconds": 0.14192129200091586
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.14278679201379418,
+      "end_seconds": 0.14282233398989774
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.14544270900660194,
+      "end_seconds": 0.14548716699937358
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.1460042090038769,
+      "end_seconds": 0.14603287499630824
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.14780962499207817,
+      "end_seconds": 0.14786854200065136
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.14840737500344403,
+      "end_seconds": 0.14843808399746194
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.14983441701042466,
+      "end_seconds": 0.14986991698970087
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.15052145899971947,
+      "end_seconds": 0.1505488340044394
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.15179895900655538,
+      "end_seconds": 0.15183024998987094
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.15263754199258983,
+      "end_seconds": 0.15266512500238605
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.15410062498995103,
+      "end_seconds": 0.15414033399429172
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.1551293340162374,
+      "end_seconds": 0.15515579201746732
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.15648195901303552,
+      "end_seconds": 0.15651299999444745
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.1573172920034267,
+      "end_seconds": 0.1573437089973595
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.15867466700728983,
+      "end_seconds": 0.1587089590029791
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.1596965420176275,
+      "end_seconds": 0.1597241249983199
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.16101237499970011,
+      "end_seconds": 0.16104537498904392
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.1620190000103321,
+      "end_seconds": 0.16204537500743754
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.1633015839906875,
+      "end_seconds": 0.16333216699422337
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.1644583340093959,
+      "end_seconds": 0.16448445900459774
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.16578487498918548,
+      "end_seconds": 0.16581708399462514
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.16679395901155658,
+      "end_seconds": 0.16682149999542162
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.1681500840059016,
+      "end_seconds": 0.16818174999207258
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.16933020899887197,
+      "end_seconds": 0.16935654199915007
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.17058850001194514,
+      "end_seconds": 0.1706190420081839
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.17141808400629088,
+      "end_seconds": 0.17144370899768546
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.17275420899386518,
+      "end_seconds": 0.17278629200882278
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.17393962500500493,
+      "end_seconds": 0.17396558399195783
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.1752802499977406,
+      "end_seconds": 0.17531125000095926
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.1764509589993395,
+      "end_seconds": 0.1764768339926377
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.17778983400785364,
+      "end_seconds": 0.177821249992121
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.17894650000380352,
+      "end_seconds": 0.17897162499139085
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.18015716699301265,
+      "end_seconds": 0.1801874999946449
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.18148866700357758,
+      "end_seconds": 0.18152716700569727
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.1831064590078313,
+      "end_seconds": 0.1831460419925861
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.18448254201211967,
+      "end_seconds": 0.18451125000137836
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.18587241700151935,
+      "end_seconds": 0.18590608399244957
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.18688670900883153,
+      "end_seconds": 0.18691474999650382
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.18826862500282004,
+      "end_seconds": 0.18830508401151747
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "update_feec_variables",
+      "start_seconds": 0.18947091701556928,
+      "end_seconds": 0.1894973750167992
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: run metadata",
+      "start_seconds": 0.061507000005804,
+      "end_seconds": 0.06188716701581143
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: data storage",
+      "start_seconds": 0.061896958999568596,
+      "end_seconds": 0.07605995901394635
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: geometry vtk",
+      "start_seconds": 0.07607816701056436,
+      "end_seconds": 0.10500237499945797
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: plasma params",
+      "start_seconds": 0.10504666701308452,
+      "end_seconds": 0.10568562499247491
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: initial diagnostics",
+      "start_seconds": 0.10587654201663099,
+      "end_seconds": 0.10590754199074581
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "setup: hdf5 datasets",
+      "start_seconds": 0.10591779201058671,
+      "end_seconds": 0.11209462501574308
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.141410584008554,
+      "end_seconds": 0.14282462501432747
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.14540270899306051,
+      "end_seconds": 0.14603445900138468
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.14776012499351054,
+      "end_seconds": 0.1484398749889806
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.1498085840139538,
+      "end_seconds": 0.15055033401586115
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.151777791994391,
+      "end_seconds": 0.15266650001285598
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.15406912501202896,
+      "end_seconds": 0.15515725000295788
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.15645991699420847,
+      "end_seconds": 0.15734508400782943
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.1586455840151757,
+      "end_seconds": 0.1597254590014927
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.16098641700227745,
+      "end_seconds": 0.16204670901061036
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.1632802090025507,
+      "end_seconds": 0.1644859169900883
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.16576212499057874,
+      "end_seconds": 0.16682312500779517
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.1681250419933349,
+      "end_seconds": 0.1693580420105718
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.17056608400889672,
+      "end_seconds": 0.17144504201132804
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.17272933400818147,
+      "end_seconds": 0.17396700000972487
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.17525916700833477,
+      "end_seconds": 0.1764780840021558
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.17776716701337136,
+      "end_seconds": 0.17897300000186078
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.1801348750013858,
+      "end_seconds": 0.18152954199467786
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.18307254201499745,
+      "end_seconds": 0.1845128750137519
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.1858471670129802,
+      "end_seconds": 0.18691604200284928
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "model.integrate",
+      "start_seconds": 0.18824091699207202,
+      "end_seconds": 0.18949870899086818
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.1414809999987483,
+      "end_seconds": 0.14193279200117104
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.1454070839972701,
+      "end_seconds": 0.1454891249886714
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.14776766698923893,
+      "end_seconds": 0.1478709999937564
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.14981158400769345,
+      "end_seconds": 0.14987158399890177
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.15177987501374446,
+      "end_seconds": 0.15183162500034086
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.15407283400418237,
+      "end_seconds": 0.15414216701174155
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.15646220900816843,
+      "end_seconds": 0.15651429200079292
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.15864829201018438,
+      "end_seconds": 0.15871074999449775
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.1609889589890372,
+      "end_seconds": 0.16104674999951385
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.16328245899057947,
+      "end_seconds": 0.16333345900056884
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.16576412500580773,
+      "end_seconds": 0.16581837501144037
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.16812770901015028,
+      "end_seconds": 0.1681831250025425
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.17056845899787731,
+      "end_seconds": 0.17062041698955
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.17273241700604558,
+      "end_seconds": 0.17278766699018888
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.17526129199541174,
+      "end_seconds": 0.17531245900318027
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.17776933399727568,
+      "end_seconds": 0.17782262500259094
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.1801372499903664,
+      "end_seconds": 0.18018879200099036
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.18307629201444797,
+      "end_seconds": 0.1831480420078151
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.18584995900164358,
+      "end_seconds": 0.18590762501116842
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: TimeDependentSource",
+      "start_seconds": 0.18824379201396368,
+      "end_seconds": 0.1883066250011325
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.1419516250025481,
+      "end_seconds": 0.14282375000766478
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.14549141700263135,
+      "end_seconds": 0.14603391700075008
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.14787404201342724,
+      "end_seconds": 0.1484392920101527
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.14987399999517947,
+      "end_seconds": 0.1505498749902472
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.15183329200954176,
+      "end_seconds": 0.15266600000904873
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.1541445000038948,
+      "end_seconds": 0.15515679199597798
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.15651591701316647,
+      "end_seconds": 0.15734458400402218
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.15871262500877492,
+      "end_seconds": 0.15972495899768546
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.1610485000128392,
+      "end_seconds": 0.16204616700997576
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.1633352090138942,
+      "end_seconds": 0.16448541701538488
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.1658199999947101,
+      "end_seconds": 0.1668225000030361
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.16818487501586787,
+      "end_seconds": 0.1693573340016883
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.17062195899779908,
+      "end_seconds": 0.17144458400434814
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.17278954200446606,
+      "end_seconds": 0.1739664589986205
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.1753139999927953,
+      "end_seconds": 0.17647762500564568
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.17782420900766738,
+      "end_seconds": 0.17897241699392907
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.18019054201431572,
+      "end_seconds": 0.181528791988967
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.18315033399267122,
+      "end_seconds": 0.18451233400264755
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.18590949999634176,
+      "end_seconds": 0.18691558399586938
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "prop: PoissonSolve",
+      "start_seconds": 0.18830858400906436,
+      "end_seconds": 0.18949824999435805
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.14284341700840741,
+      "end_seconds": 0.14289774998906069
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.1460404999961611,
+      "end_seconds": 0.1460578750120476
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.1484444590169005,
+      "end_seconds": 0.14846004199353047
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.1505540419893805,
+      "end_seconds": 0.15056712500518188
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.1526714590145275,
+      "end_seconds": 0.15268595900852233
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.15516145899891853,
+      "end_seconds": 0.15517741700750776
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.1573484590044245,
+      "end_seconds": 0.15736170898890123
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.1597298750129994,
+      "end_seconds": 0.15974491700762883
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.16205012501450256,
+      "end_seconds": 0.16206366699771024
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.16448929201578721,
+      "end_seconds": 0.16450258399709128
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.16682679200312123,
+      "end_seconds": 0.1668412500002887
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.1693622090097051,
+      "end_seconds": 0.16937545899418183
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.17144900001585484,
+      "end_seconds": 0.17146204199525528
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.17397062500822358,
+      "end_seconds": 0.17398420901736245
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.1764813750050962,
+      "end_seconds": 0.17649391700979322
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.17897608398925513,
+      "end_seconds": 0.17898795899236575
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.18153529200935736,
+      "end_seconds": 0.18155254199518822
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.18451687501510605,
+      "end_seconds": 0.1845305000024382
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.18691987500642426,
+      "end_seconds": 0.18693287498899736
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "diagnostics",
+      "start_seconds": 0.189502374996664,
+      "end_seconds": 0.18951537500834092
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.14291629201034084,
+      "end_seconds": 0.14534058401477523
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.14605987499817275,
+      "end_seconds": 0.14770945900818333
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.1484618750109803,
+      "end_seconds": 0.1497856670175679
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.15056875001755543,
+      "end_seconds": 0.1517582090164069
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.1526875419949647,
+      "end_seconds": 0.15404204200604
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.15517879198887385,
+      "end_seconds": 0.15644129199790768
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.15736283399746753,
+      "end_seconds": 0.15862170900800265
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.15974658401682973,
+      "end_seconds": 0.16096624999772757
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.16206500001135282,
+      "end_seconds": 0.16326200001640245
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.1645039590075612,
+      "end_seconds": 0.16574087500339374
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.16684262501075864,
+      "end_seconds": 0.1681017919909209
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.16937695900560357,
+      "end_seconds": 0.17054579200339504
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.17146320900064893,
+      "end_seconds": 0.17270845899474807
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.173985667002853,
+      "end_seconds": 0.17524145901552401
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.17649524999433197,
+      "end_seconds": 0.17774704200564884
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.17898925000918098,
+      "end_seconds": 0.18011637500603683
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.18155445900629275,
+      "end_seconds": 0.18304162501590326
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.18453212501481175,
+      "end_seconds": 0.18582383400644176
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.18693420899217017,
+      "end_seconds": 0.18821754198870622
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.1895166249887552,
+      "end_seconds": 0.19077312501030974
+    },
+    {
+      "file": "profiling_data",
+      "rank": 0,
+      "region": "save data",
+      "start_seconds": 0.19078941701445729,
+      "end_seconds": 0.19223683400196023
+    }
+  ],
+  "colors": {
+    "scope_profiler.session": "#ffbb78",
+    "setup: total": "#dbdb8d",
+    "setup: allocate": "#ff9896",
+    "setup: feec": "#8c564b",
+    "setup: derham": "#8c564b",
+    "setup: mass ops": "#7f7f7f",
+    "setup: basis ops": "#9467bd",
+    "setup: variables": "#17becf",
+    "setup var: em_fields.phi": "#d62728",
+    "setup var: em_fields.source": "#d62728",
+    "setup: propagators": "#bcbd22",
+    "setup prop: TimeDependentSource": "#98df8a",
+    "setup prop: PoissonSolve": "#2ca02c",
+    "setup: helpers": "#f7b6d2",
+    "solve: PoissonSolve": "#9edae5",
+    "update_feec_variables": "#9edae5",
+    "setup: run metadata": "#bcbd22",
+    "setup: data storage": "#c5b0d5",
+    "setup: geometry vtk": "#c49c94",
+    "setup: plasma params": "#c7c7c7",
+    "setup: initial diagnostics": "#f7b6d2",
+    "setup: hdf5 datasets": "#e377c2",
+    "model.integrate": "#1f77b4",
+    "prop: TimeDependentSource": "#ff7f0e",
+    "prop: PoissonSolve": "#aec7e8",
+    "diagnostics": "#1f77b4",
+    "save data": "#ffbb78"
+  }
+}
