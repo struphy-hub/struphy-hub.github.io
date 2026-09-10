@@ -170,7 +170,7 @@
         "display": true
       }
     ],
-    "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.push_eta.PushEta</code></li>\n    <li><code>struphy.propagators.push_vxb.PushVxB</code> (if <code>with_B0</code> is True)</li>\n    <li><code>struphy.propagators.push_vin_viscous_potential.PushVinViscousPotential</code> (if <code>with_viscosity</code> is True)</li>\n    <li><code>struphy.propagators.poisson_solve.PoissonSolve</code></li>\n    <li><code>struphy.propagators.push_vin_efield.PushVinEfield</code></li>\n</ol>",
+    "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.push_eta.PushEta</code></li>\n    <li><code>struphy.propagators.push_vxb.PushVxB</code> (if <code>with_B0</code> is True)</li>\n    <li><code>struphy.propagators.push_v_in_viscous_potential.PushVinViscousPotential</code> (if <code>with_viscosity</code> is True)</li>\n    <li><code>struphy.propagators.poisson_solve.PoissonSolve</code></li>\n    <li><code>struphy.propagators.push_v_in_force_field.PushVinForceField</code></li>\n</ol>",
     "discretizationMath": [],
     "scalarQuantitiesHtml": "<h3>The following scalars are tracked during simulation:</h3>\n\n\n<ul>\n    <li>SPH kinetic energy: <code>en_kin</code></li>\n</ul>",
     "scalarQuantitiesMath": [],
@@ -463,7 +463,7 @@
         "display": true
       }
     ],
-    "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.push_eta.PushEta</code></li>\n    <li><code>struphy.propagators.push_vin_efield.PushVinEfield</code></li>\n</ol>",
+    "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.push_eta.PushEta</code></li>\n    <li><code>struphy.propagators.push_v_in_force_field.PushVinForceField</code></li>\n</ol>",
     "discretizationMath": [],
     "scalarQuantitiesHtml": "<h3>The following scalars are tracked during simulation:</h3>\n\n\n<ul>\n    <li>SPH kinetic energy: <code>en_kin</code></li>\n</ul>",
     "scalarQuantitiesMath": [],
@@ -1179,7 +1179,7 @@
         "display": true
       }
     ],
-    "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.push_eta.PushEta</code></li>\n    <li><code>struphy.propagators.push_vxb.PushVxB</code> (if <code>with_B0</code> is True)</li>\n    <li><code>struphy.propagators.push_vin_sph_pressure.PushVinSPHpressure</code> (if <code>with_p</code> is True)</li>\n    <li><code>struphy.propagators.push_vin_viscous_potential.PushVinViscousPotential</code> (if <code>with_viscosity</code> is True)</li>\n</ol>",
+    "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.push_eta.PushEta</code></li>\n    <li><code>struphy.propagators.push_vxb.PushVxB</code> (if <code>with_B0</code> is True)</li>\n    <li><code>struphy.propagators.push_v_in_sph_pressure.PushVinSPHpressure</code> (if <code>with_p</code> is True)</li>\n    <li><code>struphy.propagators.push_v_in_viscous_potential.PushVinViscousPotential</code> (if <code>with_viscosity</code> is True)</li>\n</ol>",
     "discretizationMath": [],
     "scalarQuantitiesHtml": "<h3>The following scalars are tracked during simulation:</h3>\n\n\n<ul>\n    <li>SPH kinetic energy: <code>en_kin</code></li>\n</ul>",
     "scalarQuantitiesMath": [],
@@ -1468,7 +1468,7 @@
         "display": false
       }
     ],
-    "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.push_eta.PushEta</code></li>\n    <li><code>struphy.propagators.push_vin_efield.PushVinEfield</code> (if <code>with_E0</code> is True)</li>\n    <li><code>struphy.propagators.efield_weights_coupling.EfieldWeightsCoupling</code></li>\n    <li><code>struphy.propagators.push_vxb.PushVxB</code> (if <code>with_B0</code> is True)</li>\n</ol>",
+    "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.push_eta.PushEta</code></li>\n    <li><code>struphy.propagators.push_v_in_force_field.PushVinForceField</code> (if <code>with_E0</code> is True)</li>\n    <li><code>struphy.propagators.efield_weights_coupling.EfieldWeightsCoupling</code></li>\n    <li><code>struphy.propagators.push_vxb.PushVxB</code> (if <code>with_B0</code> is True)</li>\n</ol>",
     "discretizationMath": [],
     "scalarQuantitiesHtml": "<h3>The following scalars are tracked during simulation:</h3>\n\n\n<ul>\n    <li>Electric field energy: <code>en_E</code></li>\n    <li>Perturbation particle energy: <code>en_w</code></li>\n    <li>Total energy: <code>en_tot</code></li>\n</ul>",
     "scalarQuantitiesMath": [],
@@ -1576,7 +1576,7 @@
       },
       {
         "token": "@@MATH2@@",
-        "latex": "\\begin{aligned} \\int_{\\Omega} \\nabla \\psi^{\\top} \\cdot \\nabla \\phi \\, \\mathrm{d} \\mathbf{x} &= \\frac{\\alpha^2}{\\varepsilon} \\int_{\\Omega} \\int_{\\mathbb{R}^3} \\psi \\, (f - f_0) \\, \\mathrm{d}^3 \\mathbf{v} \\, \\mathrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1 \\\\[2mm] \\mathbf{E}(t=0) &= -\\nabla \\phi(t=0) \\end{aligned}",
+        "latex": "\\int_{\\Omega} \\nabla \\psi^{\\top} \\cdot \\nabla \\phi \\, \\mathrm{d} \\mathbf{x} = \\frac{\\alpha^2}{\\varepsilon} \\int_{\\Omega} \\int_{\\mathbb{R}^3} \\psi \\, (f - f_0) \\, \\mathrm{d}^3 \\mathbf{v} \\, \\mathrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1 \\\\[2mm] \\mathbf{E}(t=0) = -\\nabla \\phi(t=0)",
         "display": true
       },
       {
@@ -1815,7 +1815,7 @@
         "display": false
       }
     ],
-    "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.push_eta.PushEta</code></li>\n    <li><code>struphy.propagators.push_vin_efield.PushVinEfield</code> (if <code>with_E0</code> is True)</li>\n    <li><code>struphy.propagators.efield_weights_coupling.EfieldWeightsCoupling</code></li>\n    <li><code>struphy.propagators.push_vxb.PushVxB</code> (if <code>with_B0</code> is True)</li>\n    <li><code>struphy.propagators.maxwell_weak_ampere.MaxwellWeakAmpere</code></li>\n</ol>",
+    "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.push_eta.PushEta</code></li>\n    <li><code>struphy.propagators.push_v_in_force_field.PushVinForceField</code> (if <code>with_E0</code> is True)</li>\n    <li><code>struphy.propagators.efield_weights_coupling.EfieldWeightsCoupling</code></li>\n    <li><code>struphy.propagators.push_vxb.PushVxB</code> (if <code>with_B0</code> is True)</li>\n    <li><code>struphy.propagators.maxwell_weak_ampere.MaxwellWeakAmpere</code></li>\n</ol>",
     "discretizationMath": [],
     "scalarQuantitiesHtml": "<h3>The following scalars are tracked during simulation:</h3>\n\n\n<ul>\n    <li>Electric field energy: <code>en_E</code></li>\n    <li>Magnetic field energy: <code>en_B</code></li>\n    <li>Perturbation particle energy: <code>en_w</code></li>\n    <li>Total energy: <code>en_tot</code></li>\n</ul>",
     "scalarQuantitiesMath": [],

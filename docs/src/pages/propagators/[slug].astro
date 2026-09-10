@@ -1,0 +1,183 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
+import rawPropagators from '../../data/propagators.json';
+import { toSlug } from '../../lib/catalogue';
+
+function renderMath(html = '', items: any[] = []) {
+  return items.reduce((result: string, { token, latex, display }: any) => {
+    let rendered;
+    try {
+      rendered = katex.renderToString(latex, { displayMode: display, throwOnError: false, strict: false, output: 'html' });
+    } catch {
+      rendered = `<code>${latex}</code>`;
+    }
+    return result.split(token).join(display ? `<div class="math-display">${rendered}</div>` : rendered);
+  }, html);
+}
+
+export function getStaticPaths() {
+  return (rawPropagators as any[]).map((propagator) => ({
+    params: { slug: toSlug(propagator.className) },
+    props: { propagator },
+  }));
+}
+
+const { propagator } = Astro.props;
+const equationsHtml = renderMath(propagator.descriptionHtml, propagator.descriptionMath);
+const options = (propagator.options as any[]).map((option) => ({
+  ...option,
+  descriptionHtml: renderMath(option.descriptionHtml, option.descriptionMath),
+}));
+const typeOrder = ['Fluid', 'Kinetic', 'Hybrid', 'Toy'];
+const usedBy = [...(propagator.usedBy as any[])].sort(
+  (a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type) || a.model.localeCompare(b.model),
+);
+const description = `${propagator.summary} Used by ${usedBy.length} Struphy model${usedBy.length === 1 ? '' : 's'}.`;
+---
+
+<Layout title={`${propagator.className} propagator — Struphy`} description={description}>
+  <main>
+    <header class="intro">
+      <p class="eyebrow">{propagator.category} propagator</p>
+      <h1>{propagator.className}</h1>
+      <p>{propagator.summary}</p>
+      <div class="actions">
+        <a href="/propagators/">← All propagators</a>
+        <a href={propagator.docsUrl}>Reference documentation ↗</a>
+      </div>
+    </header>
+
+    <section class="section prose" aria-labelledby="equations-title">
+      <h2 id="equations-title">What it solves</h2>
+      <div set:html={equationsHtml}></div>
+    </section>
+
+    <section class="section" aria-labelledby="variables-title">
+      <h2 id="variables-title">Variables it advances</h2>
+      {propagator.variables.length === 0 ? (
+        <p class="note">
+          This propagator still inherits the abstract variable template from <code>Propagator</code> and does not
+          declare its own variables.
+        </p>
+      ) : (
+        <>
+          <p class="lead">The variables this step updates over a time step <code>dt</code>, and the discrete spaces each one accepts.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Kind</th><th>Accepted spaces</th></tr></thead>
+              <tbody>
+                {propagator.variables.map((variable: any) => (
+                  <tr>
+                    <td><code class="accent">{variable.name}</code></td>
+                    <td>{variable.kinds.join(' or ') || '—'}</td>
+                    <td>
+                      {variable.spaces.length
+                        ? variable.spaces.map((space: string) => <code class="chip">{space}</code>)
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </section>
+
+    <section class="section" aria-labelledby="options-title">
+      <h2 id="options-title">Options</h2>
+      {options.length === 0 ? (
+        <p class="note">This propagator takes no configuration options.</p>
+      ) : (
+        <>
+          <p class="lead">
+            Set these on the propagator in a parameter file, for example{' '}
+            <code>{`${propagator.className}.Options(${options[0].name}=...)`}</code>.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Option</th><th>Default</th><th>Choices</th><th>Description</th></tr></thead>
+              <tbody>
+                {options.map((option) => (
+                  <tr>
+                    <td><code class="accent">{option.name}</code></td>
+                    <td>{option.default === null ? '—' : <code>{option.default}</code>}</td>
+                    <td>
+                      {option.choices.length
+                        ? option.choices.map((choice: string) => <code class="chip">{choice}</code>)
+                        : <span class="muted">{option.type}</span>}
+                    </td>
+                    <td set:html={option.descriptionHtml || '<span class="muted">—</span>'}></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </section>
+
+    <section class="section" aria-labelledby="used-by-title">
+      <h2 id="used-by-title">Used by</h2>
+      {usedBy.length === 0 ? (
+        <p class="note">
+          No model in the catalogue currently composes this propagator — it is available for building new models.
+        </p>
+      ) : (
+        <>
+          <p class="lead">
+            Each model splits its time step into a sequence of propagators. This one appears in
+            {` ${usedBy.length} `}
+            model{usedBy.length === 1 ? '' : 's'}, at the position shown.
+          </p>
+          <ul class="model-list">
+            {usedBy.map((entry) => (
+              <li>
+                <a href={`/models/${toSlug(entry.model)}/`}>
+                  <code class="accent">{entry.model}</code>
+                  <span class="model-type">{entry.type}</span>
+                  <span class="step">step {entry.index + 1} of {entry.steps} · <code>{entry.step}</code></span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .intro{max-width:850px;padding-block:clamp(50px,7vw,82px)}
+  .eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  h1{margin:0 0 16px;font-size:clamp(2rem,5vw,3.7rem);line-height:1.08;overflow-wrap:anywhere}
+  .intro>p:not(.eyebrow){color:var(--muted);font-size:1.08rem}
+  .actions{display:flex;flex-wrap:wrap;gap:22px;margin-top:22px}
+  .actions a{color:var(--cyan)}
+  .section{padding-block:40px 56px;border-top:1px solid var(--rule)}
+  h2{margin:0 0 18px}
+  .lead,.note{max-width:760px;color:var(--muted)}
+  .prose{max-width:900px}
+  .prose :global(p),.prose :global(li){color:var(--muted)}
+  .prose :global(pre){max-width:100%;padding:18px;overflow:auto;border:1px solid var(--rule);background:var(--code-bg)}
+  .prose :global(.math-display){max-width:100%;overflow:auto}
+  .table-wrap{max-width:100%;overflow-x:auto;border:1px solid var(--rule)}
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th,td{padding:11px 14px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+  th{color:var(--muted);font:600 .74rem var(--mono);letter-spacing:.07em;text-transform:uppercase}
+  tbody tr:last-child td{border-bottom:0}
+  td{color:var(--muted)}
+  td :global(code){color:var(--paper)}
+  .accent{color:var(--cyan)!important}
+  .chip{display:inline-block;margin:0 5px 4px 0;padding:2px 7px;border:1px solid var(--rule);font-size:.78rem}
+  .muted{color:var(--muted)}
+  .model-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;max-width:900px;margin:0;padding:0;list-style:none}
+  .model-list a{display:block;padding:14px 16px;border:1px solid var(--rule);color:var(--paper);text-decoration:none}
+  .model-list a:hover{border-color:var(--cyan);background:var(--accent-wash)}
+  .model-list code{display:block;font-size:.9rem;overflow-wrap:anywhere}
+  .model-type{display:inline-block;margin-top:5px;color:var(--muted);font:600 .7rem var(--mono);letter-spacing:.07em;text-transform:uppercase}
+  .step{display:block;margin-top:4px;color:var(--muted);font-size:.78rem}
+  @media(max-width:560px){th,td{padding:9px 10px}}
+</style>
