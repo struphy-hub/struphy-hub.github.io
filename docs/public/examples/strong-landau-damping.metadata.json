@@ -1,5 +1,5 @@
 {
-  "bouncePeriod": 1.4958333333332956,
+  "bouncePeriod": 1.2474137931034166,
   "name": "Strong Landau damping",
   "description": "A large-amplitude perturbation drives a Vlasov-Ampère plasma into the nonlinear regime — particles trap in the field's potential wells, and the field energy bounces instead of decaying smoothly.",
   "model": "VlasovAmpereOneSpecies",
@@ -11,6 +11,9 @@
   "visualization": "Plotly",
   "thumbnail": "/images/examples/strong-landau-damping.png",
   "interactive": "/examples/strong-landau-damping.html",
-  "profilingReport": "/examples/strong-landau-damping-profile.html",
-  "profilingData": "/examples/strong-landau-damping-profile.h5"
+  "profilingData": "/examples/strong-landau-damping-profile.h5",
+  "profilingDurations": "/examples/strong-landau-damping-durations.json",
+  "profilingGantt": "/examples/strong-landau-damping-gantt.json",
+  "profilingFlame": "/examples/strong-landau-damping-flame.json",
+  "profilingRegionStats": "/examples/strong-landau-damping-region-stats.json"
 }

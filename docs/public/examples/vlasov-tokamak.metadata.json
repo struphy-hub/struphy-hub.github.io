@@ -13,6 +13,9 @@
   "trackedParticles": 5,
   "thumbnail": "/images/examples/vlasov-tokamak.png",
   "interactive": "/examples/vlasov-tokamak.html",
-  "profilingReport": "/examples/vlasov-tokamak-profile.html",
-  "profilingData": "/examples/vlasov-tokamak-profile.h5"
+  "profilingData": "/examples/vlasov-tokamak-profile.h5",
+  "profilingDurations": "/examples/vlasov-tokamak-durations.json",
+  "profilingGantt": "/examples/vlasov-tokamak-gantt.json",
+  "profilingFlame": "/examples/vlasov-tokamak-flame.json",
+  "profilingRegionStats": "/examples/vlasov-tokamak-region-stats.json"
 }

@@ -1,0 +1,993 @@
+{
+  "format": "scope-profiler-plot-data",
+  "format_version": 1,
+  "plot": "region_statistics",
+  "units": {
+    "durations": "seconds"
+  },
+  "filters": {
+    "include": null,
+    "exclude": null,
+    "ranks": [
+      0
+    ]
+  },
+  "common_regions": [
+    "scope_profiler.session",
+    "setup: total",
+    "setup: allocate",
+    "setup: feec",
+    "setup: derham",
+    "setup: mass ops",
+    "setup: basis ops",
+    "setup: variables",
+    "setup var: em_fields.e_field",
+    "setup var: em_fields.phi",
+    "setup var: kinetic_ions.var",
+    "do_sort",
+    "put_particles_in_boxes",
+    "setup: propagators",
+    "setup prop: PushEta",
+    "setup prop: VlasovAmpereCoupling",
+    "setup: helpers",
+    "accum: charge_density_0form",
+    "kernel: charge_density_0form",
+    "accum comm: charge_density_0form",
+    "solve: PoissonSolve",
+    "update_feec_variables",
+    "setup: run metadata",
+    "setup: data storage",
+    "setup: geometry vtk",
+    "setup: plasma params",
+    "setup: initial diagnostics",
+    "setup: hdf5 datasets",
+    "model.integrate",
+    "prop: PushEta",
+    "pusher: push_eta_stage",
+    "kernel: push_eta_stage",
+    "apply_kinetic_bc",
+    "prop: VlasovAmpereCoupling",
+    "accum: vlasov_maxwell",
+    "kernel: vlasov_maxwell",
+    "accum comm: vlasov_maxwell",
+    "solve: SchurSolver",
+    "pusher: push_v_with_efield",
+    "kernel: push_v_with_efield",
+    "diagnostics",
+    "save data"
+  ],
+  "files": [
+    {
+      "label": "profiling_data",
+      "file_path": "/Users/max/git_repos/struphy-hub.github.io/docs/public/examples/struphy_gallery_runs/bump_on_tail/profiling_data.h5",
+      "num_ranks": 1,
+      "total_time_seconds": 55.96773691699491,
+      "region_statistics": {
+        "scope_profiler.session": {
+          "count": 1,
+          "average_duration_seconds": 55.958470708,
+          "min_duration_seconds": 55.958470708,
+          "max_duration_seconds": 55.958470708,
+          "first_duration_seconds": 55.958470708,
+          "last_duration_seconds": 55.958470708,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 55.958470708,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 55.958470708,
+              "min_duration_seconds": 55.958470708,
+              "max_duration_seconds": 55.958470708,
+              "first_duration_seconds": 55.958470708,
+              "last_duration_seconds": 55.958470708,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 55.958470708
+            }
+          }
+        },
+        "setup: total": {
+          "count": 1,
+          "average_duration_seconds": 0.187957375,
+          "min_duration_seconds": 0.187957375,
+          "max_duration_seconds": 0.187957375,
+          "first_duration_seconds": 0.187957375,
+          "last_duration_seconds": 0.187957375,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.187957375,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.187957375,
+              "min_duration_seconds": 0.187957375,
+              "max_duration_seconds": 0.187957375,
+              "first_duration_seconds": 0.187957375,
+              "last_duration_seconds": 0.187957375,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.187957375
+            }
+          }
+        },
+        "setup: allocate": {
+          "count": 1,
+          "average_duration_seconds": 0.130302166,
+          "min_duration_seconds": 0.130302166,
+          "max_duration_seconds": 0.130302166,
+          "first_duration_seconds": 0.130302166,
+          "last_duration_seconds": 0.130302166,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.130302166,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.130302166,
+              "min_duration_seconds": 0.130302166,
+              "max_duration_seconds": 0.130302166,
+              "first_duration_seconds": 0.130302166,
+              "last_duration_seconds": 0.130302166,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.130302166
+            }
+          }
+        },
+        "setup: feec": {
+          "count": 1,
+          "average_duration_seconds": 0.045704917,
+          "min_duration_seconds": 0.045704917,
+          "max_duration_seconds": 0.045704917,
+          "first_duration_seconds": 0.045704917,
+          "last_duration_seconds": 0.045704917,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.045704917,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.045704917,
+              "min_duration_seconds": 0.045704917,
+              "max_duration_seconds": 0.045704917,
+              "first_duration_seconds": 0.045704917,
+              "last_duration_seconds": 0.045704917,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.045704917
+            }
+          }
+        },
+        "setup: derham": {
+          "count": 1,
+          "average_duration_seconds": 0.045532875,
+          "min_duration_seconds": 0.045532875,
+          "max_duration_seconds": 0.045532875,
+          "first_duration_seconds": 0.045532875,
+          "last_duration_seconds": 0.045532875,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.045532875,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.045532875,
+              "min_duration_seconds": 0.045532875,
+              "max_duration_seconds": 0.045532875,
+              "first_duration_seconds": 0.045532875,
+              "last_duration_seconds": 0.045532875,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.045532875
+            }
+          }
+        },
+        "setup: mass ops": {
+          "count": 1,
+          "average_duration_seconds": 9.2958e-05,
+          "min_duration_seconds": 9.2958e-05,
+          "max_duration_seconds": 9.2958e-05,
+          "first_duration_seconds": 9.2958e-05,
+          "last_duration_seconds": 9.2958e-05,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 9.2958e-05,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 9.2958e-05,
+              "min_duration_seconds": 9.2958e-05,
+              "max_duration_seconds": 9.2958e-05,
+              "first_duration_seconds": 9.2958e-05,
+              "last_duration_seconds": 9.2958e-05,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 9.2958e-05
+            }
+          }
+        },
+        "setup: basis ops": {
+          "count": 1,
+          "average_duration_seconds": 7.792e-06,
+          "min_duration_seconds": 7.792e-06,
+          "max_duration_seconds": 7.792e-06,
+          "first_duration_seconds": 7.792e-06,
+          "last_duration_seconds": 7.792e-06,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 7.792e-06,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 7.792e-06,
+              "min_duration_seconds": 7.792e-06,
+              "max_duration_seconds": 7.792e-06,
+              "first_duration_seconds": 7.792e-06,
+              "last_duration_seconds": 7.792e-06,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 7.792e-06
+            }
+          }
+        },
+        "setup: variables": {
+          "count": 1,
+          "average_duration_seconds": 0.03835075,
+          "min_duration_seconds": 0.03835075,
+          "max_duration_seconds": 0.03835075,
+          "first_duration_seconds": 0.03835075,
+          "last_duration_seconds": 0.03835075,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.03835075,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.03835075,
+              "min_duration_seconds": 0.03835075,
+              "max_duration_seconds": 0.03835075,
+              "first_duration_seconds": 0.03835075,
+              "last_duration_seconds": 0.03835075,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.03835075
+            }
+          }
+        },
+        "setup var: em_fields.e_field": {
+          "count": 1,
+          "average_duration_seconds": 7.7541e-05,
+          "min_duration_seconds": 7.7541e-05,
+          "max_duration_seconds": 7.7541e-05,
+          "first_duration_seconds": 7.7541e-05,
+          "last_duration_seconds": 7.7541e-05,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 7.7541e-05,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 7.7541e-05,
+              "min_duration_seconds": 7.7541e-05,
+              "max_duration_seconds": 7.7541e-05,
+              "first_duration_seconds": 7.7541e-05,
+              "last_duration_seconds": 7.7541e-05,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 7.7541e-05
+            }
+          }
+        },
+        "setup var: em_fields.phi": {
+          "count": 1,
+          "average_duration_seconds": 2.3083e-05,
+          "min_duration_seconds": 2.3083e-05,
+          "max_duration_seconds": 2.3083e-05,
+          "first_duration_seconds": 2.3083e-05,
+          "last_duration_seconds": 2.3083e-05,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 2.3083e-05,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 2.3083e-05,
+              "min_duration_seconds": 2.3083e-05,
+              "max_duration_seconds": 2.3083e-05,
+              "first_duration_seconds": 2.3083e-05,
+              "last_duration_seconds": 2.3083e-05,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 2.3083e-05
+            }
+          }
+        },
+        "setup var: kinetic_ions.var": {
+          "count": 1,
+          "average_duration_seconds": 0.037973834,
+          "min_duration_seconds": 0.037973834,
+          "max_duration_seconds": 0.037973834,
+          "first_duration_seconds": 0.037973834,
+          "last_duration_seconds": 0.037973834,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.037973834,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.037973834,
+              "min_duration_seconds": 0.037973834,
+              "max_duration_seconds": 0.037973834,
+              "first_duration_seconds": 0.037973834,
+              "last_duration_seconds": 0.037973834,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.037973834
+            }
+          }
+        },
+        "do_sort": {
+          "count": 1,
+          "average_duration_seconds": 0.004175917,
+          "min_duration_seconds": 0.004175917,
+          "max_duration_seconds": 0.004175917,
+          "first_duration_seconds": 0.004175917,
+          "last_duration_seconds": 0.004175917,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.004175917,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.004175917,
+              "min_duration_seconds": 0.004175917,
+              "max_duration_seconds": 0.004175917,
+              "first_duration_seconds": 0.004175917,
+              "last_duration_seconds": 0.004175917,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.004175917
+            }
+          }
+        },
+        "put_particles_in_boxes": {
+          "count": 1,
+          "average_duration_seconds": 0.003192125,
+          "min_duration_seconds": 0.003192125,
+          "max_duration_seconds": 0.003192125,
+          "first_duration_seconds": 0.003192125,
+          "last_duration_seconds": 0.003192125,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.003192125,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.003192125,
+              "min_duration_seconds": 0.003192125,
+              "max_duration_seconds": 0.003192125,
+              "first_duration_seconds": 0.003192125,
+              "last_duration_seconds": 0.003192125,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.003192125
+            }
+          }
+        },
+        "setup: propagators": {
+          "count": 1,
+          "average_duration_seconds": 0.018987084,
+          "min_duration_seconds": 0.018987084,
+          "max_duration_seconds": 0.018987084,
+          "first_duration_seconds": 0.018987084,
+          "last_duration_seconds": 0.018987084,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.018987084,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.018987084,
+              "min_duration_seconds": 0.018987084,
+              "max_duration_seconds": 0.018987084,
+              "first_duration_seconds": 0.018987084,
+              "last_duration_seconds": 0.018987084,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.018987084
+            }
+          }
+        },
+        "setup prop: PushEta": {
+          "count": 1,
+          "average_duration_seconds": 0.00011025,
+          "min_duration_seconds": 0.00011025,
+          "max_duration_seconds": 0.00011025,
+          "first_duration_seconds": 0.00011025,
+          "last_duration_seconds": 0.00011025,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.00011025,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.00011025,
+              "min_duration_seconds": 0.00011025,
+              "max_duration_seconds": 0.00011025,
+              "first_duration_seconds": 0.00011025,
+              "last_duration_seconds": 0.00011025,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.00011025
+            }
+          }
+        },
+        "setup prop: VlasovAmpereCoupling": {
+          "count": 1,
+          "average_duration_seconds": 0.018795584,
+          "min_duration_seconds": 0.018795584,
+          "max_duration_seconds": 0.018795584,
+          "first_duration_seconds": 0.018795584,
+          "last_duration_seconds": 0.018795584,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.018795584,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.018795584,
+              "min_duration_seconds": 0.018795584,
+              "max_duration_seconds": 0.018795584,
+              "first_duration_seconds": 0.018795584,
+              "last_duration_seconds": 0.018795584,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.018795584
+            }
+          }
+        },
+        "setup: helpers": {
+          "count": 1,
+          "average_duration_seconds": 0.027199167,
+          "min_duration_seconds": 0.027199167,
+          "max_duration_seconds": 0.027199167,
+          "first_duration_seconds": 0.027199167,
+          "last_duration_seconds": 0.027199167,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.027199167,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.027199167,
+              "min_duration_seconds": 0.027199167,
+              "max_duration_seconds": 0.027199167,
+              "first_duration_seconds": 0.027199167,
+              "last_duration_seconds": 0.027199167,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.027199167
+            }
+          }
+        },
+        "accum: charge_density_0form": {
+          "count": 1,
+          "average_duration_seconds": 0.008051875,
+          "min_duration_seconds": 0.008051875,
+          "max_duration_seconds": 0.008051875,
+          "first_duration_seconds": 0.008051875,
+          "last_duration_seconds": 0.008051875,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.008051875,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.008051875,
+              "min_duration_seconds": 0.008051875,
+              "max_duration_seconds": 0.008051875,
+              "first_duration_seconds": 0.008051875,
+              "last_duration_seconds": 0.008051875,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.008051875
+            }
+          }
+        },
+        "kernel: charge_density_0form": {
+          "count": 1,
+          "average_duration_seconds": 0.007922875,
+          "min_duration_seconds": 0.007922875,
+          "max_duration_seconds": 0.007922875,
+          "first_duration_seconds": 0.007922875,
+          "last_duration_seconds": 0.007922875,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.007922875,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.007922875,
+              "min_duration_seconds": 0.007922875,
+              "max_duration_seconds": 0.007922875,
+              "first_duration_seconds": 0.007922875,
+              "last_duration_seconds": 0.007922875,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.007922875
+            }
+          }
+        },
+        "accum comm: charge_density_0form": {
+          "count": 1,
+          "average_duration_seconds": 7.0458e-05,
+          "min_duration_seconds": 7.0458e-05,
+          "max_duration_seconds": 7.0458e-05,
+          "first_duration_seconds": 7.0458e-05,
+          "last_duration_seconds": 7.0458e-05,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 7.0458e-05,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 7.0458e-05,
+              "min_duration_seconds": 7.0458e-05,
+              "max_duration_seconds": 7.0458e-05,
+              "first_duration_seconds": 7.0458e-05,
+              "last_duration_seconds": 7.0458e-05,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 7.0458e-05
+            }
+          }
+        },
+        "solve: PoissonSolve": {
+          "count": 1,
+          "average_duration_seconds": 0.004438542,
+          "min_duration_seconds": 0.004438542,
+          "max_duration_seconds": 0.004438542,
+          "first_duration_seconds": 0.004438542,
+          "last_duration_seconds": 0.004438542,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.004438542,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.004438542,
+              "min_duration_seconds": 0.004438542,
+              "max_duration_seconds": 0.004438542,
+              "first_duration_seconds": 0.004438542,
+              "last_duration_seconds": 0.004438542,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.004438542
+            }
+          }
+        },
+        "update_feec_variables": {
+          "count": 601,
+          "average_duration_seconds": 8.895364891846923e-05,
+          "min_duration_seconds": 4.15e-05,
+          "max_duration_seconds": 0.000203792,
+          "first_duration_seconds": 4.15e-05,
+          "last_duration_seconds": 8.6667e-05,
+          "std_duration_seconds": 1.2040674354592746e-05,
+          "total_duration_seconds": 0.053461143,
+          "per_rank": {
+            "0": {
+              "count": 601,
+              "average_duration_seconds": 8.895364891846923e-05,
+              "min_duration_seconds": 4.15e-05,
+              "max_duration_seconds": 0.000203792,
+              "first_duration_seconds": 4.15e-05,
+              "last_duration_seconds": 8.6667e-05,
+              "std_duration_seconds": 1.2040674354592746e-05,
+              "total_duration_seconds": 0.053461143
+            }
+          }
+        },
+        "setup: run metadata": {
+          "count": 1,
+          "average_duration_seconds": 0.000428125,
+          "min_duration_seconds": 0.000428125,
+          "max_duration_seconds": 0.000428125,
+          "first_duration_seconds": 0.000428125,
+          "last_duration_seconds": 0.000428125,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.000428125,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.000428125,
+              "min_duration_seconds": 0.000428125,
+              "max_duration_seconds": 0.000428125,
+              "first_duration_seconds": 0.000428125,
+              "last_duration_seconds": 0.000428125,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.000428125
+            }
+          }
+        },
+        "setup: data storage": {
+          "count": 1,
+          "average_duration_seconds": 0.010446167,
+          "min_duration_seconds": 0.010446167,
+          "max_duration_seconds": 0.010446167,
+          "first_duration_seconds": 0.010446167,
+          "last_duration_seconds": 0.010446167,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.010446167,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.010446167,
+              "min_duration_seconds": 0.010446167,
+              "max_duration_seconds": 0.010446167,
+              "first_duration_seconds": 0.010446167,
+              "last_duration_seconds": 0.010446167,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.010446167
+            }
+          }
+        },
+        "setup: geometry vtk": {
+          "count": 1,
+          "average_duration_seconds": 0.018360083,
+          "min_duration_seconds": 0.018360083,
+          "max_duration_seconds": 0.018360083,
+          "first_duration_seconds": 0.018360083,
+          "last_duration_seconds": 0.018360083,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.018360083,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.018360083,
+              "min_duration_seconds": 0.018360083,
+              "max_duration_seconds": 0.018360083,
+              "first_duration_seconds": 0.018360083,
+              "last_duration_seconds": 0.018360083,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.018360083
+            }
+          }
+        },
+        "setup: plasma params": {
+          "count": 1,
+          "average_duration_seconds": 0.000426125,
+          "min_duration_seconds": 0.000426125,
+          "max_duration_seconds": 0.000426125,
+          "first_duration_seconds": 0.000426125,
+          "last_duration_seconds": 0.000426125,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.000426125,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.000426125,
+              "min_duration_seconds": 0.000426125,
+              "max_duration_seconds": 0.000426125,
+              "first_duration_seconds": 0.000426125,
+              "last_duration_seconds": 0.000426125,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.000426125
+            }
+          }
+        },
+        "setup: initial diagnostics": {
+          "count": 1,
+          "average_duration_seconds": 0.001730709,
+          "min_duration_seconds": 0.001730709,
+          "max_duration_seconds": 0.001730709,
+          "first_duration_seconds": 0.001730709,
+          "last_duration_seconds": 0.001730709,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.001730709,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.001730709,
+              "min_duration_seconds": 0.001730709,
+              "max_duration_seconds": 0.001730709,
+              "first_duration_seconds": 0.001730709,
+              "last_duration_seconds": 0.001730709,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.001730709
+            }
+          }
+        },
+        "setup: hdf5 datasets": {
+          "count": 1,
+          "average_duration_seconds": 0.025567917,
+          "min_duration_seconds": 0.025567917,
+          "max_duration_seconds": 0.025567917,
+          "first_duration_seconds": 0.025567917,
+          "last_duration_seconds": 0.025567917,
+          "std_duration_seconds": 0.0,
+          "total_duration_seconds": 0.025567917,
+          "per_rank": {
+            "0": {
+              "count": 1,
+              "average_duration_seconds": 0.025567917,
+              "min_duration_seconds": 0.025567917,
+              "max_duration_seconds": 0.025567917,
+              "first_duration_seconds": 0.025567917,
+              "last_duration_seconds": 0.025567917,
+              "std_duration_seconds": 0.0,
+              "total_duration_seconds": 0.025567917
+            }
+          }
+        },
+        "model.integrate": {
+          "count": 600,
+          "average_duration_seconds": 0.08947073792166667,
+          "min_duration_seconds": 0.082367791,
+          "max_duration_seconds": 0.161714333,
+          "first_duration_seconds": 0.088608,
+          "last_duration_seconds": 0.085439709,
+          "std_duration_seconds": 0.007084557818397642,
+          "total_duration_seconds": 53.682442753000004,
+          "per_rank": {
+            "0": {
+              "count": 600,
+              "average_duration_seconds": 0.08947073792166667,
+              "min_duration_seconds": 0.082367791,
+              "max_duration_seconds": 0.161714333,
+              "first_duration_seconds": 0.088608,
+              "last_duration_seconds": 0.085439709,
+              "std_duration_seconds": 0.007084557818397642,
+              "total_duration_seconds": 53.682442753000004
+            }
+          }
+        },
+        "prop: PushEta": {
+          "count": 600,
+          "average_duration_seconds": 0.018614888868333335,
+          "min_duration_seconds": 0.017206167,
+          "max_duration_seconds": 0.06214775,
+          "first_duration_seconds": 0.021899875,
+          "last_duration_seconds": 0.017693375,
+          "std_duration_seconds": 0.0029754022249707944,
+          "total_duration_seconds": 11.168933321,
+          "per_rank": {
+            "0": {
+              "count": 600,
+              "average_duration_seconds": 0.018614888868333335,
+              "min_duration_seconds": 0.017206167,
+              "max_duration_seconds": 0.06214775,
+              "first_duration_seconds": 0.021899875,
+              "last_duration_seconds": 0.017693375,
+              "std_duration_seconds": 0.0029754022249707944,
+              "total_duration_seconds": 11.168933321
+            }
+          }
+        },
+        "pusher: push_eta_stage": {
+          "count": 600,
+          "average_duration_seconds": 0.013084728064999999,
+          "min_duration_seconds": 0.012050459,
+          "max_duration_seconds": 0.046562334,
+          "first_duration_seconds": 0.014504958,
+          "last_duration_seconds": 0.012480083,
+          "std_duration_seconds": 0.0023182418054773844,
+          "total_duration_seconds": 7.850836838999999,
+          "per_rank": {
+            "0": {
+              "count": 600,
+              "average_duration_seconds": 0.013084728064999999,
+              "min_duration_seconds": 0.012050459,
+              "max_duration_seconds": 0.046562334,
+              "first_duration_seconds": 0.014504958,
+              "last_duration_seconds": 0.012480083,
+              "std_duration_seconds": 0.0023182418054773844,
+              "total_duration_seconds": 7.850836838999999
+            }
+          }
+        },
+        "kernel: push_eta_stage": {
+          "count": 2400,
+          "average_duration_seconds": 0.00123346261875,
+          "min_duration_seconds": 0.001113875,
+          "max_duration_seconds": 0.004186875,
+          "first_duration_seconds": 0.001861,
+          "last_duration_seconds": 0.001175166,
+          "std_duration_seconds": 0.00014829127197598052,
+          "total_duration_seconds": 2.9603102850000003,
+          "per_rank": {
+            "0": {
+              "count": 2400,
+              "average_duration_seconds": 0.00123346261875,
+              "min_duration_seconds": 0.001113875,
+              "max_duration_seconds": 0.004186875,
+              "first_duration_seconds": 0.001861,
+              "last_duration_seconds": 0.001175166,
+              "std_duration_seconds": 0.00014829127197598052,
+              "total_duration_seconds": 2.9603102850000003
+            }
+          }
+        },
+        "apply_kinetic_bc": {
+          "count": 5400,
+          "average_duration_seconds": 0.0008009526027777777,
+          "min_duration_seconds": 0.00050775,
+          "max_duration_seconds": 0.011956792,
+          "first_duration_seconds": 0.001285667,
+          "last_duration_seconds": 0.000547375,
+          "std_duration_seconds": 0.0003722442341579495,
+          "total_duration_seconds": 4.325144055,
+          "per_rank": {
+            "0": {
+              "count": 5400,
+              "average_duration_seconds": 0.0008009526027777777,
+              "min_duration_seconds": 0.00050775,
+              "max_duration_seconds": 0.011956792,
+              "first_duration_seconds": 0.001285667,
+              "last_duration_seconds": 0.000547375,
+              "std_duration_seconds": 0.0003722442341579495,
+              "total_duration_seconds": 4.325144055
+            }
+          }
+        },
+        "prop: VlasovAmpereCoupling": {
+          "count": 600,
+          "average_duration_seconds": 0.07084256632666666,
+          "min_duration_seconds": 0.064795333,
+          "max_duration_seconds": 0.108887167,
+          "first_duration_seconds": 0.066594666,
+          "last_duration_seconds": 0.067734625,
+          "std_duration_seconds": 0.004823844416010302,
+          "total_duration_seconds": 42.505539795999994,
+          "per_rank": {
+            "0": {
+              "count": 600,
+              "average_duration_seconds": 0.07084256632666666,
+              "min_duration_seconds": 0.064795333,
+              "max_duration_seconds": 0.108887167,
+              "first_duration_seconds": 0.066594666,
+              "last_duration_seconds": 0.067734625,
+              "std_duration_seconds": 0.004823844416010302,
+              "total_duration_seconds": 42.505539795999994
+            }
+          }
+        },
+        "accum: vlasov_maxwell": {
+          "count": 600,
+          "average_duration_seconds": 0.04950196971166666,
+          "min_duration_seconds": 0.04381075,
+          "max_duration_seconds": 0.078149417,
+          "first_duration_seconds": 0.04381075,
+          "last_duration_seconds": 0.047491417,
+          "std_duration_seconds": 0.00359832846594541,
+          "total_duration_seconds": 29.701181827,
+          "per_rank": {
+            "0": {
+              "count": 600,
+              "average_duration_seconds": 0.04950196971166666,
+              "min_duration_seconds": 0.04381075,
+              "max_duration_seconds": 0.078149417,
+              "first_duration_seconds": 0.04381075,
+              "last_duration_seconds": 0.047491417,
+              "std_duration_seconds": 0.00359832846594541,
+              "total_duration_seconds": 29.701181827
+            }
+          }
+        },
+        "kernel: vlasov_maxwell": {
+          "count": 600,
+          "average_duration_seconds": 0.04860128363,
+          "min_duration_seconds": 0.04256625,
+          "max_duration_seconds": 0.076988166,
+          "first_duration_seconds": 0.04256625,
+          "last_duration_seconds": 0.046644625,
+          "std_duration_seconds": 0.0035382434794544383,
+          "total_duration_seconds": 29.160770178,
+          "per_rank": {
+            "0": {
+              "count": 600,
+              "average_duration_seconds": 0.04860128363,
+              "min_duration_seconds": 0.04256625,
+              "max_duration_seconds": 0.076988166,
+              "first_duration_seconds": 0.04256625,
+              "last_duration_seconds": 0.046644625,
+              "std_duration_seconds": 0.0035382434794544383,
+              "total_duration_seconds": 29.160770178
+            }
+          }
+        },
+        "accum comm: vlasov_maxwell": {
+          "count": 1200,
+          "average_duration_seconds": 0.00040994779833333333,
+          "min_duration_seconds": 9.175e-05,
+          "max_duration_seconds": 0.0030655,
+          "first_duration_seconds": 0.000172958,
+          "last_duration_seconds": 0.000654917,
+          "std_duration_seconds": 0.00030963514007051535,
+          "total_duration_seconds": 0.491937358,
+          "per_rank": {
+            "0": {
+              "count": 1200,
+              "average_duration_seconds": 0.00040994779833333333,
+              "min_duration_seconds": 9.175e-05,
+              "max_duration_seconds": 0.0030655,
+              "first_duration_seconds": 0.000172958,
+              "last_duration_seconds": 0.000654917,
+              "std_duration_seconds": 0.00030963514007051535,
+              "total_duration_seconds": 0.491937358
+            }
+          }
+        },
+        "solve: SchurSolver": {
+          "count": 600,
+          "average_duration_seconds": 0.002852205845,
+          "min_duration_seconds": 0.0021995,
+          "max_duration_seconds": 0.007513417,
+          "first_duration_seconds": 0.004904167,
+          "last_duration_seconds": 0.002721959,
+          "std_duration_seconds": 0.0004060328193219085,
+          "total_duration_seconds": 1.7113235070000001,
+          "per_rank": {
+            "0": {
+              "count": 600,
+              "average_duration_seconds": 0.002852205845,
+              "min_duration_seconds": 0.0021995,
+              "max_duration_seconds": 0.007513417,
+              "first_duration_seconds": 0.004904167,
+              "last_duration_seconds": 0.002721959,
+              "std_duration_seconds": 0.0004060328193219085,
+              "total_duration_seconds": 1.7113235070000001
+            }
+          }
+        },
+        "pusher: push_v_with_efield": {
+          "count": 600,
+          "average_duration_seconds": 0.012763081046666666,
+          "min_duration_seconds": 0.011398917,
+          "max_duration_seconds": 0.021186291,
+          "first_duration_seconds": 0.011866291,
+          "last_duration_seconds": 0.012005125,
+          "std_duration_seconds": 0.0010755226077139156,
+          "total_duration_seconds": 7.657848628,
+          "per_rank": {
+            "0": {
+              "count": 600,
+              "average_duration_seconds": 0.012763081046666666,
+              "min_duration_seconds": 0.011398917,
+              "max_duration_seconds": 0.021186291,
+              "first_duration_seconds": 0.011866291,
+              "last_duration_seconds": 0.012005125,
+              "std_duration_seconds": 0.0010755226077139156,
+              "total_duration_seconds": 7.657848628
+            }
+          }
+        },
+        "kernel: push_v_with_efield": {
+          "count": 600,
+          "average_duration_seconds": 0.01063339902,
+          "min_duration_seconds": 0.009466333,
+          "max_duration_seconds": 0.0179505,
+          "first_duration_seconds": 0.009808791,
+          "last_duration_seconds": 0.010152584,
+          "std_duration_seconds": 0.0008005732574717171,
+          "total_duration_seconds": 6.380039412,
+          "per_rank": {
+            "0": {
+              "count": 600,
+              "average_duration_seconds": 0.01063339902,
+              "min_duration_seconds": 0.009466333,
+              "max_duration_seconds": 0.0179505,
+              "first_duration_seconds": 0.009808791,
+              "last_duration_seconds": 0.010152584,
+              "std_duration_seconds": 0.0008005732574717171,
+              "total_duration_seconds": 6.380039412
+            }
+          }
+        },
+        "diagnostics": {
+          "count": 600,
+          "average_duration_seconds": 0.0008104555299999999,
+          "min_duration_seconds": 0.000737791,
+          "max_duration_seconds": 0.003079041,
+          "first_duration_seconds": 0.000959417,
+          "last_duration_seconds": 0.000789167,
+          "std_duration_seconds": 0.00015344348335796397,
+          "total_duration_seconds": 0.48627331799999995,
+          "per_rank": {
+            "0": {
+              "count": 600,
+              "average_duration_seconds": 0.0008104555299999999,
+              "min_duration_seconds": 0.000737791,
+              "max_duration_seconds": 0.003079041,
+              "first_duration_seconds": 0.000959417,
+              "last_duration_seconds": 0.000789167,
+              "std_duration_seconds": 0.00015344348335796397,
+              "total_duration_seconds": 0.48627331799999995
+            }
+          }
+        },
+        "save data": {
+          "count": 601,
+          "average_duration_seconds": 0.0025204536688851913,
+          "min_duration_seconds": 0.002170375,
+          "max_duration_seconds": 0.022249792,
+          "first_duration_seconds": 0.002817,
+          "last_duration_seconds": 0.022249792,
+          "std_duration_seconds": 0.0009042710559491216,
+          "total_duration_seconds": 1.514792655,
+          "per_rank": {
+            "0": {
+              "count": 601,
+              "average_duration_seconds": 0.0025204536688851913,
+              "min_duration_seconds": 0.002170375,
+              "max_duration_seconds": 0.022249792,
+              "first_duration_seconds": 0.002817,
+              "last_duration_seconds": 0.022249792,
+              "std_duration_seconds": 0.0009042710559491216,
+              "total_duration_seconds": 1.514792655
+            }
+          }
+        }
+      }
+    }
+  ]
+}

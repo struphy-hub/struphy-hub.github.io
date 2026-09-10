@@ -13,6 +13,9 @@
   "modeNumber": 4,
   "thumbnail": "/images/examples/diocotron-instability.png",
   "interactive": "/examples/diocotron-instability.html",
-  "profilingReport": "/examples/diocotron-instability-profile.html",
-  "profilingData": "/examples/diocotron-instability-profile.h5"
+  "profilingData": "/examples/diocotron-instability-profile.h5",
+  "profilingDurations": "/examples/diocotron-instability-durations.json",
+  "profilingGantt": "/examples/diocotron-instability-gantt.json",
+  "profilingFlame": "/examples/diocotron-instability-flame.json",
+  "profilingRegionStats": "/examples/diocotron-instability-region-stats.json"
 }
