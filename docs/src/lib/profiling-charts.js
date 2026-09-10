@@ -65,7 +65,9 @@ export async function renderFigure(Plotly, container, kind, payload, { metric, r
   };
 
   let figure;
-  if (kind === 'gantt') figure = buildGanttFigure(payload, { filterRegion, layout });
+  // Gantt already labels each row with its region name, so a color legend
+  // is pure redundancy -- turn it off.
+  if (kind === 'gantt') figure = buildGanttFigure(payload, { filterRegion, layout: { ...layout, showlegend: false } });
   else if (kind === 'flame') figure = buildFlameFigure(payload, { layout });
   else if (kind === 'durations') figure = buildDurationsFigure(payload, { filterRegion, metric: metric ?? 'total', layout });
   else throw new Error(`Unknown chart kind: ${kind}`);
