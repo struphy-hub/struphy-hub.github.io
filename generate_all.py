@@ -1,9 +1,10 @@
-"""Run every catalogue generator (models, domains, equilibria, perturbations, model graph)
-in one go.
+"""Run every catalogue generator (models, propagators, domains, equilibria, perturbations,
+model graph) in one go.
 
 Equivalent to running each of these from the repo root, in order:
 
     python generate_models.py
+    python generate_propagators.py
     python generate_domains.py docs/public/domains
     python generate_equilibrium_slices.py
     python generate_perturbations.py
@@ -22,6 +23,7 @@ REPO_ROOT = Path(__file__).parent
 
 STEPS = [
     ["generate_models.py"],
+    ["generate_propagators.py"],
     ["generate_domains.py", "docs/public/domains"],
     ["generate_equilibrium_slices.py"],
     ["generate_perturbations.py"],

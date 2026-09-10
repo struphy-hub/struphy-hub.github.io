@@ -1,13 +1,15 @@
 import rawModels from '../data/models.json';
+import rawPropagators from '../data/propagators.json';
 import catalogueIndex from '../data/catalogue-index.json';
 import examples from '../data/examples-index.json';
 import { toSlug } from '../lib/catalogue';
 
 export async function GET() {
   const paths = [
-    '/', '/examples/', '/models/', '/domains/', '/equilibria/', '/perturbations/', '/search/', '/citation/',
+    '/', '/examples/', '/models/', '/propagators/', '/domains/', '/equilibria/', '/perturbations/', '/feec/', '/search/', '/citation/',
     ...examples.map((example: any) => example.href),
     ...rawModels.map((model: any) => `/models/${toSlug(model.className)}/`),
+    ...rawPropagators.map((propagator: any) => `/propagators/${toSlug(propagator.className)}/`),
     ...catalogueIndex.equilibria.map((item) => `/equilibria/${item.slug}/`),
     ...catalogueIndex.perturbations.map((item) => `/perturbations/${item.slug}/`),
   ];

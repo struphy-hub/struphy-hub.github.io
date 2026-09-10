@@ -1,22 +1,24 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import rawModels from '../../data/models.json';
+import rawPropagators from '../../data/propagators.json';
 import catalogueIndex from '../../data/catalogue-index.json';
 import { toSlug } from '../../lib/catalogue';
 
 const domainNames = ['Colella','Cuboid','DESCunit','GVECunit','HollowCylinder','HollowTorus','IGAPolarCylinder','IGAPolarTorus','Orthogonal','PoweredEllipticCylinder','ShafranovDshapedCylinder','ShafranovShiftCylinder','ShafranovSqrtCylinder','Tokamak'];
 const records = [
   ...rawModels.map((item: any)=>({type:'Model',name:item.className,description:item.description||'Struphy simulation model.',href:`/models/${toSlug(item.className)}/`,keywords:`${item.type} ${item.useCasesHtml||''}`})),
+  ...rawPropagators.map((item: any)=>({type:'Propagator',name:item.className,description:`${item.summary} ${item.usedBy.length?`Used by ${item.usedBy.length} model${item.usedBy.length===1?'':'s'}.`:'Not used by a model yet.'}`,href:`/propagators/${toSlug(item.className)}/`,keywords:`${item.category} ${item.variables.map((variable: any)=>`${variable.name} ${variable.spaces.join(' ')}`).join(' ')} ${item.usedBy.map((entry: any)=>entry.model).join(' ')}`})),
   ...domainNames.map((name)=>({type:'Domain',name,description:'Mapped geometry available for Struphy simulations.',href:`/domains/#${name}`,keywords:'geometry mapping'})),
   ...catalogueIndex.equilibria.map((item)=>({type:'Equilibrium',name:item.type,description:item.description||'Background fields for initializing a Struphy simulation.',href:`/equilibria/${item.slug}/`,keywords:''})),
   ...catalogueIndex.perturbations.map((item)=>({type:'Perturbation',name:item.type,description:`Initial-condition perturbation${item.basis?` in the ${item.basis} basis`:''}.`,href:`/perturbations/${item.slug}/`,keywords:item.basis||''})),
 ].sort((a,b)=>a.name.localeCompare(b.name));
-const types = ['All','Model','Domain','Equilibrium','Perturbation'];
+const types = ['All','Model','Propagator','Domain','Equilibrium','Perturbation'];
 ---
 
-<Layout title="Search the Struphy catalogue" description="Search Struphy models, domains, equilibria, and perturbations in one place.">
+<Layout title="Search the Struphy catalogue" description="Search Struphy models, propagators, domains, equilibria, and perturbations in one place.">
   <main>
-    <section class="intro"><p class="eyebrow">Unified catalogue</p><h1>Find a Struphy component</h1><p>Search across models, mapped domains, background equilibria, and initial-condition perturbations.</p></section>
+    <section class="intro"><p class="eyebrow">Unified catalogue</p><h1>Find a Struphy component</h1><p>Search across models, the propagators they are split into, mapped domains, background equilibria, and initial-condition perturbations.</p></section>
     <section class="search-area" aria-label="Catalogue search">
       <label for="catalogue-search">Search by name, physics, geometry, or parameter</label>
       <input id="catalogue-search" type="search" data-query placeholder="Try “Alfvén”, “toroidal”, or “density”…" autofocus />
