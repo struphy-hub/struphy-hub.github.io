@@ -53,9 +53,9 @@ const explicitCapable = steppingChoices.filter((entry) => entry.choices.includes
       <p class="eyebrow">How it works</p>
       <h1 id="page-title">Time integration</h1>
       <p>
-        A Struphy model is never integrated as one system. It is
+        A Struphy model is never integrated as one system. It is{' '}
         <a href="/propagators/">split into propagators</a>, and a time step is a composition of them. That makes
-        two separate choices: how the substeps are <strong>composed</strong> over the step, and how each substep
+        two separate choices: how the substeps are <strong>composed</strong> over the step, and how each substep{' '}
         <strong>solves its own equations</strong> internally. The first is the splitting scheme, set once per
         simulation; the second belongs to each propagator.
       </p>
@@ -64,7 +64,7 @@ const explicitCapable = steppingChoices.filter((entry) => entry.choices.includes
     <section class="section" aria-labelledby="splitting-title">
       <h2 id="splitting-title">Splitting schemes</h2>
       <p class="lead">
-        Struphy composes a model's propagators in one of {timeIntegration.splitAlgos.length} ways, chosen with
+        Struphy composes a model's propagators in one of {timeIntegration.splitAlgos.length} ways, chosen with{' '}
         <code>Time(split_algo=…)</code>. Pick a model to see what one step of <code>dt</code> actually does.
       </p>
 
@@ -132,7 +132,7 @@ const explicitCapable = steppingChoices.filter((entry) => entry.choices.includes
       <h2 id="butcher-title">Runge-Kutta tableaux</h2>
       <p class="lead">
         A propagator stepping explicitly takes its coefficients from a <code>ButcherTableau</code>. All
-        {` ${timeIntegration.butcher.length} `} are explicit — the coefficient matrix
+        {` ${timeIntegration.butcher.length} `} are explicit — the coefficient matrix{' '}
         <code>a</code> is strictly lower-triangular, so every stage depends only on the stages before it and no
         stage requires a solve. {explicitCapable.length > 0 && (
           <>Set one with <code>{explicitCapable[0].className}.Options(algo="explicit", butcher=ButcherTableau("heun3"))</code>.</>
@@ -182,7 +182,7 @@ maxwell.options = MaxwellWeakAmpere.Options(
     butcher=ButcherTableau("${timeIntegration.defaults.butcher}"),
 )`}</code></pre>
       <p class="footnote">
-        See the <a href="/feec/">FEEC basics</a> page for the spatial half of the discretization, and each
+        See the <a href="/feec/">FEEC basics</a> page for the spatial half of the discretization, and each{' '}
         <a href="/propagators/"> propagator's page</a> for the options it accepts.
       </p>
     </section>

@@ -151,7 +151,7 @@ const setupHtml = await codeToHtml(SETUP_CODE, {
       <p class="lead">
         A run writes into <code>out_folders/sim_folder</code>: the field and marker data, the geometry, the
         parameters it ran with, and — when profiling is on — the timing file behind those performance charts.
-        <code>sim.pproc()</code> evaluates the FEEC coefficients onto a grid and
+        <code>sim.pproc()</code> evaluates the FEEC coefficients onto a grid and{' '}
         <code>sim.load_plotting_data()</code> reads them back, so analysis happens against the same objects the run
         used rather than a re-parsed output format.
       </p>
