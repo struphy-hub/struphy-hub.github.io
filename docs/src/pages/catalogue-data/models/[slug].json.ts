@@ -1,8 +1,9 @@
 import katex from 'katex';
 import rawModels from '../../../data/models.json';
+import allExamples from '../../../data/examples-index.json';
 import { toSlug } from '../../../lib/catalogue';
 
-const fields = ['pde','longDescription','normalization','discretization','scalarQuantities','useCases','examples'];
+const fields = ['pde','longDescription','normalization','discretization','scalarQuantities','useCases'];
 
 function renderMath(html = '', items: any[] = []) {
   return items.reduce((result, { token, latex, display }) => {
@@ -18,8 +19,9 @@ export function getStaticPaths() {
 }
 
 export function GET({ props }: { props: { model: any } }) {
-  const { cannotBeUsedForHtml, cannotBeUsedForMath, ...source } = props.model;
+  const { cannotBeUsedForHtml, cannotBeUsedForMath, examplesHtml, examplesMath, ...source } = props.model;
   const model = { ...source, slug: toSlug(source.className) };
   for (const field of fields) model[`${field}Html`] = renderMath(model[`${field}Html`], model[`${field}Math`] ?? []);
+  model.runnableExamples = (allExamples as any[]).filter((example) => example.model === model.className);
   return new Response(JSON.stringify(model), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }

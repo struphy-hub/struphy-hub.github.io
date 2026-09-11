@@ -7,7 +7,7 @@ import rawPropagators from '../../data/propagators.json';
 import allExamples from '../../data/examples-index.json';
 import { toSlug } from '../../lib/catalogue';
 
-const fields = ['pde','longDescription','normalization','discretization','scalarQuantities','useCases','examples'];
+const fields = ['pde','longDescription','normalization','discretization','scalarQuantities','useCases'];
 function renderMath(html = '', items = []) { return items.reduce((result: string,{token,latex,display}: any)=>{let rendered;try{rendered=katex.renderToString(latex,{displayMode:display,throwOnError:false,strict:false,output:'html'})}catch{rendered=`<code>${latex}</code>`}return result.split(token).join(display?`<div class="math-display">${rendered}</div>`:rendered)},html); }
 export function getStaticPaths() { return rawCatalogue.map((model: any)=>({params:{slug:toSlug(model.className)},props:{model}})); }
 const { model: rawModel } = Astro.props;
@@ -39,10 +39,9 @@ model.discretizationHtml = model.discretizationHtml.replace(
     <section class="section prose"><h2>Normalization</h2><div set:html={model.normalizationHtml}></div></section>
     <section class="section prose"><h2>Discretization</h2><div set:html={model.discretizationHtml}></div></section>
     <section class="section prose"><h2>Diagnostics</h2><div set:html={model.scalarQuantitiesHtml}></div></section>
-    <section class="section prose"><h2>Usage example</h2><div set:html={model.examplesHtml}></div></section>
-    {runnableExamples.length > 0 && (
-      <section class="section" aria-labelledby="runnable-examples-title">
-        <h2 id="runnable-examples-title">Runnable examples</h2>
+    <section class="section" aria-labelledby="examples-title">
+      <h2 id="examples-title">Examples</h2>
+      {runnableExamples.length > 0 ? (
         <div class="example-cards">
           {runnableExamples.map((example) => (
             <a class="example-card" href={example.href}>
@@ -54,13 +53,17 @@ model.discretizationHtml = model.discretizationHtml.replace(
             </a>
           ))}
         </div>
-      </section>
-    )}
+      ) : (
+        <p class="note">No published examples use this model yet — browse the <a href="/examples/">full gallery</a> for related simulations.</p>
+      )}
+    </section>
   </main>
 </Layout>
 <style>
   .intro{max-width:850px;padding-block:clamp(50px,7vw,82px)}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}h1{margin:0 0 16px;font-size:clamp(2rem,5vw,3.7rem);line-height:1.08;overflow-wrap:anywhere}.intro>p:not(.eyebrow){color:var(--muted);font-size:1.08rem}.actions{display:flex;flex-wrap:wrap;gap:22px;margin-top:22px}.actions a{color:var(--cyan)}.section{padding-block:40px 56px;border-top:1px solid var(--rule)}h2{margin:0 0 18px}.prose{max-width:900px}.prose :global(p),.prose :global(li){color:var(--muted)}.prose :global(pre){max-width:100%;padding:18px;overflow:auto;border:1px solid var(--rule);background:var(--code-bg)}.prose :global(.math-display){max-width:100%;overflow:auto}.prose :global(table){display:block;max-width:100%;overflow:auto;border-collapse:collapse}.prose :global(th),.prose :global(td){padding:8px;border-bottom:1px solid var(--rule);text-align:left}
   .prose :global(a){color:var(--cyan)}
+  .note{max-width:760px;color:var(--muted)}
+  .note a{color:var(--cyan)}
   .example-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;max-width:900px}
   .example-card{display:flex;flex-direction:column;color:var(--paper);text-decoration:none;border:1px solid var(--rule)}
   .example-card:hover{border-color:var(--cyan)}
