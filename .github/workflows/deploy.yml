@@ -81,15 +81,25 @@ jobs:
           pip install "./submodules/struphy[phys,mpi]"
           pip install "scope-profiler[pproc]" kaleido
 
-      - name: Fetch headless Chrome for kaleido
+      - name: Install Chrome for kaleido
         # kaleido>=1.0 drives Chrome via choreographer instead of bundling a binary, and
         # doesn't auto-download it -- without this, figure.write_image(...) fails with
         # ChromeNotFoundError on a bare container that has no browser installed.
+        #
+        # Deliberately *not* `kaleido_get_chrome`: it downloads a standalone Chrome build
+        # with no shared libraries installed, which crashes on startup on a bare Ubuntu
+        # image ("browser closed immediately after starting") -- and choreographer always
+        # prefers that self-managed download over a system browser, so it has to not exist
+        # in the first place. Installing Google Chrome via apt instead lets apt resolve the
+        # actual runtime dependencies (libnss3, libatk-bridge, libgbm, ...) correctly for
+        # whatever Ubuntu version this image uses.
         if: steps.cache-examples.outputs.cache-hit != 'true'
-        shell: bash
         run: |
-          source /struphy_fortran_/env_fortran_/bin/activate
-          kaleido_get_chrome
+          apt-get update
+          apt-get install -y wget
+          wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          apt-get install -y /tmp/chrome.deb
+          rm /tmp/chrome.deb
 
       - name: Compile Struphy kernels
         if: steps.cache-examples.outputs.cache-hit != 'true'
