@@ -1,5 +1,5 @@
 // Wires up the "Performance" section on an example detail page: fetches
-// scope-profiler's plot-data JSON (durations/gantt/flame + region stats) and
+// scope-profiler's plot-data JSON (durations/gantt + region stats) and
 // renders it as native Plotly figures, re-rendering on theme change.
 import Plotly from 'plotly.js-dist-min';
 import { DEFAULT_REGION_FILTER, matchesRegionFilter, parseRegionFilter, renderFigure } from './profiling-charts.js';
@@ -109,7 +109,7 @@ async function mountChart(url, container, { kind, metricSelect, filterInput }) {
 
 export function mountProfilingSection(root) {
   if (!root) return;
-  const { durations, gantt, flame, stats } = root.dataset;
+  const { durations, gantt, stats } = root.dataset;
 
   const durationsContainer = root.querySelector('#pf-plot-durations');
   const durationsMetric = root.querySelector('#pf-metric');
@@ -133,13 +133,6 @@ export function mountProfilingSection(root) {
   if (gantt && ganttContainer) {
     mountChart(gantt, ganttContainer, { kind: 'gantt', filterInput: ganttFilter }).catch((error) => {
       ganttContainer.innerHTML = `<p class="pf-error">Could not load gantt chart: ${esc(error)}</p>`;
-    });
-  }
-
-  const flameContainer = root.querySelector('#pf-plot-flame');
-  if (flame && flameContainer) {
-    mountChart(flame, flameContainer, { kind: 'flame' }).catch((error) => {
-      flameContainer.innerHTML = `<p class="pf-error">Could not load flame chart: ${esc(error)}</p>`;
     });
   }
 

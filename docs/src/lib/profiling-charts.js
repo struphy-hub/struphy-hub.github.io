@@ -1,9 +1,8 @@
 // Thin theme + filter layer around @scope-profiler/plotly's figure builders,
-// used to render scope-profiler's plot-data JSON (durations/gantt/flame)
-// natively on each example page instead of embedding a separate report.
+// used to render scope-profiler's plot-data JSON (durations/gantt) natively on
+// each example page instead of embedding a separate report.
 import {
   buildDurationsFigure,
-  buildFlameFigure,
   buildGanttFigure,
   renderFigure as renderScopeFigure,
 } from '@scope-profiler/plotly';
@@ -49,9 +48,8 @@ export function matchesRegionFilter(region, terms) {
   );
 }
 
-// Renders one of the three chart kinds this page uses into `container`,
-// themed for the current light/dark mode and filtered to `regionFilterText`
-// (ignored for flame, which always shows the full call hierarchy).
+// Renders one of the two chart kinds this page uses into `container`, themed
+// for the current light/dark mode and filtered to `regionFilterText`.
 export async function renderFigure(Plotly, container, kind, payload, { metric, regionFilterText } = {}) {
   if (!container) return;
   const terms = parseRegionFilter(regionFilterText);
@@ -60,7 +58,13 @@ export async function renderFigure(Plotly, container, kind, payload, { metric, r
   const c = themeColors();
   const layout = {
     font: { family: FONT_FAMILY, color: c.text, size: 12 },
-    legend: { font: { color: c.muted, size: 11 } },
+    // `layout` is spread over the builder's own layout, so this replaces its
+    // legend config wholesale rather than merging into it -- the orientation
+    // has to be restated here or a stacked chart's dozen segments pile up in a
+    // scrolling column on top of the plot. Anchoring to the container rather
+    // than the plot area keeps it clear of the rotated region labels, whose
+    // depth depends on how long the region names happen to be.
+    legend: { orientation: 'h', yref: 'container', y: 0, yanchor: 'bottom', x: 0, font: { color: c.muted, size: 11 } },
     hoverlabel: { bgcolor: c.hoverBg, bordercolor: c.grid, font: { color: c.text } },
   };
 
@@ -68,7 +72,9 @@ export async function renderFigure(Plotly, container, kind, payload, { metric, r
   // Gantt already labels each row with its region name, so a color legend
   // is pure redundancy -- turn it off.
   if (kind === 'gantt') figure = buildGanttFigure(payload, { filterRegion, layout: { ...layout, showlegend: false } });
-  else if (kind === 'flame') figure = buildFlameFigure(payload, { layout });
+  // The payload is exported with --stack-children, so each bar carries a
+  // `segment` per callee and the builder stacks them; the region order is the
+  // exporter's --sort-by total, which the builder preserves.
   else if (kind === 'durations') figure = buildDurationsFigure(payload, { filterRegion, metric: metric ?? 'total', layout });
   else throw new Error(`Unknown chart kind: ${kind}`);
 
