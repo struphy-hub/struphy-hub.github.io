@@ -1,0 +1,294 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import rawPropagators from '../../data/propagators.json';
+import timeIntegration from '../../data/time-integration.json';
+import { toSlug } from '../../lib/catalogue';
+
+// Rebuild each model's step sequence from the propagator catalogue's usage
+// index: every propagator records the models that compose it and its position
+// in their step list, so grouping by model and sorting by index recovers the
+// order `StruphyModel.integrate` walks.
+const stepsByModel = new Map<string, { className: string; step: string; index: number; type: string }[]>();
+for (const propagator of rawPropagators as any[]) {
+  for (const entry of propagator.usedBy) {
+    if (!stepsByModel.has(entry.model)) stepsByModel.set(entry.model, []);
+    stepsByModel.get(entry.model)!.push({ className: propagator.className, step: entry.step, index: entry.index, type: entry.type });
+  }
+}
+
+const typeOrder = ['Fluid', 'Kinetic', 'Hybrid', 'Toy'];
+const models = [...stepsByModel.entries()]
+  .map(([name, steps]) => ({
+    name,
+    slug: toSlug(name),
+    type: steps[0].type,
+    steps: steps.sort((a, b) => a.index - b.index).map((entry) => ({ className: entry.className, slug: toSlug(entry.className), step: entry.step })),
+  }))
+  .sort((a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type) || a.name.localeCompare(b.name));
+
+// A model with one propagator can't be folded in half, so Strang is unavailable
+// to it — the assertion in `integrate` makes that a hard error, not a fallback.
+const singleStepModels = models.filter((model) => model.steps.length === 1);
+const initial = models.find((model) => model.steps.length === 3) ?? models[0];
+
+// The inner time discretization: propagators that let you pick a scheme.
+const steppingChoices = (rawPropagators as any[])
+  .map((propagator) => ({
+    className: propagator.className,
+    slug: toSlug(propagator.className),
+    choices: propagator.options.find((option: any) => option.name === 'algo')?.choices ?? [],
+    default: propagator.options.find((option: any) => option.name === 'algo')?.default,
+  }))
+  .filter((entry) => entry.choices.length > 1);
+
+const explicitCapable = steppingChoices.filter((entry) => entry.choices.includes('explicit'));
+---
+
+<Layout
+  title="Time integration — Struphy"
+  description="How Struphy advances a model in time: the Lie-Trotter and Strang splitting schemes that compose a model's propagators, and the Runge-Kutta tableaux behind the explicit substeps."
+>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">How it works</p>
+      <h1 id="page-title">Time integration</h1>
+      <p>
+        A Struphy model is never integrated as one system. It is
+        <a href="/propagators/">split into propagators</a>, and a time step is a composition of them. That makes
+        two separate choices: how the substeps are <strong>composed</strong> over the step, and how each substep
+        <strong>solves its own equations</strong> internally. The first is the splitting scheme, set once per
+        simulation; the second belongs to each propagator.
+      </p>
+    </section>
+
+    <section class="section" aria-labelledby="splitting-title">
+      <h2 id="splitting-title">Splitting schemes</h2>
+      <p class="lead">
+        Struphy composes a model's propagators in one of {timeIntegration.splitAlgos.length} ways, chosen with
+        <code>Time(split_algo=…)</code>. Pick a model to see what one step of <code>dt</code> actually does.
+      </p>
+
+      <div class="picker">
+        <label for="model-select">Model</label>
+        <select id="model-select" data-model-select>
+          {models.map((model) => (
+            <option value={model.name} selected={model.name === initial.name}>{model.name} · {model.steps.length} propagators</option>
+          ))}
+        </select>
+        <a data-model-link href={`/models/${initial.slug}/`}>Open model page →</a>
+      </div>
+
+      <div class="schemes">
+        {timeIntegration.splitAlgos.map((algo: any) => (
+          <article class="scheme" data-scheme={algo.name}>
+            <header>
+              <h3>{algo.name}</h3>
+              <span class="order">order {algo.order}</span>
+              {algo.name === timeIntegration.defaults.split_algo && <span class="tag">default</span>}
+            </header>
+            <p class="summary">{algo.summary}</p>
+            <ol class="sequence" data-sequence={algo.name} data-shape={algo.shape}></ol>
+            <p class="unavailable" data-unavailable={algo.name} hidden>
+              Not available for this model — Strang needs at least two propagators to fold.
+            </p>
+            <p class="detail">{algo.detail}</p>
+          </article>
+        ))}
+      </div>
+
+      {singleStepModels.length > 0 && (
+        <p class="footnote">
+          {singleStepModels.length === 1 ? 'One model has' : `${singleStepModels.length} models have`} a single
+          propagator and can therefore only run Lie-Trotter:{' '}
+          {singleStepModels.map((model, index) => (
+            <>{index > 0 && ', '}<a href={`/models/${model.slug}/`}>{model.name}</a></>
+          ))}.
+        </p>
+      )}
+    </section>
+
+    <section class="section" aria-labelledby="inner-title">
+      <h2 id="inner-title">Inside a propagator</h2>
+      <p class="lead">
+        Within its slice of the step, a propagator solves its own equations — most implicitly, with Crank-Nicolson
+        (the implicit midpoint rule), which is what makes the substeps structure-preserving.
+        {steppingChoices.length} propagators expose that choice as an <code>algo</code> option:
+      </p>
+      <div class="choices">
+        {steppingChoices.map((entry) => (
+          <a class="choice" href={`/propagators/${entry.slug}/`}>
+            <code>{entry.className}</code>
+            <span>
+              {entry.choices.map((choice: string) => (
+                <em class={choice === entry.default ? 'current' : ''}>{choice}</em>
+              ))}
+            </span>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="butcher-title">
+      <h2 id="butcher-title">Runge-Kutta tableaux</h2>
+      <p class="lead">
+        A propagator stepping explicitly takes its coefficients from a <code>ButcherTableau</code>. All
+        {` ${timeIntegration.butcher.length} `} are explicit — the coefficient matrix
+        <code>a</code> is strictly lower-triangular, so every stage depends only on the stages before it and no
+        stage requires a solve. {explicitCapable.length > 0 && (
+          <>Set one with <code>{explicitCapable[0].className}.Options(algo="explicit", butcher=ButcherTableau("heun3"))</code>.</>
+        )}
+      </p>
+      <div class="tableaux">
+        {timeIntegration.butcher.map((tableau: any) => (
+          <figure class="tableau">
+            <figcaption>
+              <strong>{tableau.algo}</strong>
+              <span>{tableau.stages} stage{tableau.stages === 1 ? '' : 's'} · order {tableau.order}{tableau.algo === timeIntegration.defaults.butcher ? ' · default' : ''}</span>
+            </figcaption>
+            <table>
+              <caption class="visually-hidden">Butcher tableau for {tableau.algo}</caption>
+              <tbody>
+                {tableau.c.map((node: string, row: number) => (
+                  <tr>
+                    <th scope="row">{node}</th>
+                    {tableau.c.map((_: string, column: number) => (
+                      <td>{tableau.a[row]?.[column] ?? ''}</td>
+                    ))}
+                  </tr>
+                ))}
+                <tr class="weights">
+                  <th scope="row"></th>
+                  {tableau.b.map((weight: string) => <td>{weight}</td>)}
+                </tr>
+              </tbody>
+            </table>
+          </figure>
+        ))}
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="settings-title">
+      <h2 id="settings-title">Setting it up</h2>
+      <p class="lead">Both choices are made in the parameter file — the splitting once, the scheme per propagator.</p>
+      <pre><code>{`from struphy.io.options import Time
+from struphy.ode.utils import ButcherTableau
+
+# outer: how the propagators are composed (default: ${timeIntegration.defaults.split_algo})
+time = Time(dt=${timeIntegration.defaults.dt}, Tend=1.0, split_algo="Strang")
+
+# inner: how one propagator solves its own step
+maxwell.options = MaxwellWeakAmpere.Options(
+    algo="explicit",
+    butcher=ButcherTableau("${timeIntegration.defaults.butcher}"),
+)`}</code></pre>
+      <p class="footnote">
+        See the <a href="/feec/">FEEC basics</a> page for the spatial half of the discretization, and each
+        <a href="/propagators/"> propagator's page</a> for the options it accepts.
+      </p>
+    </section>
+  </main>
+</Layout>
+
+<script is:inline define:vars={{ models, initialName: initial.name }}>
+  const select = document.querySelector('[data-model-select]');
+  const link = document.querySelector('[data-model-link]');
+  const sequences = [...document.querySelectorAll('[data-sequence]')];
+  const byName = new Map(models.map((model) => [model.name, model]));
+
+  // Mirrors StruphyModel.integrate: Lie-Trotter walks the list once at dt;
+  // Strang halves every propagator but the last, which takes a full step in the
+  // middle, then unwinds the halves in reverse.
+  function buildSteps(model, shape) {
+    if (shape === 'sequential') return model.steps.map((step) => ({ ...step, fraction: 'dt' }));
+    if (model.steps.length < 2) return null;
+    const head = model.steps.slice(0, -1);
+    const last = model.steps[model.steps.length - 1];
+    return [
+      ...head.map((step) => ({ ...step, fraction: 'dt/2' })),
+      { ...last, fraction: 'dt' },
+      ...[...head].reverse().map((step) => ({ ...step, fraction: 'dt/2' })),
+    ];
+  }
+
+  function render(name) {
+    const model = byName.get(name);
+    if (!model) return;
+    if (link) link.href = `/models/${model.slug}/`;
+
+    sequences.forEach((list) => {
+      const steps = buildSteps(model, list.dataset.shape);
+      const notice = document.querySelector(`[data-unavailable="${list.dataset.sequence}"]`);
+      if (notice) notice.hidden = Boolean(steps);
+      list.replaceChildren();
+      list.hidden = !steps;
+      if (!steps) return;
+      steps.forEach((step) => {
+        const item = document.createElement('li');
+        const anchor = document.createElement('a');
+        anchor.href = `/propagators/${step.slug}/`;
+        anchor.innerHTML = `<code>${step.className}</code><span>${step.fraction}</span>`;
+        item.appendChild(anchor);
+        list.appendChild(item);
+      });
+    });
+  }
+
+  select?.addEventListener('change', () => render(select.value));
+  render(initialName);
+</script>
+
+<style>
+  .intro{max-width:820px;padding-block:clamp(56px,8vw,92px)}
+  .eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}
+  .intro>p:not(.eyebrow){color:var(--muted)}
+  .intro a{color:var(--cyan)}
+  .section{padding-block:42px 60px;border-top:1px solid var(--rule)}
+  h2{margin:0 0 14px}
+  .lead{max-width:840px;color:var(--muted)}
+  .lead a,.footnote a{color:var(--cyan)}
+  .picker{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:24px 0 26px}
+  .picker label{color:var(--muted);font:600 .76rem var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  select{padding:9px 12px;border:1px solid var(--rule);background:var(--ink);color:var(--paper);font:inherit;font-size:.9rem}
+  select:focus{outline:2px solid var(--cyan);outline-offset:2px}
+  .picker a{color:var(--cyan);font-size:.88rem}
+  .schemes{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+  .scheme{padding:20px 22px;border:1px solid var(--rule)}
+  .scheme header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
+  .scheme h3{margin:0;font-size:1.1rem}
+  .order,.tag{color:var(--muted);font:600 .72rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+  .tag{padding:1px 6px;border:1px solid var(--cyan);color:var(--cyan)}
+  .summary{margin:10px 0 0;color:var(--muted);font-size:.86rem}
+  .sequence{display:flex;flex-wrap:wrap;gap:7px;margin:16px 0 0;padding:0;list-style:none;counter-reset:step}
+  .sequence li{display:flex;align-items:center;gap:7px}
+  .sequence li:not(:last-child)::after{content:'→';color:var(--muted);font-size:.8rem}
+  .sequence a{display:inline-flex;align-items:baseline;gap:6px;padding:5px 9px;border:1px solid var(--rule);color:var(--paper);text-decoration:none}
+  .sequence a:hover{border-color:var(--cyan);background:var(--accent-wash)}
+  .sequence code{font-size:.76rem;overflow-wrap:anywhere}
+  .sequence span{color:var(--cyan);font:600 .72rem var(--mono)}
+  .unavailable{margin:16px 0 0;color:var(--muted);font-size:.84rem}
+  .detail{margin:16px 0 0;color:var(--muted);font-size:.84rem;line-height:1.55}
+  .footnote{max-width:840px;margin-top:26px;color:var(--muted);font-size:.86rem}
+  .choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:22px}
+  .choice{display:flex;flex-direction:column;gap:7px;padding:13px 15px;border:1px solid var(--rule);color:var(--paper);text-decoration:none}
+  .choice:hover{border-color:var(--cyan);background:var(--accent-wash)}
+  .choice code{color:var(--cyan);font-size:.85rem;overflow-wrap:anywhere}
+  .choice span{display:flex;flex-wrap:wrap;gap:6px}
+  .choice em{padding:1px 7px;border:1px solid var(--rule);color:var(--muted);font:.74rem var(--mono);font-style:normal}
+  .choice em.current{border-color:var(--cyan);color:var(--paper)}
+  .tableaux{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-top:24px}
+  .tableau{margin:0;padding:16px;border:1px solid var(--rule)}
+  .tableau figcaption{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}
+  .tableau figcaption strong{font:650 .9rem var(--mono)}
+  .tableau figcaption span{color:var(--muted);font-size:.75rem}
+  .tableau table{border-collapse:collapse;font:.8rem var(--mono)}
+  .tableau th,.tableau td{padding:3px 9px;text-align:right}
+  .tableau th{border-right:1px solid var(--rule);color:var(--cyan);font-weight:600}
+  .tableau td{color:var(--muted)}
+  .tableau .weights th,.tableau .weights td{border-top:1px solid var(--rule);padding-top:6px}
+  .tableau .weights td{color:var(--paper)}
+  pre{max-width:840px;margin:22px 0 0;padding:18px;overflow-x:auto;border:1px solid var(--rule);background:var(--code-bg);font-size:.84rem}
+  .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  [hidden]{display:none!important}
+  @media(max-width:620px){.schemes{grid-template-columns:1fr}}
+</style>
