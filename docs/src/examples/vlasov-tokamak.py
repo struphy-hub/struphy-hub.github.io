@@ -195,12 +195,12 @@ if __name__ == "__main__":
                     {
                         "label": "Play",
                         "method": "animate",
-                        "args": [None, {"frame": {"duration": 13, "redraw": False}, "fromcurrent": False, "transition": {"duration": 0}}],
+                        "args": [None, {"frame": {"duration": 40, "redraw": True}, "fromcurrent": False, "transition": {"duration": 0}}],
                     },
                     {
                         "label": "Pause",
                         "method": "animate",
-                        "args": [[None], {"frame": {"duration": 0, "redraw": False}, "mode": "immediate"}],
+                        "args": [[None], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate"}],
                     },
                 ],
             },
@@ -233,60 +233,55 @@ if __name__ == "__main__":
     print(f"Saved {png_path.resolve()}")
     print(f"Saved {html_path.resolve()}")
 
-    # Export scope-profiler's plot-data JSON (durations, gantt, flame,
-    # region statistics) via its Python API, so the example page can render
-    # native Plotly figures from the real run above -- not a separate report.
-    from scope_profiler import plot_durations, plot_flame, plot_gantt, read_h5, write_region_statistics_json
+    # Export scope-profiler's plot-data JSON (durations, gantt, region
+    # statistics) via its Python API, so the example page can render native
+    # Plotly figures from the real run above -- not a separate report.
+    from scope_profiler import plot_durations, plot_gantt, read_h5, write_region_statistics_json
 
     profile_reader = read_h5(sim.profiling_filepath)
     profile_h5_path = Path("vlasov-tokamak-profile.h5")
     shutil.copyfile(sim.profiling_filepath, profile_h5_path)
 
-    durations_bars = []
-    durations_payload = None
-    for metric in ("avg", "min", "max", "total"):
-        metric_path = Path(f"vlasov-tokamak-durations-{metric}.tmp.json")
-        plot_durations([profile_reader], ranks=[0], metric=metric, data_filepath=metric_path, data_format="json", verbose=False)
-        metric_payload = json.loads(metric_path.read_text())
-        if durations_payload is None:
-            durations_payload = metric_payload
-        durations_bars.extend(metric_payload["bars"])
-        metric_path.unlink()
-    durations_payload["bars"] = durations_bars
+    # `stack_children` splits each bar into the region's own time plus one
+    # segment per region it calls, which is what the page's durations chart
+    # stacks; it only decomposes total/avg, so those are the metrics exported.
+    # `sort_by` fixes the region order the chart draws, biggest total first.
     durations_path = Path("vlasov-tokamak-durations.json")
+    plot_durations(
+        [profile_reader],
+        ranks=[0],
+        metrics=("total", "avg"),
+        sort_by="total",
+        stack_children=True,
+        data_filepath=durations_path,
+        data_format="json",
+        verbose=False,
+    )
+
+    # The stacked export is a dense region x segment grid, but a call graph is
+    # sparse -- roughly 90% of the pairs are zeros for regions that never call
+    # each other. The chart reads a missing pair as null and skips it, so
+    # dropping them cuts the file ~10x with no change on the page.
+    durations_payload = json.loads(durations_path.read_text())
+    durations_payload["bars"] = [bar for bar in durations_payload["bars"] if bar["value_seconds"]]
     durations_path.write_text(json.dumps(durations_payload))
 
     gantt_path = Path("vlasov-tokamak-gantt.json")
-    flame_path = Path("vlasov-tokamak-flame.json")
     region_stats_path = Path("vlasov-tokamak-region-stats.json")
     plot_gantt([profile_reader], ranks=[0], data_filepath=gantt_path, data_format="json", verbose=False)
-    plot_flame([profile_reader], ranks=[0], data_filepath=flame_path, data_format="json", verbose=False)
     write_region_statistics_json([profile_reader], region_stats_path, ranks=[0])
 
-    # A flame graph draws one node per *individual call*, unlike the other
-    # charts (which aggregate) -- a run with thousands of steps produces
-    # tens of thousands of near-identical nodes, which is both unreadable
-    # and heavy enough to hang the browser tab. Truncating to the first
-    # FLAME_MAX_CALLS calls (in call order, which is chronological and
-    # nests parents before children) keeps the full setup phase plus
-    # several complete iterations of the step loop -- enough to see the
-    # real call hierarchy -- without the repetition.
-    FLAME_MAX_CALLS = 3000
-    flame_payload = json.loads(flame_path.read_text())
-    if len(flame_payload["calls"]) > FLAME_MAX_CALLS:
-        flame_payload["calls"] = sorted(flame_payload["calls"], key=lambda c: c["call_id"])[:FLAME_MAX_CALLS]
-        flame_path.write_text(json.dumps(flame_payload))
-
-    # A gantt bar is also one call, not an aggregate -- the same truncation
-    # (kept in time order, so it's setup plus the same early portion of the
-    # step loop shown in the flame chart above) keeps it fast to render.
+    # A gantt bar is one call, not an aggregate, and a run with thousands of
+    # steps draws tens of thousands of near-identical bars -- heavy enough to
+    # hang the tab. Keeping the first GANTT_MAX_INTERVALS in time order leaves
+    # the setup phase plus several complete iterations of the step loop.
     GANTT_MAX_INTERVALS = 5000
     gantt_payload = json.loads(gantt_path.read_text())
     if len(gantt_payload["intervals"]) > GANTT_MAX_INTERVALS:
         gantt_payload["intervals"] = sorted(gantt_payload["intervals"], key=lambda c: c["start_seconds"])[:GANTT_MAX_INTERVALS]
         gantt_path.write_text(json.dumps(gantt_payload))
     print(f"Saved {profile_h5_path.resolve()}")
-    print(f"Saved {durations_path.resolve()}, {gantt_path.resolve()}, {flame_path.resolve()}, {region_stats_path.resolve()}")
+    print(f"Saved {durations_path.resolve()}, {gantt_path.resolve()}, {region_stats_path.resolve()}")
 
     metadata_path = Path("vlasov-tokamak.metadata.json")
     metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
@@ -295,7 +290,6 @@ if __name__ == "__main__":
     metadata["profilingData"] = "/examples/vlasov-tokamak-profile.h5"
     metadata["profilingDurations"] = "/examples/vlasov-tokamak-durations.json"
     metadata["profilingGantt"] = "/examples/vlasov-tokamak-gantt.json"
-    metadata["profilingFlame"] = "/examples/vlasov-tokamak-flame.json"
     metadata["profilingRegionStats"] = "/examples/vlasov-tokamak-region-stats.json"
     metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False))
     print(f"Saved {metadata_path.resolve()}")

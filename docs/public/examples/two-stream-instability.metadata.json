@@ -1,5 +1,5 @@
 {
-  "measuredGrowthRate": 0.31863457439084375,
+  "measuredGrowthRate": 0.3126607655857979,
   "expectedGrowthRate": 0.2845,
   "name": "Two-stream instability",
   "description": "Two counter-streaming Maxwellian beams are kinetically unstable — a tiny perturbation grows exponentially, drawing energy from the beams, until particle trapping saturates the growth.",
