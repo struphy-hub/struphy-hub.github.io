@@ -78,7 +78,7 @@ jobs:
         shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
-          pip install -e "./submodules/struphy[phys,mpi]"
+          pip install "./submodules/struphy[phys,mpi]"
           pip install "scope-profiler[pproc]" kaleido
 
       - name: Fetch headless Chrome for kaleido
