@@ -16,7 +16,109 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # docs/src/examples/*.py are full Struphy simulations (see docs/src/examples/README.md)
+  # -- their outputs are gitignored (see .gitignore), so every deploy regenerates them here
+  # instead of pushing multi-MB HTML/HDF5 files to the repo. Runs in struphy's own
+  # precompiled image (see submodules/struphy/docker/ubuntu-latest-with-struphy.dockerfile
+  # and .github/workflows/ghcr.yml in that repo) so we skip installing the system toolchain
+  # (gfortran, MPI, BLAS/LAPACK, netCDF, ...) needed to build gvec/desc-opt from source.
+  # struphy-hub.github.io has been granted read access to that (otherwise private) package,
+  # so the default GITHUB_TOKEN is enough to pull it -- no extra secret needed.
+  generate-examples:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/struphy-hub/struphy/ubuntu-with-struphy:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Trust the checked-out worktree
+        # Actions containers run as root; git refuses to touch a worktree owned by another
+        # UID ("detected dubious ownership") unless told to trust it -- struphy's own
+        # editable install below shells out to git (setuptools-scm) and would hit this.
+        run: git config --global --add safe.directory '*'
+
+      # Each run is deterministic (fixed seeds), so cache on the example scripts' and
+      # Struphy's own source, and skip the expensive rebuild when neither changed.
+      - name: Cache generated examples
+        id: cache-examples
+        uses: actions/cache@v4
+        with:
+          path: |
+            docs/public/examples/*.html
+            docs/public/examples/*.png
+            docs/public/examples/*.metadata.json
+            docs/public/examples/*-profile.h5
+            docs/public/examples/*-durations.json
+            docs/public/examples/*-gantt.json
+            docs/public/examples/*-flame.json
+            docs/public/examples/*-region-stats.json
+            docs/public/images/examples/*.png
+          key: struphy-examples-${{ hashFiles('docs/src/examples/*.py', 'submodules/struphy/src/struphy/**/*.py') }}
+
+      - name: Install Struphy from this repo's pinned submodule commit
+        # The image bakes in whatever struphy commit was HEAD when it was last built --
+        # reinstall editable from our own submodule checkout so kernels match exactly what
+        # this repo pins, using the image's already-installed venv (and its already-built
+        # gvec/desc-opt) rather than a fresh one.
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
+          pip install -e "./submodules/struphy[phys,mpi]"
+
+      - name: Compile Struphy kernels
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
+          struphy compile -y --language fortran
+
+      - name: Generate example metadata
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
+          python generate_examples.py
+
+      - name: Run examples
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        working-directory: docs/public/examples
+        run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
+          for script in ../../src/examples/*.py; do
+            echo "::group::$(basename "$script")"
+            python "$script"
+            echo "::endgroup::"
+          done
+
+      - name: Copy example thumbnails
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        run: cp docs/public/examples/*.png docs/public/images/examples/
+
+      - name: Clean up simulation scratch output
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        run: rm -rf docs/public/examples/struphy_gallery_runs docs/public/examples/struphy.log
+
+      - name: Verify generated examples
+        run: test -n "$(find docs/public/examples -maxdepth 1 -name '*.html' -print -quit)"
+
+      - name: Upload generated examples
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-examples
+          path: |
+            docs/public/examples
+            docs/public/images/examples
+          retention-days: 1
+
   build:
+    needs: generate-examples
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -55,66 +157,11 @@ jobs:
           test -n "$(find docs/public/domains -maxdepth 1 -name '*-xy.json' -print -quit)"
           test -s docs/public/domains/catalogue.json
 
-      # docs/src/examples/*.py are full Struphy simulations (see docs/src/examples/README.md)
-      # -- their outputs are gitignored (see .gitignore), so every deploy regenerates them
-      # here instead of pushing multi-MB HTML/HDF5 files to the repo. Each run is
-      # deterministic (fixed seeds), so cache on the example scripts' and Struphy's own
-      # source, and skip the whole (expensive) rebuild when neither changed.
-      - name: Cache generated examples
-        id: cache-examples
-        uses: actions/cache@v4
+      - name: Download generated examples
+        uses: actions/download-artifact@v4
         with:
-          path: |
-            docs/public/examples/*.html
-            docs/public/examples/*.png
-            docs/public/examples/*.metadata.json
-            docs/public/examples/*-profile.h5
-            docs/public/examples/*-durations.json
-            docs/public/examples/*-gantt.json
-            docs/public/examples/*-flame.json
-            docs/public/examples/*-region-stats.json
-            docs/public/images/examples/*.png
-          key: struphy-examples-${{ hashFiles('docs/src/examples/*.py', 'submodules/struphy/src/struphy/**/*.py') }}
-
-      - name: Install system dependencies for compiled Struphy kernels
-        if: steps.cache-examples.outputs.cache-hit != 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            gfortran gcc g++ liblapack-dev libblas-dev \
-            libopenmpi-dev openmpi-bin libomp-dev libomp5 \
-            libosmesa6 libosmesa6-dev libegl-mesa0 \
-            cmake zlib1g-dev libnetcdf-dev libnetcdff-dev
-
-      - name: Install Struphy with example dependencies
-        if: steps.cache-examples.outputs.cache-hit != 'true'
-        run: python -m pip install "./submodules/struphy[phys,mpi]"
-
-      - name: Compile Struphy kernels
-        if: steps.cache-examples.outputs.cache-hit != 'true'
-        run: struphy compile -y --language fortran
-
-      - name: Generate example metadata
-        if: steps.cache-examples.outputs.cache-hit != 'true'
-        run: python generate_examples.py
-
-      - name: Run examples
-        if: steps.cache-examples.outputs.cache-hit != 'true'
-        working-directory: docs/public/examples
-        run: |
-          for script in ../../src/examples/*.py; do
-            echo "::group::$(basename "$script")"
-            python "$script"
-            echo "::endgroup::"
-          done
-
-      - name: Copy example thumbnails
-        if: steps.cache-examples.outputs.cache-hit != 'true'
-        run: cp docs/public/examples/*.png docs/public/images/examples/
-
-      - name: Clean up simulation scratch output
-        if: steps.cache-examples.outputs.cache-hit != 'true'
-        run: rm -rf docs/public/examples/struphy_gallery_runs docs/public/examples/struphy.log
+          name: generated-examples
+          path: docs/public
 
       - name: Verify generated examples
         run: test -n "$(find docs/public/examples -maxdepth 1 -name '*.html' -print -quit)"
