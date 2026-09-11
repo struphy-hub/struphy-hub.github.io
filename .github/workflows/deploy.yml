@@ -75,6 +75,7 @@ jobs:
         # pproc submodule for the durations/gantt/flame plot-data export, kaleido for
         # figure.write_image(...)'s static PNG export.
         if: steps.cache-examples.outputs.cache-hit != 'true'
+        shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
           pip install -e "./submodules/struphy[phys,mpi]"
@@ -82,12 +83,14 @@ jobs:
 
       - name: Compile Struphy kernels
         if: steps.cache-examples.outputs.cache-hit != 'true'
+        shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
           struphy compile -y --language fortran
 
       - name: Generate example metadata
         if: steps.cache-examples.outputs.cache-hit != 'true'
+        shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
           python generate_examples.py
@@ -95,6 +98,7 @@ jobs:
       - name: Run examples
         if: steps.cache-examples.outputs.cache-hit != 'true'
         working-directory: docs/public/examples
+        shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
           for script in ../../src/examples/*.py; do
