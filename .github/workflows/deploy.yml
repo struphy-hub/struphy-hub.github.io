@@ -69,10 +69,16 @@ jobs:
         # reinstall editable from our own submodule checkout so kernels match exactly what
         # this repo pins, using the image's already-installed venv (and its already-built
         # gvec/desc-opt) rather than a fresh one.
+        #
+        # scope-profiler[pproc] and kaleido aren't pulled in by the phys/mpi extras (only by
+        # struphy's own dev/doc extras) but the example scripts need both: scope-profiler's
+        # pproc submodule for the durations/gantt/flame plot-data export, kaleido for
+        # figure.write_image(...)'s static PNG export.
         if: steps.cache-examples.outputs.cache-hit != 'true'
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
           pip install -e "./submodules/struphy[phys,mpi]"
+          pip install "scope-profiler[pproc]" kaleido --no-deps
 
       - name: Compile Struphy kernels
         if: steps.cache-examples.outputs.cache-hit != 'true'
