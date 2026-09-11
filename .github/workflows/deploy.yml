@@ -79,7 +79,17 @@ jobs:
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
           pip install -e "./submodules/struphy[phys,mpi]"
-          pip install "scope-profiler[pproc]" kaleido --no-deps
+          pip install "scope-profiler[pproc]" kaleido
+
+      - name: Fetch headless Chrome for kaleido
+        # kaleido>=1.0 drives Chrome via choreographer instead of bundling a binary, and
+        # doesn't auto-download it -- without this, figure.write_image(...) fails with
+        # ChromeNotFoundError on a bare container that has no browser installed.
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
+          kaleido_get_chrome
 
       - name: Compile Struphy kernels
         if: steps.cache-examples.outputs.cache-hit != 'true'
