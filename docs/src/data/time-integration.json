@@ -1,0 +1,169 @@
+{
+  "splitAlgos": [
+    {
+      "name": "LieTrotter",
+      "order": 1,
+      "shape": "sequential",
+      "summary": "Apply every propagator once, in the model's order, each over the full step.",
+      "detail": "The cheapest composition: one pass through the propagator list. It is first-order accurate in time, because the propagators do not commute -- the error left over from applying them in sequence rather than simultaneously is O(dt\u00b2) per step.",
+      "minimumPropagators": 1
+    },
+    {
+      "name": "Strang",
+      "order": 2,
+      "shape": "palindromic",
+      "summary": "Half-steps down the list, one full step of the last propagator, then the half-steps again in reverse.",
+      "detail": "Making the composition palindromic cancels the leading error term, giving second-order accuracy for roughly twice the work per step. It needs at least two propagators, so a model with a single step can only run Lie-Trotter.",
+      "minimumPropagators": 2
+    }
+  ],
+  "butcher": [
+    {
+      "algo": "forward_euler",
+      "stages": 1,
+      "order": 1,
+      "a": [
+        []
+      ],
+      "b": [
+        "1"
+      ],
+      "c": [
+        "0"
+      ]
+    },
+    {
+      "algo": "heun2",
+      "stages": 2,
+      "order": 2,
+      "a": [
+        [],
+        [
+          "1"
+        ]
+      ],
+      "b": [
+        "1/2",
+        "1/2"
+      ],
+      "c": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "algo": "rk2",
+      "stages": 2,
+      "order": 2,
+      "a": [
+        [],
+        [
+          "1/2"
+        ]
+      ],
+      "b": [
+        "0",
+        "1"
+      ],
+      "c": [
+        "0",
+        "1/2"
+      ]
+    },
+    {
+      "algo": "heun3",
+      "stages": 3,
+      "order": 3,
+      "a": [
+        [],
+        [
+          "1/3"
+        ],
+        [
+          "0",
+          "2/3"
+        ]
+      ],
+      "b": [
+        "1/4",
+        "0",
+        "3/4"
+      ],
+      "c": [
+        "0",
+        "1/3",
+        "2/3"
+      ]
+    },
+    {
+      "algo": "3/8 rule",
+      "stages": 4,
+      "order": 4,
+      "a": [
+        [],
+        [
+          "1/3"
+        ],
+        [
+          "-1/3",
+          "1"
+        ],
+        [
+          "1",
+          "-1",
+          "1"
+        ]
+      ],
+      "b": [
+        "1/8",
+        "3/8",
+        "3/8",
+        "1/8"
+      ],
+      "c": [
+        "0",
+        "1/3",
+        "2/3",
+        "1"
+      ]
+    },
+    {
+      "algo": "rk4",
+      "stages": 4,
+      "order": 4,
+      "a": [
+        [],
+        [
+          "1/2"
+        ],
+        [
+          "0",
+          "1/2"
+        ],
+        [
+          "0",
+          "0",
+          "1"
+        ]
+      ],
+      "b": [
+        "1/6",
+        "1/3",
+        "1/3",
+        "1/6"
+      ],
+      "c": [
+        "0",
+        "1/2",
+        "1/2",
+        "1"
+      ]
+    }
+  ],
+  "defaults": {
+    "dt": 0.01,
+    "Tend": 0.03,
+    "split_algo": "LieTrotter",
+    "butcher": "rk4"
+  }
+}

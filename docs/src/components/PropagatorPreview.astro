@@ -1,0 +1,86 @@
+---
+import 'katex/dist/katex.min.css';
+const { initialSlug } = Astro.props;
+---
+<article class="propagator-preview" data-propagator-preview data-slug={initialSlug} aria-live="polite">
+  <div class="heading">
+    <div><p class="eyebrow" data-propagator-category>Propagator</p><h2 data-propagator-name>Loading…</h2></div>
+    <div class="actions"><a data-propagator-page href={`/propagators/${initialSlug}/`}>Full page</a><a data-propagator-docs href="https://struphy-hub.github.io/struphy">Documentation ↗</a></div>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Propagator information">
+    {[['overview','Overview'],['variables','Variables'],['options','Options'],['used-by','Used by']].map(([id,label],index)=><button type="button" role="tab" data-propagator-tab={id} aria-selected={String(index===0)}>{label}</button>)}
+  </div>
+  <p class="status" data-propagator-status>Loading propagator information…</p>
+  <div class="panel generated" data-propagator-panel="overview"><p class="summary" data-propagator-summary></p><div data-propagator-description></div></div>
+  <div class="panel generated" data-propagator-panel="variables" hidden></div>
+  <div class="panel generated" data-propagator-panel="options" hidden></div>
+  <div class="panel generated" data-propagator-panel="used-by" hidden></div>
+</article>
+
+<script>
+  function escapeHtml(value: string) {
+    return value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] as string));
+  }
+  function renderVariables(variables: any[]) {
+    if (!variables.length) {
+      return '<p class="note">This propagator still inherits the abstract variable template from <code>Propagator</code> and does not declare its own variables.</p>';
+    }
+    const rows = variables.map((variable) => `
+      <tr>
+        <td><code class="accent">${escapeHtml(variable.name)}</code></td>
+        <td>${escapeHtml(variable.kinds.join(' or ') || '—')}</td>
+        <td>${variable.spaces.length ? variable.spaces.map((space: string) => `<code class="chip">${escapeHtml(space)}</code>`).join('') : '—'}</td>
+      </tr>`).join('');
+    return `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Kind</th><th>Accepted spaces</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  function renderOptions(options: any[], className: string) {
+    if (!options.length) return '<p class="note">This propagator takes no configuration options.</p>';
+    const lead = `<p class="lead">Set these on the propagator in a parameter file, for example <code>${escapeHtml(className)}.Options(${escapeHtml(options[0].name)}=...)</code>.</p>`;
+    const rows = options.map((option) => `
+      <tr>
+        <td><code class="accent">${escapeHtml(option.name)}</code></td>
+        <td>${option.default === null ? '—' : `<code>${escapeHtml(String(option.default))}</code>`}</td>
+        <td>${option.choices.length ? option.choices.map((choice: string) => `<code class="chip">${escapeHtml(choice)}</code>`).join('') : `<span class="muted">${escapeHtml(option.type)}</span>`}</td>
+        <td>${option.descriptionHtml || '<span class="muted">—</span>'}</td>
+      </tr>`).join('');
+    return `${lead}<div class="table-wrap"><table><thead><tr><th>Option</th><th>Default</th><th>Choices</th><th>Description</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  function renderUsedBy(usedBy: any[]) {
+    if (!usedBy.length) return '<p class="note">No model in the catalogue currently composes this propagator — it is available for building new models.</p>';
+    const typeOrder = ['Fluid', 'Kinetic', 'Hybrid', 'Toy'];
+    const sorted = [...usedBy].sort((a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type) || a.model.localeCompare(b.model));
+    const lead = `<p class="lead">Each model splits its time step into a sequence of propagators. This one appears in ${sorted.length} model${sorted.length === 1 ? '' : 's'}, at the position shown.</p>`;
+    const items = sorted.map((entry) => `
+      <li><a href="/models/${entry.model.replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/[_\s]+/g, '-').replace(/[^a-zA-Z0-9-]/g, '').replace(/-+/g, '-').toLowerCase()}/">
+        <code class="accent">${escapeHtml(entry.model)}</code>
+        <span class="model-type">${escapeHtml(entry.type)}</span>
+        <span class="step">step ${entry.index + 1} of ${entry.steps} · <code>${escapeHtml(entry.step)}</code></span>
+      </a></li>`).join('');
+    return `${lead}<ul class="model-list">${items}</ul>`;
+  }
+  function setupPropagatorPreview(root: HTMLElement) {
+    const tabs=[...root.querySelectorAll<HTMLButtonElement>('[data-propagator-tab]')],panels=[...root.querySelectorAll<HTMLElement>('[data-propagator-panel]')],status=root.querySelector<HTMLElement>('[data-propagator-status]');let request=0;
+    const selectTab=(id:string)=>{tabs.forEach((tab)=>tab.setAttribute('aria-selected',String(tab.dataset.propagatorTab===id)));panels.forEach((panel)=>{panel.hidden=panel.dataset.propagatorPanel!==id})};
+    tabs.forEach((tab)=>tab.addEventListener('click',()=>selectTab(tab.dataset.propagatorTab||'overview')));
+    const setHtml=(selector:string,html='')=>{const element=root.querySelector<HTMLElement>(selector);if(element)element.innerHTML=html};
+    const setText=(selector:string,text='')=>{const element=root.querySelector<HTMLElement>(selector);if(element)element.textContent=text};
+    const load=async(slug:string)=>{const current=++request;if(status){status.hidden=false;status.textContent='Loading propagator information…'}try{const response=await fetch(`/catalogue-data/propagators/${slug}.json`);if(!response.ok)throw new Error(`Propagator returned ${response.status}`);const propagator=await response.json();if(current!==request)return;setText('[data-propagator-name]',propagator.className);setText('[data-propagator-category]',`${propagator.category} propagator`);setText('[data-propagator-summary]',propagator.summary);setHtml('[data-propagator-description]',propagator.descriptionHtml);setHtml('[data-propagator-panel="variables"]',renderVariables(propagator.variables));setHtml('[data-propagator-panel="options"]',renderOptions(propagator.options,propagator.className));setHtml('[data-propagator-panel="used-by"]',renderUsedBy(propagator.usedBy));const page=root.querySelector<HTMLAnchorElement>('[data-propagator-page]'),docs=root.querySelector<HTMLAnchorElement>('[data-propagator-docs]');if(page)page.href=`/propagators/${propagator.slug}/`;if(docs)docs.href=propagator.docsUrl;if(status)status.hidden=true;selectTab('overview')}catch(error){console.error('Unable to load propagator information:',error);if(status)status.textContent='Propagator information could not be loaded.'}};
+    root.addEventListener('propagator-preview-change',((event:CustomEvent)=>{const slug=event.detail?.slug;if(slug){root.dataset.slug=slug;load(slug)}}) as EventListener);load(root.dataset.slug||'');
+  }
+  document.querySelectorAll<HTMLElement>('[data-propagator-preview]').forEach((root)=>setupPropagatorPreview(root));
+</script>
+
+<style>
+  .propagator-preview{min-width:0;padding:28px;border:1px solid var(--rule)}.heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}.heading h2{margin:0;font-size:clamp(1.5rem,3vw,2.15rem);overflow-wrap:anywhere}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:12px 18px}.actions a{color:var(--cyan);font-size:.82rem;text-decoration:none}.actions a:hover{text-decoration:underline}.tabs{display:flex;gap:0 20px;margin:24px 0 20px;overflow-x:auto;border-bottom:1px solid var(--rule)}.tabs button{flex:none;padding:9px 0 7px;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:.84rem}.tabs button[aria-selected=true]{border-bottom-color:var(--cyan);color:var(--paper)}.status,.summary,.generated :global(p),.generated :global(li){color:var(--muted)}.panel{min-width:0}.panel h3{margin-top:28px}.generated :global(pre){max-width:100%;padding:16px;overflow:auto;border:1px solid var(--rule);background:var(--code-bg);font-size:.8rem}.generated :global(.math-display){max-width:100%;overflow:auto}.generated :global(table){display:block;max-width:100%;overflow:auto;border-collapse:collapse}.generated :global(th),.generated :global(td){padding:8px;border-bottom:1px solid var(--rule);text-align:left}
+  .generated :global(.lead),.generated :global(.note){max-width:760px}
+  .generated :global(.accent){color:var(--cyan)!important}
+  .generated :global(.chip){display:inline-block;margin:0 5px 4px 0;padding:2px 7px;border:1px solid var(--rule);font-size:.78rem}
+  .generated :global(.muted){color:var(--muted)}
+  .generated :global(.model-list){display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;max-width:100%;margin:16px 0 0;padding:0;list-style:none}
+  .generated :global(.model-list a){display:block;padding:14px 16px;border:1px solid var(--rule);color:var(--paper);text-decoration:none}
+  .generated :global(.model-list a:hover){border-color:var(--cyan);background:var(--accent-wash)}
+  .generated :global(.model-list code){display:block;font-size:.9rem;overflow-wrap:anywhere}
+  .generated :global(.model-type){display:inline-block;margin-top:5px;color:var(--muted);font:600 .7rem var(--mono);letter-spacing:.07em;text-transform:uppercase}
+  .generated :global(.step){display:block;margin-top:4px;color:var(--muted);font-size:.78rem}
+  @media(max-width:650px){.heading{flex-direction:column}.actions{justify-content:flex-start}}
+</style>
