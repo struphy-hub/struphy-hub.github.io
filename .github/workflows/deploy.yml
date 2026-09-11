@@ -94,6 +94,7 @@ jobs:
         # actual runtime dependencies (libnss3, libatk-bridge, libgbm, ...) correctly for
         # whatever Ubuntu version this image uses.
         if: steps.cache-examples.outputs.cache-hit != 'true'
+        shell: bash
         run: |
           apt-get update
           apt-get install -y wget
