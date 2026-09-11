@@ -1,0 +1,204 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import anatomy from '../../data/simulation-anatomy.json';
+import rawModels from '../../data/models.json';
+import rawPropagators from '../../data/propagators.json';
+import { codeToHtml } from 'shiki';
+
+const modelCount = (rawModels as any[]).length;
+const propagatorCount = (rawPropagators as any[]).length;
+
+// A minimal but real setup: the same calls the gallery examples make, with the
+// analysis and plotting that surrounds them there left out.
+const SETUP_CODE = `from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time
+from struphy import domains, grids, perturbations
+from struphy.models import Maxwell
+
+# 1. The model brings its own species, variables and propagators.
+model = Maxwell()
+model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
+
+# 2. Where it lives: a mapped domain and the elements covering it.
+domain = domains.Cuboid(r3=20.0)
+grid = grids.TensorProductGrid(num_elements=(1, 1, 128))
+
+# 3. How the fields are discretized on that grid.
+derham_opts = DerhamOptions(degree=(1, 1, 3))
+
+# 4. Initial conditions, added to the model's variables.
+model.em_fields.e_field.add_perturbation(perturbations.Noise(amp=0.1, comp=0, seed=123))
+
+# 5. How it steps.
+time_opts = Time(dt=0.05, Tend=50.0, split_algo="LieTrotter")
+
+# 6. Everything above, assembled into one object.
+sim = Simulation(
+    model=model,
+    name="Maxwell light-wave dispersion",
+    env=EnvironmentOptions(out_folders="runs", sim_folder="maxwell_light_wave"),
+    domain=domain,
+    grid=grid,
+    derham_opts=derham_opts,
+    time_opts=time_opts,
+)
+
+sim.run(profiling_activated=True)   # allocate, initialize, step, save
+sim.pproc()                         # evaluate the FEEC fields onto a grid
+sim.load_plotting_data()            # read the result back for analysis`;
+
+const setupHtml = await codeToHtml(SETUP_CODE, {
+  lang: 'python',
+  themes: { light: 'github-light', dark: 'github-dark' },
+  defaultColor: false,
+});
+---
+
+<Layout
+  title="Building a simulation — Struphy"
+  description="How a Struphy simulation is assembled: one Simulation object holding the model, domain, equilibrium, grid, discretization and time stepping, and what happens when you run it."
+>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">How it works</p>
+      <h1 id="page-title">Building a simulation</h1>
+      <p>
+        A Struphy run is one <code>Simulation</code> object. You assemble it from a model and the pieces that say
+        where it lives, how it is discretized and how it steps, then call <code>run()</code>. Nothing is hidden in
+        a configuration format: the arguments below are the whole setup, and each one is a Python object you can
+        build, print and reuse.
+      </p>
+    </section>
+
+    <section class="section" aria-labelledby="anatomy-title">
+      <h2 id="anatomy-title">Anatomy of a run</h2>
+      <p class="lead">
+        Every argument <code>Simulation</code> takes, grouped by the question it answers. The ones carrying a
+        browse link have a catalogue on this site — {modelCount} models, {propagatorCount} propagators, and the
+        domains, equilibria, perturbations and backgrounds they are configured with.
+      </p>
+
+      <div class="groups">
+        {anatomy.groups.map((group: any) => (
+          <article class="group">
+            <header>
+              <h3>{group.name}</h3>
+              <p>{group.blurb}</p>
+            </header>
+            <dl>
+              {group.parameters.map((parameter: any) => (
+                <div class="parameter">
+                  <dt>
+                    <code class={parameter.link ? 'accent' : ''}>{parameter.name}</code>
+                    <span class="type">{parameter.type}</span>
+                    {parameter.required
+                      ? <span class="required">required</span>
+                      : parameter.default && <span class="default">= {parameter.default}</span>}
+                  </dt>
+                  <dd>
+                    <p>{parameter.description}</p>
+                    {parameter.link && <a class="catalogue-link" href={parameter.link.href}>Browse {parameter.link.label} →</a>}
+                    {parameter.fields && parameter.fields.length > 0 && (
+                      <p class="fields">
+                        {parameter.fields.map((field: any, index: number) => (
+                          <>{index > 0 && ' · '}<code>{field.name}</code></>
+                        ))}
+                        {parameter.fieldsTruncated && <span class="more"> … {parameter.fieldCount} in total</span>}
+                      </p>
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="code-title">
+      <h2 id="code-title">In code</h2>
+      <p class="lead">
+        The same pieces, in the order you usually build them. This is the shape every{' '}
+        <a href="/examples/">gallery example</a> has, with its analysis and plotting removed.
+      </p>
+      <div class="highlight" set:html={setupHtml}></div>
+    </section>
+
+    <section class="section" aria-labelledby="run-title">
+      <h2 id="run-title">What <code>run()</code> does</h2>
+      <p class="lead">
+        Setup happens once — all of it inside one <code>{anatomy.setupRegion}</code> region — and then the time
+        loop advances the model and saves at intervals. Struphy instruments each phase, so these names are exactly
+        the regions you can read off the performance charts on an example page.
+      </p>
+      <ol class="phases">
+        {anatomy.runPhases.map((phase: string) => (
+          <li><code>{phase}</code></li>
+        ))}
+        <li class="loop">
+          <code>model.integrate(dt, split_algo)</code>
+          <span>once per step, until <code>Tend</code> — each step composing the model's propagators</span>
+        </li>
+      </ol>
+      <p class="footnote">
+        How that last line composes the propagators is the subject of{' '}
+        <a href="/time-integration/">time integration</a>; what the propagators themselves solve is on the{' '}
+        <a href="/propagators/">propagator pages</a>.
+      </p>
+    </section>
+
+    <section class="section" aria-labelledby="after-title">
+      <h2 id="after-title">After the run</h2>
+      <p class="lead">
+        A run writes into <code>out_folders/sim_folder</code>: the field and marker data, the geometry, the
+        parameters it ran with, and — when profiling is on — the timing file behind those performance charts.
+        <code>sim.pproc()</code> evaluates the FEEC coefficients onto a grid and
+        <code>sim.load_plotting_data()</code> reads them back, so analysis happens against the same objects the run
+        used rather than a re-parsed output format.
+      </p>
+      <p class="links-row">
+        <a href="/examples/">See it end to end in the examples →</a>
+        <a href="https://struphy-hub.github.io/struphy/sections/userguide.html">Full user guide ↗</a>
+      </p>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .intro{max-width:820px;padding-block:clamp(56px,8vw,92px)}
+  .eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}
+  .intro>p:not(.eyebrow){color:var(--muted)}
+  .section{padding-block:42px 60px;border-top:1px solid var(--rule)}
+  h2{margin:0 0 14px}
+  .lead{max-width:840px;color:var(--muted)}
+  .lead a,.footnote a,.links-row a{color:var(--cyan)}
+  .groups{display:grid;gap:18px;margin-top:26px}
+  .group{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:28px;padding:20px 22px;border:1px solid var(--rule)}
+  .group header h3{margin:0 0 7px;font-size:1.02rem}
+  .group header p{margin:0;color:var(--muted);font-size:.84rem;line-height:1.5}
+  dl{margin:0;display:grid;gap:16px}
+  .parameter{min-width:0}
+  dt{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px}
+  dt code{font-size:.9rem;overflow-wrap:anywhere}
+  .accent{color:var(--cyan)}
+  .type{color:var(--muted);font:.76rem var(--mono)}
+  .required{padding:1px 6px;border:1px solid var(--cyan);color:var(--cyan);font:600 .66rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+  .default{color:var(--muted);font:.76rem var(--mono);opacity:.8}
+  dd{margin:5px 0 0;min-width:0}
+  dd p{margin:0;color:var(--muted);font-size:.86rem;line-height:1.5}
+  .catalogue-link{display:inline-block;margin-top:5px;color:var(--cyan);font-size:.82rem}
+  .fields{margin-top:6px!important;font:.74rem var(--mono);opacity:.85}
+  .fields code{color:var(--muted)}
+  .fields .more{opacity:.75}
+  .highlight{max-width:900px;margin-top:22px;padding:20px 22px;overflow-x:auto;border:1px solid var(--rule);background:var(--code-bg);font-size:.84rem}
+  .highlight :global(pre){margin:0;background:none!important}
+  .phases{display:grid;gap:8px;max-width:840px;margin:22px 0 0;padding:0;list-style:none;counter-reset:phase}
+  .phases li{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;padding:9px 14px;border-left:2px solid var(--rule)}
+  .phases li::before{counter-increment:phase;content:counter(phase);color:var(--muted);font:600 .72rem var(--mono)}
+  .phases code{font-size:.84rem}
+  .phases .loop{border-left-color:var(--cyan);background:var(--accent-wash)}
+  .phases .loop span{color:var(--muted);font-size:.8rem}
+  .footnote{max-width:840px;margin-top:20px;color:var(--muted);font-size:.86rem}
+  .links-row{display:flex;flex-wrap:wrap;gap:22px;margin-top:18px}
+  @media(max-width:760px){.group{grid-template-columns:1fr;gap:16px}}
+</style>

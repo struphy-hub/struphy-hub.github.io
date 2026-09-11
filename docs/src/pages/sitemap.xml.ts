@@ -7,7 +7,7 @@ import { toSlug } from '../lib/catalogue';
 
 export async function GET() {
   const paths = [
-    '/', '/examples/', '/models/', '/propagators/', '/domains/', '/equilibria/', '/perturbations/', '/backgrounds/', '/feec/', '/time-integration/', '/search/', '/citation/',
+    '/', '/examples/', '/models/', '/propagators/', '/domains/', '/equilibria/', '/perturbations/', '/backgrounds/', '/simulation/', '/feec/', '/time-integration/', '/search/', '/citation/',
     ...examples.map((example: any) => example.href),
     ...rawModels.map((model: any) => `/models/${toSlug(model.className)}/`),
     ...rawPropagators.map((propagator: any) => `/propagators/${toSlug(propagator.className)}/`),

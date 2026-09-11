@@ -8,28 +8,39 @@ const {
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const ogImageURL = new URL(image, Astro.site);
 
-// Catalogue pages, in the main bar; "More" holds the explainers; external links
-// come last. Kept as three lists rather than one sliced by index, so adding a
-// page to the bar doesn't silently push the last entry into another group.
+// The bar holds what a reader starts from; "More" holds the ingredients you
+// reach through a model and the explainers; external links come last. Kept as
+// separate lists rather than one sliced by index, so moving a page between
+// groups doesn't silently push another entry out of the bar.
 const catalogueLinks = [
   { href: '/examples/', label: 'Examples' },
   { href: '/models/', label: 'Models' },
   { href: '/propagators/', label: 'Propagators' },
   { href: '/domains/', label: 'Domains' },
-  { href: '/equilibria/', label: 'Equilibria' },
-  { href: '/perturbations/', label: 'Perturbations' },
 ];
 
-// Catalogue pages that don't fit in the bar, plus the explainers.
-const moreCatalogueLinks = [
-  { href: '/backgrounds/', label: 'Kinetic backgrounds' },
+// Two halves, separated by a rule in the menu: the ingredients a model is
+// configured with, then the pages explaining how it all fits together.
+const moreGroups = [
+  {
+    name: 'Ingredients',
+    links: [
+      { href: '/equilibria/', label: 'Equilibria' },
+      { href: '/perturbations/', label: 'Perturbations' },
+      { href: '/backgrounds/', label: 'Kinetic backgrounds' },
+    ],
+  },
+  {
+    name: 'How it works',
+    links: [
+      { href: '/simulation/', label: 'Building a simulation' },
+      { href: '/feec/', label: 'FEEC basics' },
+      { href: '/time-integration/', label: 'Time integration' },
+    ],
+  },
 ];
 
-const moreLinks = [
-  ...moreCatalogueLinks,
-  { href: '/feec/', label: 'FEEC basics' },
-  { href: '/time-integration/', label: 'Time integration' },
-];
+const moreLinks = moreGroups.flatMap((group) => group.links);
 
 const externalLinks = [
   { href: 'https://struphy-hub.github.io/struphy', label: 'Documentation' },
@@ -122,14 +133,19 @@ const structuredData = {
         <details class="nav-more" data-nav-more>
           <summary class={moreLinks.some((link) => isCurrent(link.href)) ? 'current' : ''}>More</summary>
           <div class="nav-more-menu">
-            {moreLinks.map((link) => (
-              <a
-                href={link.href}
-                class={isCurrent(link.href) ? 'current' : ''}
-                aria-current={isCurrent(link.href) ? 'page' : undefined}
-              >
-                {link.label}
-              </a>
+            {moreGroups.map((group) => (
+              <div class="nav-more-group">
+                <p class="nav-more-heading">{group.name}</p>
+                {group.links.map((link) => (
+                  <a
+                    href={link.href}
+                    class={isCurrent(link.href) ? 'current' : ''}
+                    aria-current={isCurrent(link.href) ? 'page' : undefined}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
             ))}
           </div>
         </details>
@@ -393,11 +409,30 @@ const structuredData = {
     z-index: 10;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    min-width: 160px;
+    gap: 14px;
+    min-width: 190px;
     padding: 12px 16px;
     border: 1px solid var(--rule);
     background: var(--ink);
+  }
+
+  .nav-more-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .nav-more-group + .nav-more-group {
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .nav-more-heading {
+    margin: 0;
+    color: var(--muted);
+    font: 600 0.68rem/1.4 var(--mono);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
   }
 
   .theme-toggle {
