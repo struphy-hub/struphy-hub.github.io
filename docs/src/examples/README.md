@@ -85,6 +85,13 @@ Clean up `docs/public/examples/struphy_gallery_runs/` (or wherever `EnvironmentO
 pointed) and any `struphy.log` left behind in that directory — they're simulation
 scratch output, not part of the site.
 
+Only `<script-stem>.metadata.json` and `docs/public/images/examples/<script-stem>.png` are
+committed to git — `.gitignore` excludes everything else this step produces
+(`<script-stem>.html`, the `docs/public/examples/<script-stem>.png` copy, and the profiling
+JSON/HDF5). `.github/workflows/deploy.yml` reruns every script here from scratch before each
+site build, so those files never need to be pushed by hand; running the script locally is
+only for wiring up the figure once and for local `npm run dev` previews.
+
 ## 4. Add the download route: `docs/src/pages/examples/<script-stem>.py.ts`
 
 ```ts
@@ -143,7 +150,9 @@ in its metadata. No list to edit by hand.
 - [ ] `docs/public/examples/<script-stem>.metadata.json` — from `generate_examples.py`, plus
       hand-added `thumbnail` / `interactive` (and any result field from the script itself)
 - [ ] `docs/public/examples/<script-stem>.png` / `.html` — from actually running the script
-- [ ] `docs/public/images/examples/<script-stem>.png` — copy of the PNG
+      once locally (gitignored; CI regenerates these on every deploy)
+- [ ] `docs/public/images/examples/<script-stem>.png` — copy of the PNG (the one example
+      artifact that *is* committed, as a fallback for local dev without a compiled Struphy)
 - [ ] `docs/src/pages/examples/<script-stem>.py.ts` — download route
 - [ ] `docs/src/pages/examples/<script-stem>/index.astro` — detail page
 - [ ] `npm run build` (or `dev`) — regenerates `examples-index.json` and confirms it builds

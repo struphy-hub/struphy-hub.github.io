@@ -55,6 +55,70 @@ jobs:
           test -n "$(find docs/public/domains -maxdepth 1 -name '*-xy.json' -print -quit)"
           test -s docs/public/domains/catalogue.json
 
+      # docs/src/examples/*.py are full Struphy simulations (see docs/src/examples/README.md)
+      # -- their outputs are gitignored (see .gitignore), so every deploy regenerates them
+      # here instead of pushing multi-MB HTML/HDF5 files to the repo. Each run is
+      # deterministic (fixed seeds), so cache on the example scripts' and Struphy's own
+      # source, and skip the whole (expensive) rebuild when neither changed.
+      - name: Cache generated examples
+        id: cache-examples
+        uses: actions/cache@v4
+        with:
+          path: |
+            docs/public/examples/*.html
+            docs/public/examples/*.png
+            docs/public/examples/*.metadata.json
+            docs/public/examples/*-profile.h5
+            docs/public/examples/*-durations.json
+            docs/public/examples/*-gantt.json
+            docs/public/examples/*-flame.json
+            docs/public/examples/*-region-stats.json
+            docs/public/images/examples/*.png
+          key: struphy-examples-${{ hashFiles('docs/src/examples/*.py', 'submodules/struphy/src/struphy/**/*.py') }}
+
+      - name: Install system dependencies for compiled Struphy kernels
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gfortran gcc g++ liblapack-dev libblas-dev \
+            libopenmpi-dev openmpi-bin libomp-dev libomp5 \
+            libosmesa6 libosmesa6-dev libegl-mesa0 \
+            cmake zlib1g-dev libnetcdf-dev libnetcdff-dev
+
+      - name: Install Struphy with example dependencies
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        run: python -m pip install "./submodules/struphy[phys,mpi]"
+
+      - name: Compile Struphy kernels
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        run: struphy compile -y --language fortran
+
+      - name: Generate example metadata
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        run: python generate_examples.py
+
+      - name: Run examples
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        working-directory: docs/public/examples
+        run: |
+          for script in ../../src/examples/*.py; do
+            echo "::group::$(basename "$script")"
+            python "$script"
+            echo "::endgroup::"
+          done
+
+      - name: Copy example thumbnails
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        run: cp docs/public/examples/*.png docs/public/images/examples/
+
+      - name: Clean up simulation scratch output
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        run: rm -rf docs/public/examples/struphy_gallery_runs docs/public/examples/struphy.log
+
+      - name: Verify generated examples
+        run: test -n "$(find docs/public/examples -maxdepth 1 -name '*.html' -print -quit)"
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
