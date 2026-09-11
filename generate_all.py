@@ -1,5 +1,5 @@
 """Run every catalogue generator (models, propagators, kinetic backgrounds, domains,
-equilibria, perturbations, model graph, time integration) in one go.
+equilibria, perturbations, model graph, time integration, simulation anatomy) in one go.
 
 Equivalent to running each of these from the repo root, in order:
 
@@ -7,6 +7,7 @@ Equivalent to running each of these from the repo root, in order:
     python generate_propagators.py
     python generate_kinetic_backgrounds.py
     python generate_time_integration.py
+    python generate_simulation_anatomy.py
     python generate_domains.py docs/public/domains
     python generate_equilibrium_slices.py
     python generate_perturbations.py
@@ -28,6 +29,7 @@ STEPS = [
     ["generate_propagators.py"],
     ["generate_kinetic_backgrounds.py"],
     ["generate_time_integration.py"],
+    ["generate_simulation_anatomy.py"],
     ["generate_domains.py", "docs/public/domains"],
     ["generate_equilibrium_slices.py"],
     ["generate_perturbations.py"],

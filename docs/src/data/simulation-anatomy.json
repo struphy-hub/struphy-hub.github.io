@@ -1,0 +1,376 @@
+{
+  "groups": [
+    {
+      "name": "What is solved",
+      "blurb": "The physics: a model, which brings its own species, variables and propagators.",
+      "parameters": [
+        {
+          "name": "model",
+          "type": "StruphyModel",
+          "default": null,
+          "required": true,
+          "description": "Physics model that provides species, propagators and variables.",
+          "link": {
+            "href": "/models/",
+            "label": "Models"
+          },
+          "fields": null,
+          "fieldsTruncated": false,
+          "fieldCount": 0
+        }
+      ]
+    },
+    {
+      "name": "Where it lives",
+      "blurb": "The mapped geometry, the background it is initialized from, and the element grid covering it.",
+      "parameters": [
+        {
+          "name": "domain",
+          "type": "Domain",
+          "default": "Cuboid()",
+          "required": false,
+          "description": "Computational domain description.",
+          "link": {
+            "href": "/domains/",
+            "label": "Domains"
+          },
+          "fields": null,
+          "fieldsTruncated": false,
+          "fieldCount": 0
+        },
+        {
+          "name": "equil",
+          "type": "FluidEquilibrium",
+          "default": "None",
+          "required": false,
+          "description": "Initial fluid equilibrium (may be None).",
+          "link": {
+            "href": "/equilibria/",
+            "label": "Equilibria"
+          },
+          "fields": null,
+          "fieldsTruncated": false,
+          "fieldCount": 0
+        },
+        {
+          "name": "grid",
+          "type": "grids.TensorProductGrid",
+          "default": "TensorProductGrid()",
+          "required": false,
+          "description": "Spatial grid used for FEEC variables.",
+          "link": {
+            "href": "/feec/",
+            "label": "FEEC basics"
+          },
+          "fields": [
+            {
+              "name": "num_elements",
+              "default": "(24, 10, 1)",
+              "description": "Number of elements in each direction."
+            },
+            {
+              "name": "mpi_dims_mask",
+              "default": "(True, True, True)",
+              "description": "True if the dimension is to be used in the domain decomposition (=default for each dimension). If mpi_dims_mask[i]=False, the i-th dimension will not be decomposed."
+            }
+          ],
+          "fieldsTruncated": false,
+          "fieldCount": 2
+        }
+      ]
+    },
+    {
+      "name": "How it is discretized",
+      "blurb": "Spline degrees and boundary conditions for the de Rham complex the fields live in.",
+      "parameters": [
+        {
+          "name": "derham_opts",
+          "type": "DerhamOptions",
+          "default": "DerhamOptions()",
+          "required": false,
+          "description": "Options for discrete differential operators.",
+          "link": {
+            "href": "/feec/",
+            "label": "FEEC basics"
+          },
+          "fields": [
+            {
+              "name": "degree",
+              "default": "(1, 1, 1)",
+              "description": "Spline degree in each logical direction ``(eta_1, eta_2, eta_3)``."
+            },
+            {
+              "name": "bcs",
+              "default": "(None, None, None)",
+              "description": "Boundary condition selector for each direction. Use ``None`` in a direction for periodic boundaries, or a tuple ``(left, right)`` with entries in ``{\"free\", \"dirichlet\"}`` for non-periodic boundaries."
+            },
+            {
+              "name": "nquads",
+              "default": "None",
+              "description": "Number of Gauss-Legendre quadrature points per direction for cell integrals. If ``None``, backend defaults are used."
+            },
+            {
+              "name": "nquads_proj",
+              "default": "None",
+              "description": "Number of Gauss-Legendre quadrature points per direction for geometric projector/histopolation integrals. If ``None``, backend defaults are used."
+            },
+            {
+              "name": "polar_splines",
+              "default": "False",
+              "description": "Smoothness at a possible polar singularity at ``eta_1 = 0``. ``False`` gives standard tensor-product splines, ``True`` gives C1 polar splines."
+            },
+            {
+              "name": "local_projectors",
+              "default": "False",
+              "description": "Whether to build local commuting projectors based on quasi-inter-/histopolation."
+            }
+          ],
+          "fieldsTruncated": false,
+          "fieldCount": 6
+        }
+      ]
+    },
+    {
+      "name": "How it steps",
+      "blurb": "Step size, end time, and how the model's propagators are composed over a step.",
+      "parameters": [
+        {
+          "name": "time_opts",
+          "type": "Time",
+          "default": "Time()",
+          "required": false,
+          "description": "Time-stepping options (dt, Tend, split algorithm, ...).",
+          "link": {
+            "href": "/time-integration/",
+            "label": "Time integration"
+          },
+          "fields": [
+            {
+              "name": "dt",
+              "default": "0.01",
+              "description": "Time step."
+            },
+            {
+              "name": "Tend",
+              "default": "0.03",
+              "description": "End time."
+            },
+            {
+              "name": "split_algo",
+              "default": "LieTrotter",
+              "description": "Splitting algorithm (the order of the propagators is defined in the model)."
+            }
+          ],
+          "fieldsTruncated": false,
+          "fieldCount": 3
+        }
+      ]
+    },
+    {
+      "name": "How it runs",
+      "blurb": "Output folders, restarts, MPI, and what the profiler records \u2014 everything around the physics.",
+      "parameters": [
+        {
+          "name": "env",
+          "type": "EnvironmentOptions",
+          "default": "EnvironmentOptions()",
+          "required": false,
+          "description": "Runtime and output environment options.",
+          "link": null,
+          "fields": [
+            {
+              "name": "out_folders",
+              "default": "/Users/max/git_repos/struphy-hub.github.io",
+              "description": "Absolute path to directory for ``sim_folder``."
+            },
+            {
+              "name": "sim_folder",
+              "default": "sim_1",
+              "description": "Folder in ``out_folders/`` for the current simulation (default= ``sim_1/`` ). Will create the folder if it does not exist OR cleans the folder for new runs."
+            },
+            {
+              "name": "sim_label",
+              "default": "None",
+              "description": "Label for the simulation (default=None)"
+            },
+            {
+              "name": "restart",
+              "default": "False",
+              "description": "Whether to restart a run (default=False)."
+            },
+            {
+              "name": "max_runtime",
+              "default": "300",
+              "description": "Maximum run time of simulation in minutes. Will finish the time integration once this limit is reached (default=300)."
+            },
+            {
+              "name": "save_step",
+              "default": "1",
+              "description": "When to save data output: every time step (save_step=1), every second time step (save_step=2), etc (default=1)."
+            },
+            {
+              "name": "save_restart",
+              "default": "True",
+              "description": "Whether to write the restart checkpoint (full marker arrays and FEEC restart coefficients, written once at setup and once at the end of the run). Restart data can dominate the run time for large particle counts; set to ``False`` to skip it when restart capability isn't needed, e.g. for pure timing/benchmark runs (default=True)."
+            },
+            {
+              "name": "sort_step",
+              "default": "0",
+              "description": "Sort markers in memory every N time steps (default=0, which means markers are sorted only at the start of simulation)"
+            },
+            {
+              "name": "num_clones",
+              "default": "1",
+              "description": "Number of domain clones (default=1)"
+            }
+          ],
+          "fieldsTruncated": false,
+          "fieldCount": 9
+        },
+        {
+          "name": "profiling_opts",
+          "type": "ProfilingOptions",
+          "default": "ProfilingOptions()",
+          "required": false,
+          "description": "Options passed to scope-profiler when profiling is active.",
+          "link": null,
+          "fields": [
+            {
+              "name": "file_path",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "label",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "use_likwid",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "perf_events",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "use_line_profiler",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "use_memray",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "memory_profile_path",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "memray_native_traces",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "memray_trace_python_allocators",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "memray_follow_fork",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "deactivate_profiling",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "use_nvtx",
+              "default": "None",
+              "description": ""
+            }
+          ],
+          "fieldsTruncated": true,
+          "fieldCount": 29
+        },
+        {
+          "name": "comm",
+          "type": "MPI.Intracomm",
+          "default": "None",
+          "required": false,
+          "description": "MPI communicator for parallel execution. If None, uses MPI.COMM_WORLD.",
+          "link": null,
+          "fields": null,
+          "fieldsTruncated": false,
+          "fieldCount": 0
+        },
+        {
+          "name": "logging_level",
+          "type": "int | None",
+          "default": "None",
+          "required": false,
+          "description": "Logging level (e.g., logging.INFO, logging.DEBUG). If None, uses default.",
+          "link": null,
+          "fields": null,
+          "fieldsTruncated": false,
+          "fieldCount": 0
+        }
+      ]
+    },
+    {
+      "name": "How it is labelled",
+      "blurb": "Carried into the run's metadata, so a saved run says what it was.",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "str",
+          "default": "''",
+          "required": false,
+          "description": "Name of the simulation.",
+          "link": null,
+          "fields": null,
+          "fieldsTruncated": false,
+          "fieldCount": 0
+        },
+        {
+          "name": "description",
+          "type": "str",
+          "default": "''",
+          "required": false,
+          "description": "Description of the simulation.",
+          "link": null,
+          "fields": null,
+          "fieldsTruncated": false,
+          "fieldCount": 0
+        },
+        {
+          "name": "params_path",
+          "type": "str",
+          "default": "None",
+          "required": false,
+          "description": "Path to a Python parameter file to save alongside outputs.",
+          "link": null,
+          "fields": null,
+          "fieldsTruncated": false,
+          "fieldCount": 0
+        }
+      ]
+    }
+  ],
+  "runPhases": [
+    "setup: run metadata",
+    "setup: data storage",
+    "setup: geometry vtk",
+    "setup: plasma params",
+    "setup: restart",
+    "setup: initial diagnostics",
+    "setup: hdf5 datasets"
+  ],
+  "setupRegion": "setup: total"
+}
