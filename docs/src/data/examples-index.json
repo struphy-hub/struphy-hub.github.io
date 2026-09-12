@@ -18,6 +18,15 @@
     "thumbnail": "/images/examples/diocotron-instability.png"
   },
   {
+    "slug": "hybrid-alfven-ion-coupling",
+    "href": "/examples/hybrid-alfven-ion-coupling/",
+    "name": "Hybrid MHD-kinetic energy exchange",
+    "description": "Energetic ions drifting near the Alfvén speed exchange energy with a shear-Alfvén wave through Struphy’s pressure-coupling scheme, while the total energy stays conserved.",
+    "model": "LinearMHDVlasovPC",
+    "modelSlug": "linear-mhdvlasov-pc",
+    "thumbnail": "/images/examples/hybrid-alfven-ion-coupling.png"
+  },
+  {
     "slug": "itg-drift-wave",
     "href": "/examples/itg-drift-wave/",
     "name": "ITG drift wave",
