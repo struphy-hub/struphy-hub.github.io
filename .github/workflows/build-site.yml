@@ -111,6 +111,21 @@ jobs:
           # to the version this was actually developed and tested against.
           pip install --upgrade "scope-profiler[pproc]>=0.6.1" kaleido
 
+      # Compiled kernels depend only on struphy's own source, not on which example this
+      # shard runs -- cache them under their own key (shared across all 10 shards) so that
+      # when only an example script changes, the 1-2 min recompile happens once instead of
+      # once per shard. Keyed independently of cache-example above; checked out to the
+      # right commit by the (fast, still-unconditional) install step regardless of hit/miss.
+      - name: Cache compiled Struphy kernels
+        id: cache-kernels
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /struphy_fortran_/src/struphy/**/__pyccel__
+            /struphy_fortran_/src/struphy/**/*.so
+          key: struphy-kernels-${{ hashFiles('submodules/struphy/src/struphy/**/*.py') }}
+
       # Chrome doesn't depend on the struphy commit or example scripts, so cache it under
       # its own static key instead of the cache-example key above -- otherwise every
       # cache-miss shard redundantly re-downloads ~150-200MB from Google plus its apt
@@ -147,7 +162,7 @@ jobs:
           apt-get install -y /tmp/chrome.deb
 
       - name: Compile Struphy kernels
-        if: steps.cache-example.outputs.cache-hit != 'true'
+        if: steps.cache-example.outputs.cache-hit != 'true' && steps.cache-kernels.outputs.cache-hit != 'true'
         shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
