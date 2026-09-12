@@ -92,6 +92,19 @@ jobs:
           # to the version this was actually developed and tested against.
           pip install --upgrade "scope-profiler[pproc]>=0.6.1" kaleido
 
+      # Chrome doesn't depend on the struphy commit or example scripts, so cache it under
+      # its own static key instead of the cache-examples key above -- otherwise every
+      # cache-miss run there re-downloads ~150-200MB from Google plus its apt dependencies
+      # for no reason.
+      - name: Cache Chrome
+        if: steps.cache-examples.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt/archives/*.deb
+            /tmp/chrome.deb
+          key: chrome-for-kaleido-v1
+
       - name: Install Chrome for kaleido
         # kaleido>=1.0 drives Chrome via choreographer instead of bundling a binary, and
         # doesn't auto-download it -- without this, figure.write_image(...) fails with
@@ -108,10 +121,11 @@ jobs:
         shell: bash
         run: |
           apt-get update
-          apt-get install -y wget
-          wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          if [ ! -f /tmp/chrome.deb ]; then
+            apt-get install -y wget
+            wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          fi
           apt-get install -y /tmp/chrome.deb
-          rm /tmp/chrome.deb
 
       - name: Compile Struphy kernels
         if: steps.cache-examples.outputs.cache-hit != 'true'
