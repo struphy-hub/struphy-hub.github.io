@@ -79,7 +79,11 @@ jobs:
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
           pip install "./submodules/struphy[phys,mpi]"
-          pip install "scope-profiler[pproc]" kaleido
+          # Struphy pins scope-profiler <=0.5.0 as a hard dependency, but the example
+          # scripts use plot_durations(metrics=(...)), a plural-metrics API that only
+          # exists from 0.6.1 onward -- --upgrade forces past struphy's conservative pin
+          # to the version this was actually developed and tested against.
+          pip install --upgrade "scope-profiler[pproc]>=0.6.1" kaleido
 
       - name: Install Chrome for kaleido
         # kaleido>=1.0 drives Chrome via choreographer instead of bundling a binary, and
