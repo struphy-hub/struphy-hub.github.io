@@ -45,6 +45,15 @@
     "thumbnail": "/images/examples/poisson-source.png"
   },
   {
+    "slug": "shear-alfven-wave",
+    "href": "/examples/shear-alfven-wave/",
+    "name": "Shear-Alfvén wave dispersion",
+    "description": "Excite a broadband transverse velocity perturbation and recover the shear-Alfvén dispersion relation ω = v_A k with Struphy’s linearized MHD solver.",
+    "model": "ShearAlfven",
+    "modelSlug": "shear-alfven",
+    "thumbnail": "/images/examples/shear-alfven-wave.png"
+  },
+  {
     "slug": "strong-landau-damping",
     "href": "/examples/strong-landau-damping/",
     "name": "Strong Landau damping",
