@@ -1,0 +1,104 @@
+{
+    "name": "Hybrid MHD-kinetic energy exchange",
+    "description": "Energetic ions drifting near the Alfv\u00e9n speed exchange energy with a shear-Alfv\u00e9n wave through Struphy\u2019s pressure-coupling scheme, while the total energy stays conserved.",
+    "model": {
+        "model": "LinearMHDVlasovPC"
+    },
+    "params_path": null,
+    "env": {
+        "out_folders": "struphy_gallery_runs",
+        "sim_folder": "hybrid_alfven_ion_coupling",
+        "sim_label": null,
+        "restart": false,
+        "max_runtime": 300,
+        "save_step": 1,
+        "save_restart": true,
+        "sort_step": 0,
+        "num_clones": 1
+    },
+    "time_opts": {
+        "dt": 0.02,
+        "Tend": 40.0,
+        "split_algo": "LieTrotter"
+    },
+    "domain": {
+        "type": "Cuboid",
+        "params": {
+            "l1": 0.0,
+            "r1": 1.0,
+            "l2": 0.0,
+            "r2": 1.0,
+            "l3": 0.0,
+            "r3": 20.0
+        }
+    },
+    "equil": {
+        "type": "HomogenSlab",
+        "params": {
+            "B0x": 0.0,
+            "B0y": 0.0,
+            "B0z": 1.0,
+            "beta": 0.1,
+            "n0": 1.0
+        }
+    },
+    "grid": {
+        "num_elements": [
+            1,
+            1,
+            32
+        ],
+        "mpi_dims_mask": [
+            true,
+            true,
+            true
+        ]
+    },
+    "derham_opts": {
+        "degree": [
+            1,
+            1,
+            3
+        ],
+        "bcs": [
+            null,
+            null,
+            null
+        ],
+        "nquads": null,
+        "nquads_proj": null,
+        "polar_splines": false,
+        "local_projectors": false
+    },
+    "profiling_opts": {
+        "file_path": null,
+        "label": null,
+        "use_likwid": null,
+        "perf_events": null,
+        "use_line_profiler": null,
+        "use_memray": null,
+        "memory_profile_path": null,
+        "memray_native_traces": null,
+        "memray_trace_python_allocators": null,
+        "memray_follow_fork": null,
+        "deactivate_profiling": null,
+        "use_nvtx": null,
+        "use_gpu_timing": null,
+        "gpu_timing_backend": null,
+        "deactivate_file_output": null,
+        "recursive_profile": null,
+        "aggregation_mode": null,
+        "profile_mpi_calls": null,
+        "track_threads": null,
+        "track_async": null,
+        "capture_region_source": null,
+        "buffer_limit": null,
+        "output_mode": null,
+        "hdf5_compression": null,
+        "hdf5_compression_level": null,
+        "hdf5_chunk_size": null,
+        "memray": null,
+        "gpu": null,
+        "hdf5": null
+    }
+}
