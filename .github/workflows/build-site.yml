@@ -70,17 +70,44 @@ jobs:
         # editable install below shells out to git (setuptools-scm) and would hit this.
         run: git config --global --add safe.directory '*'
 
+      # Most examples name their figure output after their own script stem, but that's a
+      # convention, not a rule -- maxwell-wave.py writes maxwell-dispersion.png/.html, for
+      # instance. The committed metadata JSON's "interactive" field always has the real
+      # name (set by hand once when the example was added), so read it instead of assuming
+      # -- covers this and any future example that does the same thing.
+      - name: Discover this example's output filename
+        id: discover
+        run: |
+          STEM="${{ matrix.example }}"
+          METADATA="docs/public/examples/$STEM.metadata.json"
+          OUTPUT_STEM=$(STEM="$STEM" METADATA="$METADATA" python3 -c "
+          import json, os
+          stem = os.environ['STEM']
+          try:
+              data = json.load(open(os.environ['METADATA']))
+          except FileNotFoundError:
+              data = {}
+          name = data.get('interactive', '').rsplit('/', 1)[-1]
+          if name.endswith('.html'):
+              name = name[:-5]
+          print(name or stem)
+          ")
+          echo "output_stem=$OUTPUT_STEM" >> "$GITHUB_OUTPUT"
+
       # Each run is deterministic (fixed seeds), so cache on this example script's and
-      # Struphy's own source, and skip the expensive rebuild when neither changed. The glob
-      # covers every file this example produces, including two-stream-instability's extra
-      # "-phasespace" pair -- no example's stem is a prefix of another's.
+      # Struphy's own source, and skip the expensive rebuild when neither changed. Both
+      # globs are needed since an example's own stem and its output filename can differ
+      # (see the discovery step above); no example's stem is a prefix of another's, and
+      # this also covers two-stream-instability's extra "-phasespace" pair.
       - name: Cache generated example
         id: cache-example
         uses: actions/cache@v4
         with:
           path: |
             docs/public/examples/${{ matrix.example }}*
+            docs/public/examples/${{ steps.discover.outputs.output_stem }}*
             docs/public/images/examples/${{ matrix.example }}*
+            docs/public/images/examples/${{ steps.discover.outputs.output_stem }}*
           key: struphy-example-${{ matrix.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', matrix.example), 'submodules/struphy/src/struphy/**/*.py') }}
 
       - name: Install Struphy from this repo's pinned submodule commit
@@ -188,14 +215,17 @@ jobs:
 
       - name: Copy example thumbnails
         if: steps.cache-example.outputs.cache-hit != 'true'
-        run: cp docs/public/examples/${{ matrix.example }}*.png docs/public/images/examples/
+        run: |
+          for f in docs/public/examples/${{ matrix.example }}*.png docs/public/examples/${{ steps.discover.outputs.output_stem }}*.png; do
+            [ -e "$f" ] && cp "$f" docs/public/images/examples/
+          done
 
       - name: Clean up simulation scratch output
         if: steps.cache-example.outputs.cache-hit != 'true'
         run: rm -rf docs/public/examples/struphy_gallery_runs docs/public/examples/struphy.log
 
       - name: Verify generated example
-        run: test -f "docs/public/examples/${{ matrix.example }}.html"
+        run: test -f "docs/public/examples/${{ steps.discover.outputs.output_stem }}.html"
 
       - name: Upload generated example
         uses: actions/upload-artifact@v4
@@ -203,7 +233,9 @@ jobs:
           name: generated-example-${{ matrix.example }}
           path: |
             docs/public/examples/${{ matrix.example }}*
+            docs/public/examples/${{ steps.discover.outputs.output_stem }}*
             docs/public/images/examples/${{ matrix.example }}*
+            docs/public/images/examples/${{ steps.discover.outputs.output_stem }}*
           retention-days: 1
 
   build:
