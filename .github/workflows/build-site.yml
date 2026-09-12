@@ -12,15 +12,43 @@ permissions:
   contents: read
 
 jobs:
-  # docs/src/examples/*.py are full Struphy simulations (see docs/src/examples/README.md)
-  # -- their outputs are gitignored (see .gitignore), so every deploy regenerates them here
+  # docs/src/examples/*.py are full Struphy simulations (see docs/src/examples/README.md),
+  # each run independently as its own matrix job below (they don't share state), so this
+  # just discovers the current list for that matrix -- no workflow edit needed to pick up
+  # a newly added example.
+  list-examples:
+    runs-on: ubuntu-latest
+    outputs:
+      examples: ${{ steps.list.outputs.examples }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: List example scripts
+        id: list
+        run: |
+          examples=$(cd docs/src/examples && ls *.py | sed 's/\.py$//' | jq -R -s -c 'split("\n")[:-1]')
+          echo "examples=$examples" >> "$GITHUB_OUTPUT"
+
+  # Their outputs are gitignored (see .gitignore), so every deploy regenerates them here
   # instead of pushing multi-MB HTML/HDF5 files to the repo. Runs in struphy's own
   # precompiled image (see submodules/struphy/docker/ubuntu-latest-with-struphy.dockerfile
   # and .github/workflows/ghcr.yml in that repo) so we skip installing the system toolchain
   # (gfortran, MPI, BLAS/LAPACK, netCDF, ...) needed to build gvec/desc-opt from source.
   # struphy-hub.github.io has been granted read access to that (otherwise private) package,
   # so the default GITHUB_TOKEN is enough to pull it -- no extra secret needed.
-  generate-examples:
+  #
+  # One job per example (rather than one job looping over all of them) so a ~20 minute
+  # sequential run becomes ~however long the single slowest example takes, in parallel.
+  # Each shard redundantly reinstalls/recompiles Struphy (~1-2 min) since there's no cheap
+  # way to share compiled kernels across separate container instances -- worth it since
+  # that's small next to the simulation run times this is meant to parallelize away.
+  run-example:
+    needs: list-examples
+    strategy:
+      fail-fast: false
+      matrix:
+        example: ${{ fromJson(needs.list-examples.outputs.examples) }}
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/struphy-hub/struphy/ubuntu-with-struphy:latest
@@ -42,23 +70,45 @@ jobs:
         # editable install below shells out to git (setuptools-scm) and would hit this.
         run: git config --global --add safe.directory '*'
 
-      # Each run is deterministic (fixed seeds), so cache on the example scripts' and
-      # Struphy's own source, and skip the expensive rebuild when neither changed.
-      - name: Cache generated examples
-        id: cache-examples
+      # Most examples name their figure output after their own script stem, but that's a
+      # convention, not a rule -- maxwell-wave.py writes maxwell-dispersion.png/.html, for
+      # instance. The committed metadata JSON's "interactive" field always has the real
+      # name (set by hand once when the example was added), so read it instead of assuming
+      # -- covers this and any future example that does the same thing.
+      - name: Discover this example's output filename
+        id: discover
+        run: |
+          STEM="${{ matrix.example }}"
+          METADATA="docs/public/examples/$STEM.metadata.json"
+          OUTPUT_STEM=$(STEM="$STEM" METADATA="$METADATA" python3 -c "
+          import json, os
+          stem = os.environ['STEM']
+          try:
+              data = json.load(open(os.environ['METADATA']))
+          except FileNotFoundError:
+              data = {}
+          name = data.get('interactive', '').rsplit('/', 1)[-1]
+          if name.endswith('.html'):
+              name = name[:-5]
+          print(name or stem)
+          ")
+          echo "output_stem=$OUTPUT_STEM" >> "$GITHUB_OUTPUT"
+
+      # Each run is deterministic (fixed seeds), so cache on this example script's and
+      # Struphy's own source, and skip the expensive rebuild when neither changed. Both
+      # globs are needed since an example's own stem and its output filename can differ
+      # (see the discovery step above); no example's stem is a prefix of another's, and
+      # this also covers two-stream-instability's extra "-phasespace" pair.
+      - name: Cache generated example
+        id: cache-example
         uses: actions/cache@v4
         with:
           path: |
-            docs/public/examples/*.html
-            docs/public/examples/*.png
-            docs/public/examples/*.metadata.json
-            docs/public/examples/*-profile.h5
-            docs/public/examples/*-durations.json
-            docs/public/examples/*-gantt.json
-            docs/public/examples/*-flame.json
-            docs/public/examples/*-region-stats.json
-            docs/public/images/examples/*.png
-          key: struphy-examples-${{ hashFiles('docs/src/examples/*.py', 'submodules/struphy/src/struphy/**/*.py') }}
+            docs/public/examples/${{ matrix.example }}*
+            docs/public/examples/${{ steps.discover.outputs.output_stem }}*
+            docs/public/images/examples/${{ matrix.example }}*
+            docs/public/images/examples/${{ steps.discover.outputs.output_stem }}*
+          key: struphy-example-${{ matrix.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', matrix.example), 'submodules/struphy/src/struphy/**/*.py') }}
 
       - name: Install Struphy from this repo's pinned submodule commit
         # Same approach as struphy's own CI
@@ -73,7 +123,7 @@ jobs:
         # struphy's own dev/doc extras) but the example scripts need both: scope-profiler's
         # pproc submodule for the durations/gantt/flame plot-data export, kaleido for
         # figure.write_image(...)'s static PNG export.
-        if: steps.cache-examples.outputs.cache-hit != 'true'
+        if: steps.cache-example.outputs.cache-hit != 'true'
         shell: bash
         run: |
           STRUPHY_SHA=$(git -C submodules/struphy rev-parse HEAD)
@@ -88,12 +138,27 @@ jobs:
           # to the version this was actually developed and tested against.
           pip install --upgrade "scope-profiler[pproc]>=0.6.1" kaleido
 
+      # Compiled kernels depend only on struphy's own source, not on which example this
+      # shard runs -- cache them under their own key (shared across all 10 shards) so that
+      # when only an example script changes, the 1-2 min recompile happens once instead of
+      # once per shard. Keyed independently of cache-example above; checked out to the
+      # right commit by the (fast, still-unconditional) install step regardless of hit/miss.
+      - name: Cache compiled Struphy kernels
+        id: cache-kernels
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /struphy_fortran_/src/struphy/**/__pyccel__
+            /struphy_fortran_/src/struphy/**/*.so
+          key: struphy-kernels-${{ hashFiles('submodules/struphy/src/struphy/**/*.py') }}
+
       # Chrome doesn't depend on the struphy commit or example scripts, so cache it under
-      # its own static key instead of the cache-examples key above -- otherwise every
-      # cache-miss run there re-downloads ~150-200MB from Google plus its apt dependencies
-      # for no reason.
+      # its own static key instead of the cache-example key above -- otherwise every
+      # cache-miss shard redundantly re-downloads ~150-200MB from Google plus its apt
+      # dependencies for no reason.
       - name: Cache Chrome
-        if: steps.cache-examples.outputs.cache-hit != 'true'
+        if: steps.cache-example.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -113,7 +178,7 @@ jobs:
         # in the first place. Installing Google Chrome via apt instead lets apt resolve the
         # actual runtime dependencies (libnss3, libatk-bridge, libgbm, ...) correctly for
         # whatever Ubuntu version this image uses.
-        if: steps.cache-examples.outputs.cache-hit != 'true'
+        if: steps.cache-example.outputs.cache-hit != 'true'
         shell: bash
         run: |
           apt-get update
@@ -124,53 +189,57 @@ jobs:
           apt-get install -y /tmp/chrome.deb
 
       - name: Compile Struphy kernels
-        if: steps.cache-examples.outputs.cache-hit != 'true'
+        if: steps.cache-example.outputs.cache-hit != 'true' && steps.cache-kernels.outputs.cache-hit != 'true'
         shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
           struphy compile -y --language fortran
 
       - name: Generate example metadata
-        if: steps.cache-examples.outputs.cache-hit != 'true'
+        # Cheap (imports the script's module-level Simulation(...) without running it) and
+        # runs for every script regardless of which example this shard is -- harmless, and
+        # this shard's own cache above only retains its own example's metadata JSON anyway.
+        if: steps.cache-example.outputs.cache-hit != 'true'
         shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
           python generate_examples.py
 
-      - name: Run examples
-        if: steps.cache-examples.outputs.cache-hit != 'true'
+      - name: Run example
+        if: steps.cache-example.outputs.cache-hit != 'true'
         working-directory: docs/public/examples
         shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
-          for script in ../../src/examples/*.py; do
-            echo "::group::$(basename "$script")"
-            python "$script"
-            echo "::endgroup::"
-          done
+          python "../../src/examples/${{ matrix.example }}.py"
 
       - name: Copy example thumbnails
-        if: steps.cache-examples.outputs.cache-hit != 'true'
-        run: cp docs/public/examples/*.png docs/public/images/examples/
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        run: |
+          for f in docs/public/examples/${{ matrix.example }}*.png docs/public/examples/${{ steps.discover.outputs.output_stem }}*.png; do
+            [ -e "$f" ] && cp "$f" docs/public/images/examples/
+          done
 
       - name: Clean up simulation scratch output
-        if: steps.cache-examples.outputs.cache-hit != 'true'
+        if: steps.cache-example.outputs.cache-hit != 'true'
         run: rm -rf docs/public/examples/struphy_gallery_runs docs/public/examples/struphy.log
 
-      - name: Verify generated examples
-        run: test -n "$(find docs/public/examples -maxdepth 1 -name '*.html' -print -quit)"
+      - name: Verify generated example
+        run: test -f "docs/public/examples/${{ steps.discover.outputs.output_stem }}.html"
 
-      - name: Upload generated examples
+      - name: Upload generated example
         uses: actions/upload-artifact@v4
         with:
-          name: generated-examples
+          name: generated-example-${{ matrix.example }}
           path: |
-            docs/public/examples
-            docs/public/images/examples
+            docs/public/examples/${{ matrix.example }}*
+            docs/public/examples/${{ steps.discover.outputs.output_stem }}*
+            docs/public/images/examples/${{ matrix.example }}*
+            docs/public/images/examples/${{ steps.discover.outputs.output_stem }}*
           retention-days: 1
 
   build:
-    needs: generate-examples
+    needs: run-example
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -212,8 +281,9 @@ jobs:
       - name: Download generated examples
         uses: actions/download-artifact@v4
         with:
-          name: generated-examples
+          pattern: generated-example-*
           path: docs/public
+          merge-multiple: true
 
       - name: Verify generated examples
         run: test -n "$(find docs/public/examples -maxdepth 1 -name '*.html' -print -quit)"
