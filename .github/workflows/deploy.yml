@@ -65,10 +65,13 @@ jobs:
           key: struphy-examples-${{ hashFiles('docs/src/examples/*.py', 'submodules/struphy/src/struphy/**/*.py') }}
 
       - name: Install Struphy from this repo's pinned submodule commit
-        # The image bakes in whatever struphy commit was HEAD when it was last built --
-        # reinstall editable from our own submodule checkout so kernels match exactly what
-        # this repo pins, using the image's already-installed venv (and its already-built
-        # gvec/desc-opt) rather than a fresh one.
+        # Same approach as struphy's own CI
+        # (submodules/struphy/.github/actions/install/struphy_in_container/action.yml):
+        # the image bakes in whatever struphy commit was HEAD when it was last built, so
+        # move /struphy_fortran_'s own checkout to the exact commit our submodule pins
+        # (rather than reinstalling editable from a second copy of the source) and
+        # reinstall there, reusing the image's already-installed venv and already-built
+        # gvec/desc-opt.
         #
         # scope-profiler[pproc] and kaleido aren't pulled in by the phys/mpi extras (only by
         # struphy's own dev/doc extras) but the example scripts need both: scope-profiler's
@@ -77,8 +80,12 @@ jobs:
         if: steps.cache-examples.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          source /struphy_fortran_/env_fortran_/bin/activate
-          pip install "./submodules/struphy[phys,mpi]"
+          STRUPHY_SHA=$(git -C submodules/struphy rev-parse HEAD)
+          cd /struphy_fortran_
+          git fetch origin --tags
+          git checkout "$STRUPHY_SHA"
+          source env_fortran_/bin/activate
+          pip install -U --upgrade-strategy eager -e ".[phys,mpi]"
           # Struphy pins scope-profiler <=0.5.0 as a hard dependency, but the example
           # scripts use plot_durations(metrics=(...)), a plural-metrics API that only
           # exists from 0.6.1 onward -- --upgrade forces past struphy's conservative pin
