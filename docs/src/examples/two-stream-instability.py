@@ -41,13 +41,13 @@ model = VlasovAmpereOneSpecies(alpha=1.0, epsilon=-1.0, with_B0=False)
 model.em_fields.e_field.save_data = True
 
 domain = domains.Cuboid(r1=31.42)
-grid = grids.TensorProductGrid(num_elements=(128, 1, 1))
+grid = grids.TensorProductGrid(num_elements=(256, 1, 1))
 derham_opts = DerhamOptions(degree=(3, 1, 1))
 time_opts = Time(dt=0.1, Tend=50.0, split_algo="LieTrotter")
 
 # 1000 particles per cell, drawn with a mean drift of +/-3 built into the loading moments.
 # A binned x-v phase-space snapshot at every step gives the classic two-stream "movie".
-phase_space_bins = BinningPlot(slice="e1_v1", n_bins=(64, 64), ranges=((0.0, 1.0), (-10.0, 10.0)))
+phase_space_bins = BinningPlot(slice="e1_v1", n_bins=(128, 128), ranges=((0.0, 1.0), (-10.0, 10.0)))
 model.kinetic_ions.set_markers(
     loading_params=LoadingParameters(ppc=1000, moments=(0.0, 0.0, 0.0, 3.0, 1.0, 1.0)),
     weights_params=WeightsParameters(control_variate=True),

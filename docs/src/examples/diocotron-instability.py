@@ -52,7 +52,7 @@ derham_opts = DerhamOptions(degree=(3, 3, 1), bcs=(("dirichlet", "dirichlet"), N
 time_opts = Time(dt=0.02, Tend=25.0, split_algo="LieTrotter")
 
 # A binned e1-e2 (radial-angular) density snapshot at every step, for the animation.
-density_bins = BinningPlot(slice="e1_e2", n_bins=(64, 64), ranges=((0.0, 1.0), (0.0, 1.0)))
+density_bins = BinningPlot(slice="e1_e2", n_bins=(128, 128), ranges=((0.0, 1.0), (0.0, 1.0)))
 model.kinetic_ions.set_markers(
     loading_params=LoadingParameters(ppc=20, loading="sobol_standard", spatial="disc"),
     weights_params=WeightsParameters(control_variate=True, reject_weights=True, threshold=0.0001),

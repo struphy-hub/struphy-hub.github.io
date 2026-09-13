@@ -233,6 +233,51 @@ if __name__ == "__main__":
     print(f"Saved {png_path.resolve()}")
     print(f"Saved {html_path.resolve()}")
 
+    # The same orbits, projected onto each coordinate plane -- a simpler,
+    # non-animated companion to the 3D view above, useful for reading off
+    # gyration radius and axial excursion without having to rotate anything.
+    from plotly.subplots import make_subplots
+
+    projections = [("x", "y", 0, 1), ("x", "z", 0, 2), ("y", "z", 1, 2)]
+    projection_figure = make_subplots(rows=1, cols=3, subplot_titles=[f"{a}{b} plane" for a, b, _, _ in projections])
+    for col, (label_a, label_b, i, j) in enumerate(projections, start=1):
+        for p in range(n_particles):
+            projection_figure.add_trace(
+                go.Scatter(
+                    x=orbits[:, p, i],
+                    y=orbits[:, p, j],
+                    mode="lines",
+                    line={"width": 1.5, "color": palette[p % len(palette)]},
+                    name=f"particle {p + 1}",
+                    legendgroup=f"particle {p + 1}",
+                    showlegend=(col == 1),
+                ),
+                row=1,
+                col=col,
+            )
+        projection_figure.update_xaxes(title_text=f"{label_a} [a.u.]", row=1, col=col)
+        # scaleanchor to the subplot's own x-axis keeps each projection's
+        # aspect ratio physical, so a circular gyro-orbit still looks circular.
+        projection_figure.update_yaxes(title_text=f"{label_b} [a.u.]", scaleanchor=f"x{col if col > 1 else ''}", row=1, col=col)
+    projection_figure.update_layout(
+        title="Full-orbit particle trajectories: coordinate-plane projections",
+        template="plotly_white",
+        margin={"l": 60, "r": 30, "t": 80, "b": 60},
+    )
+
+    projection_png_path = Path("vlasov-tokamak-projections.png")
+    projection_html_path = Path("vlasov-tokamak-projections.html")
+    projection_figure.write_image(projection_png_path, width=1500, height=560, scale=2)
+    projection_figure.write_html(
+        projection_html_path,
+        include_plotlyjs="cdn",
+        default_width="100%",
+        default_height="100%",
+        config={"responsive": True, "displaylogo": False},
+    )
+    print(f"Saved {projection_png_path.resolve()}")
+    print(f"Saved {projection_html_path.resolve()}")
+
     # Export scope-profiler's plot-data JSON (durations, gantt, region
     # statistics) via its Python API, so the example page can render native
     # Plotly figures from the real run above -- not a separate report.
@@ -287,6 +332,8 @@ if __name__ == "__main__":
     metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
     metadata["maxRelativeSpeedDrift"] = max_relative_speed_drift
     metadata["trackedParticles"] = n_tracked
+    metadata["projectionsThumbnail"] = "/images/examples/vlasov-tokamak-projections.png"
+    metadata["projectionsInteractive"] = "/examples/vlasov-tokamak-projections.html"
     metadata["profilingData"] = "/examples/vlasov-tokamak-profile.h5"
     metadata["profilingDurations"] = "/examples/vlasov-tokamak-durations.json"
     metadata["profilingGantt"] = "/examples/vlasov-tokamak-gantt.json"
