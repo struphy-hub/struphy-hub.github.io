@@ -1,0 +1,176 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+// Maintainers as named in the Struphy README's "Get in touch" section, plus
+// the developer with the longest, earliest commit history in the project.
+const coreTeam = [
+  {
+    name: 'Stefan Possanner',
+    role: 'Lead maintainer',
+    affiliation: 'Max Planck Institute for Plasma Physics',
+    github: 'spossann',
+  },
+  {
+    name: 'Max Lindqvist',
+    role: 'Maintainer',
+    affiliation: 'Max Planck Institute for Plasma Physics',
+    github: 'max-models',
+  },
+  {
+    name: 'Florian Holderied',
+    role: 'Founding developer',
+    affiliation: 'Max Planck Institute for Plasma Physics / Technical University of Munich',
+  },
+];
+
+// Other developers with a substantial, sustained commit history in the
+// project's git log, alphabetically by family name.
+const contributors = [
+  'Dominik Bell',
+  'Valentin Carlier',
+  'Tin Kei Cheng',
+  'Florian Hindenlang',
+  'Yingzhe Li',
+  'Byung Kyu Na',
+  'Ahmed Ratnani',
+];
+
+const publications = [
+  {
+    citation:
+      'D. Bell, M.C. Pinto, S. Possanner, E. Sonnendrücker, “The linearized Vlasov–Maxwell system as a ' +
+      'Hamiltonian system”, Journal of Computational Physics, Volume 555, 114765 (2026).',
+    href: 'https://doi.org/10.1016/j.jcp.2026.114765',
+  },
+  {
+    citation:
+      'V. Carlier, M.C. Pinto, “Variational discretizations of ideal magnetohydrodynamics in smooth regime using ' +
+      'structure-preserving finite elements”, Journal of Computational Physics, Volume 523, 113647 (2025).',
+    href: 'https://doi.org/10.1016/j.jcp.2024.113647',
+  },
+  {
+    citation:
+      'Y. Li, M.C. Pinto, F. Holderied, S. Possanner, E. Sonnendrücker, “Geometric Particle-In-Cell ' +
+      'discretizations of a plasma hybrid model with kinetic ions and mass-less fluid electrons”, Journal of ' +
+      'Computational Physics 498, 112671 (2023).',
+    href: 'https://doi.org/10.1016/j.jcp.2023.112671',
+  },
+  {
+    citation:
+      'S. Possanner, F. Holderied, Y. Li, B.-K. Na, D. Bell, S. Hadjout, Y. Güçlü, “High-Order ' +
+      'Structure-Preserving Algorithms for Plasma Hybrid Models”, International Conference on Geometric Science ' +
+      'of Information, 263–271, Springer Nature Switzerland (2023).',
+    href: 'https://link.springer.com/chapter/10.1007/978-3-031-38299-4_28',
+  },
+];
+---
+
+<Layout
+  title="Team — Struphy"
+  description="The maintainers and developers behind Struphy."
+>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">About</p>
+      <h1 id="page-title">Team</h1>
+      <p>
+        Struphy is developed at the <a href="https://www.ipp.mpg.de/">Max Planck Institute for Plasma Physics</a>,
+        with contributions from researchers and students at several institutions. This page introduces the people
+        behind the code.
+      </p>
+    </section>
+
+    <section class="section" aria-labelledby="core-title">
+      <h2 id="core-title">Core team</h2>
+      <p class="lead">The maintainers and founding developers, as listed in the project's README.</p>
+      <div class="people">
+        {coreTeam.map((person) => (
+          <article class="person">
+            {person.github ? (
+              <img
+                class="avatar"
+                src={`https://github.com/${person.github}.png?size=160`}
+                alt=""
+                width="56"
+                height="56"
+                loading="lazy"
+              />
+            ) : (
+              <span class="avatar avatar-placeholder" aria-hidden="true">
+                {person.name.split(' ').map((part) => part[0]).join('')}
+              </span>
+            )}
+            <div class="person-info">
+              <h3>{person.name}</h3>
+              <p class="role">{person.role}</p>
+              <p class="affiliation">{person.affiliation}</p>
+              {person.github && (
+                <a class="handle" href={`https://github.com/${person.github}`}>@{person.github}</a>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="contributors-title">
+      <h2 id="contributors-title">Contributors</h2>
+      <p class="lead">
+        Developers with a substantial, sustained history of commits to the codebase, in addition to the core team
+        above.
+      </p>
+      <ul class="contributor-list">
+        {contributors.map((name) => <li>{name}</li>)}
+      </ul>
+      <p class="footnote">
+        This list is necessarily incomplete — see the{' '}
+        <a href="https://github.com/struphy-hub/struphy/graphs/contributors">full contributor history on GitHub</a>
+        {' '}for everyone who has helped build Struphy.
+      </p>
+    </section>
+
+    <section class="section" aria-labelledby="publications-title">
+      <h2 id="publications-title">Selected publications</h2>
+      <p class="lead">Research behind Struphy's structure-preserving numerical methods.</p>
+      <ul class="publications">
+        {publications.map((pub) => (
+          <li>
+            <a href={pub.href}>{pub.citation}</a>
+          </li>
+        ))}
+      </ul>
+      <p class="footnote">
+        See the <a href="/citation/">citation page</a> for how to cite the Struphy software itself.
+      </p>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .intro{max-width:800px;padding-block:clamp(54px,8vw,88px)}
+  .eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}
+  .intro>p:not(.eyebrow){color:var(--muted)}
+  .intro a{color:var(--cyan)}
+  .section{padding-block:40px 56px;border-top:1px solid var(--rule)}
+  h2{margin:0 0 8px}
+  .lead{max-width:760px;margin:0 0 22px;color:var(--muted)}
+
+  .people{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+  .person{display:flex;gap:14px;padding:18px 20px;border:1px solid var(--rule)}
+  .avatar{flex:none;width:56px;height:56px;border:1px solid var(--rule);border-radius:50%;object-fit:cover}
+  .avatar-placeholder{display:flex;align-items:center;justify-content:center;background:var(--accent-wash);color:var(--cyan);font:600 .9rem var(--mono)}
+  .person-info{min-width:0}
+  .person h3{margin:0 0 6px;font-size:1.02rem}
+  .person p{margin:0}
+  .role{color:var(--cyan);font-size:.82rem}
+  .affiliation{margin-top:3px!important;color:var(--muted);font-size:.82rem;line-height:1.4}
+  .handle{display:inline-block;margin-top:8px;color:var(--muted);font:.8rem var(--mono)}
+
+  .contributor-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 24px;margin:0;padding-left:22px;color:var(--paper)}
+
+  .footnote{max-width:760px;margin-top:16px;color:var(--muted);font-size:.86rem}
+  .footnote a,.publications a{color:var(--cyan)}
+
+  .publications{display:grid;gap:12px;max-width:840px;margin:0;padding-left:22px;color:var(--muted);font-size:.88rem;line-height:1.55}
+</style>

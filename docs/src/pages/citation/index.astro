@@ -1,31 +1,37 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 
-const bibtex = `@software{struphy_TODO_YEAR,
-  author  = {TODO: Struphy authors or collaboration},
-  title   = {Struphy: TODO preferred software title},
-  version = {TODO: release used},
-  year    = {TODO: publication year},
-  doi     = {TODO: archival DOI},
-  url     = {https://github.com/struphy-hub/struphy}
+const bibtex = `@software{struphy2026,
+  author  = {Possanner, Stefan and Lindqvist, Max and Sonnendr{\\"u}cker, Eric},
+  title   = {Struphy: Structure-Preserving Hybrid Physics Code},
+  version = {3.2.0},
+  year    = {2026},
+  url     = {https://github.com/struphy-hub/struphy},
+  note    = {Max Planck Institute for Plasma Physics}
 }`;
 const cff = `cff-version: 1.2.0
-message: "If you use Struphy, please cite it using this metadata."
-title: "TODO: preferred Struphy software title"
+message: "If you use this software, please cite it as below."
+title: "Struphy: Structure-Preserving Hybrid Physics Code"
 type: software
 authors:
-  - family-names: "TODO"
-    given-names: "TODO"
-version: "TODO"
-date-released: "TODO: YYYY-MM-DD"
-doi: "TODO"
+  - family-names: "Possanner"
+    given-names: "Stefan"
+    affiliation: "Max Planck Institute for Plasma Physics"
+  - family-names: "Lindqvist"
+    given-names: "Max"
+    affiliation: "Max Planck Institute for Plasma Physics"
+  - family-names: "Sonnendrücker"
+    given-names: "Eric"
+    affiliation: "Max Planck Institute for Plasma Physics"
+version: "3.2.0"
+date-released: "2026-06-09"
 repository-code: "https://github.com/struphy-hub/struphy"
 license: MIT`;
 ---
 <Layout title="Citation and reproducibility — Struphy" description="Citation templates and a reproducibility checklist for research using Struphy.">
   <main>
     <section class="intro"><p class="eyebrow">Research software</p><h1>Citation and reproducibility</h1><p>Use this page to publish the preferred Struphy citation and help readers reproduce the exact software environment behind a result.</p></section>
-    <aside class="notice"><strong>Template:</strong> replace every <code>TODO</code> value below with the project’s preferred authors, title, release, year, and DOI before publication.</aside>
+    <aside class="notice"><strong>Note:</strong> these templates cite the latest tagged Struphy release, v3.2.0 (2026-06-09) — update the <code>version</code>/<code>year</code>/<code>date-released</code> fields to match whatever release you actually used, and add a <code>doi</code> field once Struphy has an archival DOI (for example via a Zenodo–GitHub integration).</aside>
     <section class="section"><div class="heading"><div><h2>BibTeX template</h2><p>Recommended for papers and LaTeX bibliographies.</p></div><button type="button" data-copy="bibtex">Copy BibTeX</button></div><pre><code id="bibtex">{bibtex}</code></pre></section>
     <section class="section"><div class="heading"><div><h2>CITATION.cff template</h2><p>Machine-readable citation metadata for GitHub and reference managers.</p></div><button type="button" data-copy="cff">Copy CFF</button></div><pre><code id="cff">{cff}</code></pre></section>
     <section class="section"><h2>Reproducibility checklist</h2><ul class="checklist"><li>Struphy version or exact Git commit</li><li>Python version and operating system</li><li>Complete simulation configuration</li><li>Model, domain, equilibrium, and perturbation names</li><li>Random seed and initial-condition data</li><li>MPI process count and relevant hardware details</li><li>Post-processing scripts and plotting parameters</li><li>Archived input, output, and environment files with a persistent DOI</li></ul></section>
