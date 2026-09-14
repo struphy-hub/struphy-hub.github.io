@@ -4,16 +4,14 @@ import ModelPreview from '../../components/ModelPreview.astro';
 import rawModels from '../../data/models.json';
 import { toSlug } from '../../lib/catalogue';
 
-const categoryOrder = ['Fluid', 'Kinetic', 'Hybrid', 'Toy'];
-const models = rawModels.map((model: any) => ({
-  className: model.className,
-  type: model.type,
-  description: model.description,
-  slug: toSlug(model.className),
-}));
-const categories = categoryOrder
-  .map((name) => ({ name, models: models.filter((model) => model.type === name) }))
-  .filter((category) => category.models.length);
+const models = rawModels
+  .map((model: any) => ({
+    className: model.className,
+    type: model.type,
+    description: model.description,
+    slug: toSlug(model.className),
+  }))
+  .sort((a, b) => a.className.localeCompare(b.className));
 const initial = models[0];
 ---
 
@@ -35,25 +33,20 @@ const initial = models[0];
         <input id="model-filter" type="search" data-filter placeholder="Filter models or physics…" />
 
         <div class="model-list">
-          {categories.map((category) => (
-            <section class="group" data-group>
-              <h2>{category.name} <span>{category.models.length}</span></h2>
-              <ul>
-                {category.models.map((model) => (
-                  <li data-model-row data-search={`${model.className} ${model.description} ${model.type}`.toLowerCase()}>
-                    <a
-                      href={`/models/${model.slug}/`}
-                      data-model-option={model.slug}
-                      aria-current={model.slug === initial.slug ? 'true' : undefined}
-                    >
-                      <code>{model.className}</code>
-                      <span>{model.description}</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+          <ul>
+            {models.map((model) => (
+              <li data-model-row data-search={`${model.className} ${model.description} ${model.type}`.toLowerCase()}>
+                <a
+                  href={`/models/${model.slug}/`}
+                  data-model-option={model.slug}
+                  aria-current={model.slug === initial.slug ? 'true' : undefined}
+                >
+                  <code>{model.className}</code>
+                  <span>{model.description}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
           <p class="empty" data-empty hidden>No models match your search.</p>
         </div>
       </aside>
@@ -67,7 +60,6 @@ const initial = models[0];
   const input = document.querySelector('[data-filter]');
   const options = [...document.querySelectorAll('[data-model-option]')];
   const rows = [...document.querySelectorAll('[data-model-row]')];
-  const groups = [...document.querySelectorAll('[data-group]')];
   const empty = document.querySelector('[data-empty]');
   const preview = document.querySelector('[data-model-preview]');
 
@@ -98,9 +90,6 @@ const initial = models[0];
       row.hidden = !match;
       if (match) visible += 1;
     });
-    groups.forEach((group) => {
-      group.hidden = ![...group.querySelectorAll('[data-model-row]')].some((row) => !row.hidden);
-    });
     if (empty) empty.hidden = visible > 0;
   });
 
@@ -121,10 +110,6 @@ const initial = models[0];
   input{width:100%;padding:10px 12px;border:1px solid var(--rule);background:var(--ink);color:var(--paper);font:inherit}
   input:focus{outline:2px solid var(--cyan);outline-offset:2px}
   .model-list{margin-top:26px}
-  .group{margin-top:25px}
-  .group:first-child{margin-top:0}
-  .group h2{margin:0 0 7px;padding-bottom:7px;border-bottom:1px solid var(--rule);font-size:.88rem;letter-spacing:.02em}
-  .group h2 span{margin-left:5px;color:var(--muted);font:400 .72rem var(--mono)}
   ul{margin:0;padding:0;list-style:none}
   li a{display:block;padding:9px 10px;border-left:2px solid transparent;color:var(--paper);text-decoration:none}
   li a:hover{background:var(--accent-wash)}
@@ -133,6 +118,6 @@ const initial = models[0];
   li span{display:block;margin-top:3px;color:var(--muted);font-size:.73rem;line-height:1.4}
   .empty{color:var(--muted);font-size:.84rem}
   [hidden]{display:none!important}
-  @media(max-width:820px){.browser{grid-template-columns:1fr;gap:28px}.selector{position:static;max-height:none;padding-right:0}.model-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}}
-  @media(max-width:560px){.model-list{display:block}}
+  @media(max-width:820px){.browser{grid-template-columns:1fr;gap:28px}.selector{position:static;max-height:none;padding-right:0}.model-list ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}}
+  @media(max-width:560px){.model-list ul{display:block}}
 </style>

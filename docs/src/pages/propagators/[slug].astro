@@ -30,10 +30,7 @@ const options = (propagator.options as any[]).map((option) => ({
   ...option,
   descriptionHtml: renderMath(option.descriptionHtml, option.descriptionMath),
 }));
-const typeOrder = ['Fluid', 'Kinetic', 'Hybrid', 'Toy'];
-const usedBy = [...(propagator.usedBy as any[])].sort(
-  (a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type) || a.model.localeCompare(b.model),
-);
+const usedBy = [...(propagator.usedBy as any[])].sort((a, b) => a.model.localeCompare(b.model));
 const description = `${propagator.summary} Used by ${usedBy.length} Struphy model${usedBy.length === 1 ? '' : 's'}.`;
 ---
 

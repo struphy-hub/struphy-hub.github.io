@@ -47,8 +47,7 @@ const { initialSlug } = Astro.props;
   }
   function renderUsedBy(usedBy: any[]) {
     if (!usedBy.length) return '<p class="note">No model in the catalogue currently composes this propagator — it is available for building new models.</p>';
-    const typeOrder = ['Fluid', 'Kinetic', 'Hybrid', 'Toy'];
-    const sorted = [...usedBy].sort((a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type) || a.model.localeCompare(b.model));
+    const sorted = [...usedBy].sort((a, b) => a.model.localeCompare(b.model));
     const lead = `<p class="lead">Each model splits its time step into a sequence of propagators. This one appears in ${sorted.length} model${sorted.length === 1 ? '' : 's'}, at the position shown.</p>`;
     const items = sorted.map((entry) => `
       <li><a href="/models/${entry.model.replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/[_\s]+/g, '-').replace(/[^a-zA-Z0-9-]/g, '').replace(/-+/g, '-').toLowerCase()}/">

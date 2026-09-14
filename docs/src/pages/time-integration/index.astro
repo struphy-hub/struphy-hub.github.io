@@ -16,7 +16,6 @@ for (const propagator of rawPropagators as any[]) {
   }
 }
 
-const typeOrder = ['Fluid', 'Kinetic', 'Hybrid', 'Toy'];
 const models = [...stepsByModel.entries()]
   .map(([name, steps]) => ({
     name,
@@ -24,7 +23,7 @@ const models = [...stepsByModel.entries()]
     type: steps[0].type,
     steps: steps.sort((a, b) => a.index - b.index).map((entry) => ({ className: entry.className, slug: toSlug(entry.className), step: entry.step })),
   }))
-  .sort((a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type) || a.name.localeCompare(b.name));
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 // A model with one propagator can't be folded in half, so Strang is unavailable
 // to it — the assertion in `integrate` makes that a hard error, not a fallback.
