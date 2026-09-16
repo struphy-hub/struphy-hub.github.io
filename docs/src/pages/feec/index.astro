@@ -73,6 +73,72 @@ for (const node of graph.nodes as any[]) {
       </div>
     </section>
 
+    <section class="section" aria-labelledby="why-title">
+      <h2 id="why-title">Why this is a numerical method, not just notation</h2>
+      <div class="prose">
+        <p>
+          The names <em>0-form</em>, <em>1-form</em>, and so on are a compact way to say what a quantity is
+          measured over: values at points, circulation along curves, flux through surfaces, and amount in a
+          volume. Gradient turns a potential into a circulation-carrying field; curl turns circulation into flux;
+          divergence turns flux into a density. FEEC makes the discrete degrees of freedom follow that same
+          chain.
+        </p>
+        <p>
+          This is important because plasma equations contain identities that are true before any model-specific
+          approximation is made: <code>curl(grad φ) = 0</code> and <code>div(curl A) = 0</code>. In the discrete
+          complex the corresponding matrices satisfy <code>C G = 0</code> and <code>D C = 0</code>, up to round-off.
+          Thus a magnetic field produced as a discrete curl is divergence-free by construction. The method does
+          not need a later clean-up step to restore an identity it has already broken.
+        </p>
+        <p>
+          Exact identities are not a claim that every calculation is exact: resolution, quadrature, time stepping,
+          particle sampling, and nonlinear solves still introduce error. FEEC isolates one especially harmful kind
+          of error — an incompatible spatial representation — so that refinement improves the physical
+          approximation instead of fighting spurious sources created by the grid.
+        </p>
+      </div>
+
+      <div class="form-grid" aria-label="Meaning of the four FEEC spaces">
+        <article><span class="form-number">0</span><h3>Potential</h3><p>Point values; a scalar field with continuity across element interfaces.</p></article>
+        <article><span class="form-number">1</span><h3>Circulation</h3><p>Tangential information is shared, so curl has a consistent meaning.</p></article>
+        <article><span class="form-number">2</span><h3>Flux</h3><p>Normal information is shared, so flux does not disappear or appear at an interface.</p></article>
+        <article><span class="form-number">3</span><h3>Density</h3><p>Cell-wise amount; discontinuities are allowed because no further derivative is required.</p></article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="discrete-title">
+      <h2 id="discrete-title">From fields to coefficients</h2>
+      <div class="prose">
+        <p>
+          A finite-element field is a weighted sum of local basis functions. For example,
+          <code>uₕ(x) = Σᵢ uᵢ Λᵢ(x)</code>: the stored numbers <code>uᵢ</code> are the field, as far as the
+          computer is concerned; the B-spline basis <code>Λᵢ</code> tells it how to evaluate that field between
+          grid locations. Local support keeps assembly and evaluation sparse, while higher-degree B-splines give
+          smooth fields without giving every basis function global reach.
+        </p>
+        <p>
+          Differentiation becomes sparse linear algebra on those coefficients. The gradient matrix <code>G</code>
+          maps coefficients in V₀ to V₁, <code>C</code> maps V₁ to V₂, and <code>D</code> maps V₂ to V₃. Their
+          product vanishes for algebraic reasons, independently of the mesh spacing. Integrals — energy, weak
+          forms, and source terms — add mass matrices, often called discrete Hodge operators, which encode the
+          metric, material coefficients, and mapped geometry.
+        </p>
+        <p>
+          It helps to separate these two roles. The complex describes topology: what derivative follows what.
+          The mass matrices describe geometry: lengths, areas, volumes, and how a curved logical grid sits in
+          physical space. This separation is why the same FEEC machinery can be used on Cartesian, periodic,
+          and mapped domains.
+        </p>
+      </div>
+
+      <div class="workflow" aria-label="Finite element exterior calculus workflow">
+        <div><span>1</span><strong>Choose the domain</strong><p>Set elements, mapping, and periodic or physical boundaries.</p></div>
+        <div><span>2</span><strong>Build the complex</strong><p>Choose spline degrees and compatible spaces V₀ through V₃.</p></div>
+        <div><span>3</span><strong>Place each variable</strong><p>Use the space demanded by its derivative and conservation law.</p></div>
+        <div><span>4</span><strong>Assemble and evolve</strong><p>Combine derivative and mass operators with a time integrator.</p></div>
+      </div>
+    </section>
+
     <section class="section" aria-labelledby="spline-title">
       <h2 id="spline-title">B-spline basis functions</h2>
       <p class="lead">
@@ -99,6 +165,60 @@ for (const node of graph.nodes as any[]) {
           <line data-crosshair x1="0" y1="0" x2="0" y2="40" hidden />
         </svg>
         <div class="spline-readout" data-spline-readout>Hover the plot to check the partition of unity at a point.</div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="practice-title">
+      <h2 id="practice-title">Practical choices in Struphy</h2>
+      <div class="prose">
+        <p>
+          Start by resolving the physics, not by maximizing spline degree. Element count controls the smallest
+          spatial scale that can be represented; degree controls smoothness and approximation order inside and
+          across those elements. Raising both can be useful, but it also raises the cost of field evaluation,
+          quadrature, and linear solves. A small refinement study — change elements first, then degree — is more
+          informative than trusting a single attractive field plot.
+        </p>
+        <p>
+          Boundary conditions are part of the space definition. Periodic directions use periodic splines. On a
+          bounded direction, the conditions selected for the fields and potentials must agree with the model's
+          physical boundary conditions. Mapped geometries add a further step: components are transformed so that
+          the tangential or normal continuity appropriate to their form degree is retained in physical space.
+        </p>
+        <p>
+          In a simulation, watch both physical diagnostics and discrete ones. Check conserved energy or expected
+          dissipation, monitor charge and magnetic-divergence constraints, and compare solutions across spatial
+          and time refinements. A structure-preserving discretization makes these diagnostics meaningful; it does
+          not remove the need to use them.
+        </p>
+        <p class="aside"><a href="/numerics/">How Struphy computes</a> explains how these field spaces couple to
+          particle markers and time stepping in a full plasma simulation.</p>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="resources-title">
+      <h2 id="resources-title">Learn more and get hands-on</h2>
+      <p class="lead">A route from the ideas on this page to the implementation and the underlying theory.</p>
+      <div class="resource-grid">
+        <a class="resource" href="https://struphy-hub.github.io/struphy/sections/numerics.html">
+          <span class="resource-kind">Struphy documentation</span>
+          <h3>Geometric finite elements</h3>
+          <p>The project’s detailed account of spline spaces, discrete operators, projectors, and mapped geometry.</p>
+        </a>
+        <a class="resource" href="https://github.com/struphy-hub/struphy-tutorials">
+          <span class="resource-kind">Tutorial notebooks</span>
+          <h3>Struphy tutorials</h3>
+          <p>Run the FEEC basics and boundary-condition notebooks in the same environment as the code.</p>
+        </a>
+        <a class="resource" href="https://doi.org/10.1090/S0273-0979-10-01278-4">
+          <span class="resource-kind">Foundational paper</span>
+          <h3>Finite element exterior calculus</h3>
+          <p>Arnold, Falk, and Winther connect Hodge theory, compatible discretizations, and numerical stability.</p>
+        </a>
+        <a class="resource" href="https://github.com/pyccel/psydac">
+          <span class="resource-kind">Underlying library</span>
+          <h3>Psydac</h3>
+          <p>The Python library that supplies the spline-based de Rham infrastructure used by Struphy.</p>
+        </a>
       </div>
     </section>
   </main>
@@ -246,6 +366,31 @@ for (const node of graph.nodes as any[]) {
   .section { padding-block: clamp(40px, 6vw, 60px); border-top: 1px solid var(--rule); }
   h2 { margin: 0 0 8px; }
   .lead { color: var(--muted); max-width: 720px; }
+  .prose { max-width: 780px; color: var(--muted); }
+  .prose p { margin: 0 0 15px; }
+  .prose code { color: var(--paper); font-size: .9em; }
+  .aside { border-left: 2px solid var(--cyan); padding-left: 14px; font-size: .92rem; }
+  .aside a { color: var(--cyan); }
+
+  .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 26px; }
+  .form-grid article { position: relative; min-height: 156px; padding: 17px; border: 1px solid var(--rule); }
+  .form-grid h3 { margin: 23px 0 6px; font-size: .95rem; }
+  .form-grid p { margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.48; }
+  .form-number { position: absolute; color: var(--cyan); font: 700 1.25rem var(--mono); }
+
+  .workflow { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 28px; border: 1px solid var(--rule); }
+  .workflow > div { padding: 18px; border-right: 1px solid var(--rule); }
+  .workflow > div:last-child { border-right: 0; }
+  .workflow span { display: block; color: var(--cyan); font: 700 .76rem var(--mono); }
+  .workflow strong { display: block; margin-top: 6px; font-size: .9rem; }
+  .workflow p { margin: 7px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.45; }
+
+  .resource-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 25px; }
+  .resource { display: block; padding: 19px; border: 1px solid var(--rule); color: inherit; text-decoration: none; transition: border-color .15s ease, background .15s ease; }
+  .resource:hover { border-color: var(--cyan); background: var(--accent-wash); }
+  .resource-kind { color: var(--cyan); font: 600 .7rem var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+  .resource h3 { margin: 8px 0 7px; font-size: 1rem; }
+  .resource p { margin: 0; color: var(--muted); font-size: .85rem; line-height: 1.5; }
 
   .complex { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 24px; }
   .space-node { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 18px; border: 1px solid var(--rule); background: none; color: var(--paper); cursor: pointer; }
@@ -272,4 +417,15 @@ for (const node of graph.nodes as any[]) {
   .axis { stroke: var(--rule); stroke-width: .3; }
   [data-crosshair] { stroke: var(--cyan); stroke-width: .3; stroke-dasharray: 1.2 1; }
   .spline-readout { margin-top: 10px; color: var(--muted); font: .82rem var(--mono); }
+
+  @media (max-width: 720px) {
+    .form-grid, .workflow { grid-template-columns: repeat(2, 1fr); }
+    .workflow > div:nth-child(2) { border-right: 0; }
+    .workflow > div:nth-child(-n + 2) { border-bottom: 1px solid var(--rule); }
+  }
+  @media (max-width: 520px) {
+    .form-grid, .workflow, .resource-grid { grid-template-columns: 1fr; }
+    .workflow > div { border-right: 0; border-bottom: 1px solid var(--rule); }
+    .workflow > div:last-child { border-bottom: 0; }
+  }
 </style>
