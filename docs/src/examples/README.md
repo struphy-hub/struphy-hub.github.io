@@ -28,21 +28,19 @@ filename.
 - Plot with Plotly (`plotly.graph_objects`), not matplotlib — the site embeds the
   `write_html(...)` output directly for a live, interactive figure. See either existing
   script for layout conventions (margins, slider/button placement if animated).
-- Save output as `<script-stem>.png` and `<script-stem>.html` via `write_image(...)` /
-  `write_html(...)`, using relative paths (`Path("<script-stem>.png")`) — the script is run
-  from inside `docs/public/examples/`, so these land there directly.
-- If the run produces a result worth reporting (a measured value, an error norm, ...), merge
-  it into the script's own metadata JSON at the end, e.g.:
-
-  ```python
-  metadata_path = Path("<script-stem>.metadata.json")
-  metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
-  metadata["someResult"] = value
-  metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False))
-  ```
-
-  This is additive — `generate_examples.py` (next step) only ever adds/overwrites the
-  *structural* fields (name, description, equations, config summary), never this one.
+- Save output with the helpers in `_gallery.py` (import them inside the `__main__` block, since
+  `generate_examples.py` runs the module without the examples directory on `sys.path`):
+  `save_figure(figure, "<script-stem>")` writes `<script-stem>.png` and `.html`;
+  `export_profiling(sim, "<script-stem>")` writes the profiling files and returns their metadata
+  fields; `merge_metadata("<script-stem>", **fields)` adds result fields to the metadata JSON.
+  The script is run from inside `docs/public/examples/`, so these land there directly.
+- Analyze with the `Output` returned by the run (`sim.output`), e.g.
+  `sim.output.evaluate("electric_energy").struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True)`;
+  see `weak-landau-damping.py`.
+- If the run produces a result worth reporting (a measured value, an error norm, ...), pass it
+  to `merge_metadata`. This is additive — `generate_examples.py` (next step) only ever
+  adds/overwrites the *structural* fields (name, description, equations, config summary), never
+  this one.
 
 ## 2. Generate the structural metadata
 

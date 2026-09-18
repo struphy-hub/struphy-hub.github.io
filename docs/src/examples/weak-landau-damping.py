@@ -10,10 +10,6 @@ Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/weak_
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
-import json
-import shutil
-from pathlib import Path
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -84,6 +80,8 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
+    from _gallery import export_profiling, merge_metadata, save_figure
+
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
     sim.run(profiling_activated=True)
@@ -94,26 +92,19 @@ if __name__ == "__main__":
         r, omega_r, omega_i, phi = 0.3677, 1.4156, -0.1533, 0.5362
         return (4 * perturbation_amplitude * r * np.exp(omega_i * t) * np.cos(omega_r * t - phi)) ** 2 * np.pi
 
-    output = sim.output
-    time = np.asarray(output.time)
-    field_energy = np.asarray(output.scalars["electric_energy"])
+    field_energy = sim.output.evaluate("electric_energy")
+    time = np.asarray(field_energy.t)
 
     # Fit the damping rate from the envelope maxima, for comparison with omega_i = -0.1533.
-    log_energy = np.log(field_energy)
-    d_log = (np.roll(log_energy, -1) - np.roll(log_energy, 1))[1:-1] / (2 * time_opts.dt)
-    is_maximum = (d_log[:-1] > 0) & (d_log[1:] < 0)
-    maxima_t = time[1:-1][:-1][is_maximum]
-    maxima_e = log_energy[1:-1][:-1][is_maximum]
     # Only fit the clean exponential-decay region -- once the signal drops
     # below the discrete-particle noise floor (around t ~ 8 here), later
     # envelope maxima track PIC noise rather than the physical damping.
-    clean = maxima_t < 8.0
-    measured_rate = float(np.polyfit(maxima_t[clean], maxima_e[clean], 1)[0] / 2)
+    measured_rate = field_energy.struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True).rate
     print(f"Measured damping rate: {measured_rate:.4f} (exact: -0.1533)")
 
     figure = go.Figure(
         data=[
-            go.Scatter(x=time, y=field_energy, mode="lines", name="Struphy (PIC)", line={"color": "#168aad", "width": 3}),
+            go.Scatter(x=time, y=np.asarray(field_energy), mode="lines", name="Struphy (PIC)", line={"color": "#168aad", "width": 3}),
             go.Scatter(
                 x=time,
                 y=field_energy_exact(time),
@@ -134,77 +125,12 @@ if __name__ == "__main__":
         margin={"l": 70, "r": 30, "t": 80, "b": 60},
     )
 
-    png_path = Path("weak-landau-damping.png")
-    html_path = Path("weak-landau-damping.html")
-    figure.write_image(png_path, width=1100, height=650, scale=2)
-    figure.write_html(
-        html_path,
-        include_plotlyjs="cdn",
-        default_width="100%",
-        default_height="100%",
-        config={"responsive": True, "displaylogo": False},
+    save_figure(figure, "weak-landau-damping")
+
+    profiling = export_profiling(sim, "weak-landau-damping")
+    merge_metadata(
+        "weak-landau-damping",
+        measuredDampingRate=measured_rate,
+        exactDampingRate=-0.1533,
+        **profiling,
     )
-    print(f"Saved {png_path.resolve()}")
-    print(f"Saved {html_path.resolve()}")
-
-    # Export scope-profiler's plot-data JSON (durations, gantt, region
-    # statistics) via its Python API, so the example page can render native
-    # Plotly figures from the real run above -- not a separate report.
-    from _profiling_exports import plot_durations
-    from scope_profiler import plot_gantt, read_h5, write_region_statistics_json
-
-    profile_reader = read_h5(sim.profiling_filepath)
-    profile_h5_path = Path("weak-landau-damping-profile.h5")
-    shutil.copyfile(sim.profiling_filepath, profile_h5_path)
-
-    # `stack_children` splits each bar into the region's own time plus one
-    # segment per region it calls, which is what the page's durations chart
-    # stacks; it only decomposes total/avg, so those are the metrics exported.
-    # `sort_by` fixes the region order the chart draws, biggest total first.
-    durations_path = Path("weak-landau-damping-durations.json")
-    plot_durations(
-        [profile_reader],
-        ranks=[0],
-        metrics=("total", "avg"),
-        sort_by="total",
-        stack_children=True,
-        data_filepath=durations_path,
-        data_format="json",
-        verbose=False,
-    )
-
-    # The stacked export is a dense region x segment grid, but a call graph is
-    # sparse -- roughly 90% of the pairs are zeros for regions that never call
-    # each other. The chart reads a missing pair as null and skips it, so
-    # dropping them cuts the file ~10x with no change on the page.
-    durations_payload = json.loads(durations_path.read_text())
-    durations_payload["bars"] = [bar for bar in durations_payload["bars"] if bar["value_seconds"]]
-    durations_path.write_text(json.dumps(durations_payload))
-
-    gantt_path = Path("weak-landau-damping-gantt.json")
-    region_stats_path = Path("weak-landau-damping-region-stats.json")
-    plot_gantt([profile_reader], ranks=[0], data_filepath=gantt_path, data_format="json", verbose=False)
-    write_region_statistics_json([profile_reader], region_stats_path, ranks=[0])
-
-    # A gantt bar is one call, not an aggregate, and a run with thousands of
-    # steps draws tens of thousands of near-identical bars -- heavy enough to
-    # hang the tab. Keeping the first GANTT_MAX_INTERVALS in time order leaves
-    # the setup phase plus several complete iterations of the step loop.
-    GANTT_MAX_INTERVALS = 5000
-    gantt_payload = json.loads(gantt_path.read_text())
-    if len(gantt_payload["intervals"]) > GANTT_MAX_INTERVALS:
-        gantt_payload["intervals"] = sorted(gantt_payload["intervals"], key=lambda c: c["start_seconds"])[:GANTT_MAX_INTERVALS]
-        gantt_path.write_text(json.dumps(gantt_payload))
-    print(f"Saved {profile_h5_path.resolve()}")
-    print(f"Saved {durations_path.resolve()}, {gantt_path.resolve()}, {region_stats_path.resolve()}")
-
-    metadata_path = Path("weak-landau-damping.metadata.json")
-    metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
-    metadata["measuredDampingRate"] = measured_rate
-    metadata["exactDampingRate"] = -0.1533
-    metadata["profilingData"] = "/examples/weak-landau-damping-profile.h5"
-    metadata["profilingDurations"] = "/examples/weak-landau-damping-durations.json"
-    metadata["profilingGantt"] = "/examples/weak-landau-damping-gantt.json"
-    metadata["profilingRegionStats"] = "/examples/weak-landau-damping-region-stats.json"
-    metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False))
-    print(f"Saved {metadata_path.resolve()}")

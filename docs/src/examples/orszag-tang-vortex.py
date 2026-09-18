@@ -8,9 +8,6 @@ field--fluid coupling and the divergence-preserving magnetic discretization.
 Requires Struphy 3.3 with compiled kernels (``struphy compile``).
 """
 
-import json
-from pathlib import Path
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -56,6 +53,8 @@ sim = Simulation(
 
 
 if __name__ == "__main__":
+    from _gallery import merge_metadata, save_figure
+
     sim.run()
     output = sim.output.process(create_vtk=False)
 
@@ -84,10 +83,5 @@ if __name__ == "__main__":
         sliders=[{"active": len(frames) - 1, "x": 0.12, "len": 0.88, "y": -0.17, "currentvalue": {"prefix": "t = "}, "steps": [{"args": [[frame.name], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate"}], "label": frame.name, "method": "animate"} for frame in frames]}],
     )
     figure.update_yaxes(scaleanchor="x", scaleratio=1)
-    figure.write_image(Path("orszag-tang-vortex.png"), width=900, height=780, scale=2)
-    figure.write_html(Path("orszag-tang-vortex.html"), include_plotlyjs="cdn", default_width="100%", default_height="100%", config={"responsive": True, "displaylogo": False})
-
-    metadata_path = Path("orszag-tang-vortex.metadata.json")
-    metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
-    metadata["finalTime"] = time_opts.Tend
-    metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False))
+    save_figure(figure, "orszag-tang-vortex", width=900, height=780)
+    merge_metadata("orszag-tang-vortex", finalTime=time_opts.Tend)

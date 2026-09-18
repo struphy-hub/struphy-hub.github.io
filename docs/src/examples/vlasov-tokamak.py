@@ -10,10 +10,6 @@ field, so each particle should gyrate around a field line while it circulates
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
-import json
-import shutil
-from pathlib import Path
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -79,6 +75,8 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
+    from _gallery import export_profiling, merge_metadata, save_figure
+
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
     sim.run(profiling_activated=True)
@@ -89,7 +87,7 @@ if __name__ == "__main__":
 
     # A magnetic field alone does no work, so each particle's speed should be
     # conserved -- a genuine accuracy check on the pusher, not just a demo.
-    speed = np.linalg.norm(orbits[:, :, 3:6], axis=2)
+    speed = np.linalg.norm(np.asarray(output.orbits.kinetic_ions.sel(quantity=["v1", "v2", "v3"])), axis=2)
     max_relative_speed_drift = float(np.max(np.abs(speed - speed[0]) / speed[0]))
     print(f"Max relative drift in particle speed (should be ~0): {max_relative_speed_drift:.5f}")
 
@@ -219,18 +217,7 @@ if __name__ == "__main__":
         ],
     )
 
-    png_path = Path("vlasov-tokamak.png")
-    html_path = Path("vlasov-tokamak.html")
-    figure.write_image(png_path, width=1100, height=850, scale=2)
-    figure.write_html(
-        html_path,
-        include_plotlyjs="cdn",
-        default_width="100%",
-        default_height="100%",
-        config={"responsive": True, "displaylogo": False},
-    )
-    print(f"Saved {png_path.resolve()}")
-    print(f"Saved {html_path.resolve()}")
+    save_figure(figure, "vlasov-tokamak", height=850)
 
     # The same orbits, projected onto each coordinate plane -- a simpler,
     # non-animated companion to the 3D view above, useful for reading off
@@ -264,79 +251,15 @@ if __name__ == "__main__":
         margin={"l": 60, "r": 30, "t": 80, "b": 60},
     )
 
-    projection_png_path = Path("vlasov-tokamak-projections.png")
-    projection_html_path = Path("vlasov-tokamak-projections.html")
-    projection_figure.write_image(projection_png_path, width=1500, height=560, scale=2)
-    projection_figure.write_html(
-        projection_html_path,
-        include_plotlyjs="cdn",
-        default_width="100%",
-        default_height="100%",
-        config={"responsive": True, "displaylogo": False},
+    save_figure(projection_figure, "vlasov-tokamak", width=1500, height=560, suffix="-projections")
+
+    profiling = export_profiling(sim, "vlasov-tokamak")
+
+    merge_metadata(
+        "vlasov-tokamak",
+        maxRelativeSpeedDrift=max_relative_speed_drift,
+        trackedParticles=n_tracked,
+        projectionsThumbnail="/images/examples/vlasov-tokamak-projections.png",
+        projectionsInteractive="/examples/vlasov-tokamak-projections.html",
+        **profiling,
     )
-    print(f"Saved {projection_png_path.resolve()}")
-    print(f"Saved {projection_html_path.resolve()}")
-
-    # Export scope-profiler's plot-data JSON (durations, gantt, region
-    # statistics) via its Python API, so the example page can render native
-    # Plotly figures from the real run above -- not a separate report.
-    from _profiling_exports import plot_durations
-    from scope_profiler import plot_gantt, read_h5, write_region_statistics_json
-
-    profile_reader = read_h5(sim.profiling_filepath)
-    profile_h5_path = Path("vlasov-tokamak-profile.h5")
-    shutil.copyfile(sim.profiling_filepath, profile_h5_path)
-
-    # `stack_children` splits each bar into the region's own time plus one
-    # segment per region it calls, which is what the page's durations chart
-    # stacks; it only decomposes total/avg, so those are the metrics exported.
-    # `sort_by` fixes the region order the chart draws, biggest total first.
-    durations_path = Path("vlasov-tokamak-durations.json")
-    plot_durations(
-        [profile_reader],
-        ranks=[0],
-        metrics=("total", "avg"),
-        sort_by="total",
-        stack_children=True,
-        data_filepath=durations_path,
-        data_format="json",
-        verbose=False,
-    )
-
-    # The stacked export is a dense region x segment grid, but a call graph is
-    # sparse -- roughly 90% of the pairs are zeros for regions that never call
-    # each other. The chart reads a missing pair as null and skips it, so
-    # dropping them cuts the file ~10x with no change on the page.
-    durations_payload = json.loads(durations_path.read_text())
-    durations_payload["bars"] = [bar for bar in durations_payload["bars"] if bar["value_seconds"]]
-    durations_path.write_text(json.dumps(durations_payload))
-
-    gantt_path = Path("vlasov-tokamak-gantt.json")
-    region_stats_path = Path("vlasov-tokamak-region-stats.json")
-    plot_gantt([profile_reader], ranks=[0], data_filepath=gantt_path, data_format="json", verbose=False)
-    write_region_statistics_json([profile_reader], region_stats_path, ranks=[0])
-
-    # A gantt bar is one call, not an aggregate, and a run with thousands of
-    # steps draws tens of thousands of near-identical bars -- heavy enough to
-    # hang the tab. Keeping the first GANTT_MAX_INTERVALS in time order leaves
-    # the setup phase plus several complete iterations of the step loop.
-    GANTT_MAX_INTERVALS = 5000
-    gantt_payload = json.loads(gantt_path.read_text())
-    if len(gantt_payload["intervals"]) > GANTT_MAX_INTERVALS:
-        gantt_payload["intervals"] = sorted(gantt_payload["intervals"], key=lambda c: c["start_seconds"])[:GANTT_MAX_INTERVALS]
-        gantt_path.write_text(json.dumps(gantt_payload))
-    print(f"Saved {profile_h5_path.resolve()}")
-    print(f"Saved {durations_path.resolve()}, {gantt_path.resolve()}, {region_stats_path.resolve()}")
-
-    metadata_path = Path("vlasov-tokamak.metadata.json")
-    metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
-    metadata["maxRelativeSpeedDrift"] = max_relative_speed_drift
-    metadata["trackedParticles"] = n_tracked
-    metadata["projectionsThumbnail"] = "/images/examples/vlasov-tokamak-projections.png"
-    metadata["projectionsInteractive"] = "/examples/vlasov-tokamak-projections.html"
-    metadata["profilingData"] = "/examples/vlasov-tokamak-profile.h5"
-    metadata["profilingDurations"] = "/examples/vlasov-tokamak-durations.json"
-    metadata["profilingGantt"] = "/examples/vlasov-tokamak-gantt.json"
-    metadata["profilingRegionStats"] = "/examples/vlasov-tokamak-region-stats.json"
-    metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False))
-    print(f"Saved {metadata_path.resolve()}")

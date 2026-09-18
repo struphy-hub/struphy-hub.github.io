@@ -10,10 +10,6 @@ scheme.
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
-import json
-import shutil
-from pathlib import Path
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -92,6 +88,8 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
+    from _gallery import export_profiling, merge_metadata, save_figure
+
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
     sim.run(profiling_activated=True)
@@ -139,63 +137,12 @@ if __name__ == "__main__":
         margin={"l": 70, "r": 70, "t": 80, "b": 60},
     )
 
-    png_path = Path("hybrid-alfven-ion-coupling.png")
-    html_path = Path("hybrid-alfven-ion-coupling.html")
-    figure.write_image(png_path, width=1100, height=650, scale=2)
-    figure.write_html(
-        html_path,
-        include_plotlyjs="cdn",
-        default_width="100%",
-        default_height="100%",
-        config={"responsive": True, "displaylogo": False},
+    save_figure(figure, "hybrid-alfven-ion-coupling")
+
+    profiling = export_profiling(sim, "hybrid-alfven-ion-coupling")
+
+    merge_metadata(
+        "hybrid-alfven-ion-coupling",
+        relativeTotalEnergyDrift=relative_drift,
+        **profiling,
     )
-    print(f"Saved {png_path.resolve()}")
-    print(f"Saved {html_path.resolve()}")
-
-    # Export scope-profiler's plot-data JSON (durations, gantt, region
-    # statistics) via its Python API, so the example page can render native
-    # Plotly figures from the real run above -- not a separate report.
-    from _profiling_exports import plot_durations
-    from scope_profiler import plot_gantt, read_h5, write_region_statistics_json
-
-    profile_reader = read_h5(sim.profiling_filepath)
-    profile_h5_path = Path("hybrid-alfven-ion-coupling-profile.h5")
-    shutil.copyfile(sim.profiling_filepath, profile_h5_path)
-
-    durations_path = Path("hybrid-alfven-ion-coupling-durations.json")
-    plot_durations(
-        [profile_reader],
-        ranks=[0],
-        metrics=("total", "avg"),
-        sort_by="total",
-        stack_children=True,
-        data_filepath=durations_path,
-        data_format="json",
-        verbose=False,
-    )
-    durations_payload = json.loads(durations_path.read_text())
-    durations_payload["bars"] = [bar for bar in durations_payload["bars"] if bar["value_seconds"]]
-    durations_path.write_text(json.dumps(durations_payload))
-
-    gantt_path = Path("hybrid-alfven-ion-coupling-gantt.json")
-    region_stats_path = Path("hybrid-alfven-ion-coupling-region-stats.json")
-    plot_gantt([profile_reader], ranks=[0], data_filepath=gantt_path, data_format="json", verbose=False)
-    write_region_statistics_json([profile_reader], region_stats_path, ranks=[0])
-
-    GANTT_MAX_INTERVALS = 5000
-    gantt_payload = json.loads(gantt_path.read_text())
-    if len(gantt_payload["intervals"]) > GANTT_MAX_INTERVALS:
-        gantt_payload["intervals"] = sorted(gantt_payload["intervals"], key=lambda c: c["start_seconds"])[:GANTT_MAX_INTERVALS]
-        gantt_path.write_text(json.dumps(gantt_payload))
-    print(f"Saved {profile_h5_path.resolve()}")
-    print(f"Saved {durations_path.resolve()}, {gantt_path.resolve()}, {region_stats_path.resolve()}")
-
-    metadata_path = Path("hybrid-alfven-ion-coupling.metadata.json")
-    metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
-    metadata["relativeTotalEnergyDrift"] = relative_drift
-    metadata["profilingData"] = "/examples/hybrid-alfven-ion-coupling-profile.h5"
-    metadata["profilingDurations"] = "/examples/hybrid-alfven-ion-coupling-durations.json"
-    metadata["profilingGantt"] = "/examples/hybrid-alfven-ion-coupling-gantt.json"
-    metadata["profilingRegionStats"] = "/examples/hybrid-alfven-ion-coupling-region-stats.json"
-    metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False))
-    print(f"Saved {metadata_path.resolve()}")
