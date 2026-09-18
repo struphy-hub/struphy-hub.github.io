@@ -5,10 +5,10 @@
   "equationsMarkdown": "**PDEs solved by model:**\n\nContinuity:\n\n$$\n\\partial_t \\rho + \\nabla \\cdot (\\rho \\mathbf{u}) = 0\n$$\n\nMomentum:\n\n$$\n\\partial_t (\\rho \\mathbf{u}) + \\nabla \\cdot (\\rho \\mathbf{u} \\otimes \\mathbf{u}) + \\rho \\nabla \\frac{(\\rho \\mathcal{U}(\\rho, s))}{\\partial \\rho} + s \\nabla \\frac{(\\rho \\mathcal{U}(\\rho, s))}{\\partial s} + \\mathbf{B} \\times \\nabla \\times \\mathbf{B} - \\nabla \\cdot \\left( (\\mu + \\mu_a(\\mathbf{x})) \\nabla \\mathbf{u} \\right) = 0\n$$\n\nEntropy:\n\n$$\n\\partial_t s + \\nabla \\cdot (s \\mathbf{u}) = \\frac{1}{T} \\left( (\\mu + \\mu_a(\\mathbf{x})) |\\nabla \\mathbf{u}|^2 + (\\eta + \\eta_a(\\mathbf{x})) |\\nabla \\times \\mathbf{B}|^2 \\right)\n$$\n\nInduction:\n\n$$\n\\partial_t \\mathbf{B} + \\nabla \\times (\\mathbf{B} \\times \\mathbf{u}) + \\nabla \\times (\\eta + \\eta_a(\\mathbf{x})) \\nabla \\times \\mathbf{B} = 0\n$$\n\nwhere the internal energy per unit mass is :math:`\\mathcal U(\\rho) = \\rho^{\\gamma-1} \\exp(s / \\rho)`,\nand :math:`\\mu_a(\\mathbf{x})` and :math:`\\eta_a(\\mathbf{x})` are artificial viscosity and resistivity coefficients.\n",
   "domain": "Cuboid (r1=6.28319, r2=6.28319)",
   "grid": "64 × 64 × 1",
-  "degree": "2 × 2 × 1",
-  "steps": 100,
+  "degree": "1 × 1 × 1",
+  "steps": 1,
   "visualization": "Plotly",
-  "finalTime": 0.5,
+  "finalTime": 0.005,
   "thumbnail": "/images/examples/orszag-tang-vortex.png",
   "interactive": "/examples/orszag-tang-vortex.html"
 }
