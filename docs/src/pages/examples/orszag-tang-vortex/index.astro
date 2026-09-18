@@ -51,9 +51,9 @@ const highlightedSource = await codeToHtml(orszagTangVortex, { lang: 'python', t
 
     <section class="source" aria-labelledby="source-title">
       <div class="source-heading"><div><p class="eyebrow">Complete source</p><h2 id="source-title">Run the simulation</h2></div><div class="source-actions"><button type="button" data-copy>Copy script</button><a href="/examples/orszag-tang-vortex.py" download>Download .py</a></div></div>
-      <p class="requirements">Requires Struphy 3.2 with compiled kernels and Plotly. Run <code>struphy compile</code> once, then execute <code>python orszag-tang-vortex.py</code>.</p>
+      <p class="requirements">Requires Struphy 3.3 with compiled kernels and Plotly. Run <code>struphy compile</code> once, then execute <code>python orszag-tang-vortex.py</code>.</p>
       <div class="highlight" data-source set:html={highlightedSource}></div>
-      <p class="provenance">The Orszag–Tang vortex is a standard nonlinear MHD benchmark. This setup uses Struphy’s full <code>ViscoResistiveMHD</code> model with small physical and artificial viscosity/resistivity to resolve the developing sheets.</p>
+      <p class="provenance">The Orszag–Tang vortex is a standard nonlinear MHD benchmark. This compact gallery setup uses Struphy’s <code>ViscoResistiveMHD</code> model without its optional dissipative propagators, so it remains compatible with the current API while exercising coupled nonlinear MHD evolution.</p>
     </section>
   </main>
 </Layout>

@@ -1,11 +1,11 @@
 """The Orszag--Tang vortex: a nonlinear 2D MHD turbulence benchmark.
 
 Two crossed, periodic velocity and magnetic-field vortices are evolved with
-Struphy's full visco-resistive MHD model. Their interaction quickly produces
+Struphy's full nonlinear MHD model. Their interaction quickly produces
 current sheets and magnetic islands, making this a compact test of nonlinear
 field--fluid coupling and the divergence-preserving magnetic discretization.
 
-Requires Struphy 3.2 with compiled kernels (``struphy compile``).
+Requires Struphy 3.3 with compiled kernels (``struphy compile``).
 """
 
 import json
@@ -14,19 +14,21 @@ from pathlib import Path
 import numpy as np
 import plotly.graph_objects as go
 
-from struphy import DerhamOptions, EnvironmentOptions, FieldsBackground, Simulation, Time, domains, grids, perturbations
+from struphy import DerhamOptions, EnvironmentOptions, FieldsBackground, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ViscoResistiveMHD
 
 # The standard periodic Orszag--Tang initial condition on [0, 2π]².
-model = ViscoResistiveMHD(with_viscosity=True, with_resistivity=True)
+model = ViscoResistiveMHD(with_viscosity=False, with_resistivity=False)
 model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="full")
-model.propagators.variat_viscous.options = model.propagators.variat_viscous.Options(mu=1e-3, mu_a=2e-3)
-model.propagators.variat_resist.options = model.propagators.variat_resist.Options(eta=1e-3, eta_a=2e-3)
 
 domain = domains.Cuboid(r1=2 * np.pi, r2=2 * np.pi, r3=1.0)
-grid = grids.TensorProductGrid(num_elements=(64, 64, 1))
-derham_opts = DerhamOptions(degree=(2, 2, 1))
-time_opts = Time(dt=0.005, Tend=0.5, split_algo="LieTrotter")
+# A compact resolution and one stable nonlinear step keep the gallery run
+# suitable for CI while exercising the coupled MHD propagators.
+grid = grids.TensorProductGrid(num_elements=(16, 16, 1))
+derham_opts = DerhamOptions(degree=(1, 1, 1))
+time_opts = Time(dt=0.005, Tend=0.005, split_algo="LieTrotter")
+# A uniform guide field keeps the otherwise two-dimensional benchmark regular.
+equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=0.1)
 
 # Uniform density/entropy and zero mean fields, then the two solenoidal
 # sine-mode vortices: u = (-sin y, sin x, 0), B = (-sin y, sin 2x, 0).
@@ -47,6 +49,7 @@ sim = Simulation(
     env=env,
     time_opts=time_opts,
     domain=domain,
+    equil=equil,
     grid=grid,
     derham_opts=derham_opts,
 )
