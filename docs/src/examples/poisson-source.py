@@ -27,7 +27,7 @@ model = Poisson(with_t_dep_source=True)
 # A 1D interval, resolved in the x-direction only.
 domain = domains.Cuboid(l1=-5.0, r1=5.0)
 grid = grids.TensorProductGrid(num_elements=(48, 1, 1))
-time_opts = Time(dt=0.1, Tend=2.0)
+time_opts = Time(dt=0.01, Tend=2.0)
 
 # The source oscillates as cos(omega t), driving a single cosine spatial mode.
 omega = 2 * np.pi
