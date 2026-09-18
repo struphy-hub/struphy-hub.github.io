@@ -1,0 +1,305 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import rawModels from '../../data/models.json';
+import rawPropagators from '../../data/propagators.json';
+
+const modelCount = (rawModels as any[]).length;
+const propagatorCount = (rawPropagators as any[]).length;
+
+const packages = [
+  {
+    layer: 'Simulation',
+    items: [
+      { name: 'simulation', text: 'The Simulation object: assembles a run, executes the time loop and manages output.' },
+      { name: 'io', text: 'Option classes (EnvironmentOptions, Time, …) and output handling.' },
+    ],
+  },
+  {
+    layer: 'Physics',
+    items: [
+      { name: 'models', text: `The ${modelCount} models: variables, parameters and the list of propagators.` },
+      { name: 'propagators', text: `The ${propagatorCount} substeps that advance a model over a time step.` },
+      { name: 'fields_background', text: 'Equilibria, background fields and their initial perturbations.' },
+      { name: 'kinetic_background', text: 'Velocity-space background distributions f₀ of kinetic species.' },
+    ],
+  },
+  {
+    layer: 'Discretization',
+    items: [
+      { name: 'feec', text: 'De Rham complex, mass and basis-projection operators, projectors.' },
+      { name: 'bsplines', text: 'B-spline evaluation kernels in one to three dimensions.' },
+      { name: 'geometry', text: 'Domain mappings and their evaluation kernels.' },
+      { name: 'linear_algebra', text: 'Stencil matrix–vector kernels and solvers.' },
+      { name: 'pic', text: 'Markers, pushing, accumulation (deposition), sampling and sorting.' },
+    ],
+  },
+  {
+    layer: 'Analysis',
+    items: [
+      { name: 'post_processing', text: 'Evaluation of FEEC fields and marker data from saved output.' },
+      { name: 'diagnostics', text: 'Derived quantities computed from a run.' },
+    ],
+  },
+];
+
+const parallelLevels = [
+  {
+    level: 'OpenMP threads',
+    scope: 'Loops over markers and cells inside compiled kernels',
+    how: 'struphy compile --openmp',
+    note: 'Off by default. Directives are present in the pusher, accumulation and several utility kernels.',
+  },
+  {
+    level: 'MPI domain decomposition',
+    scope: 'Field grid and markers, split between ranks',
+    how: 'mpirun -n N python …; TensorProductGrid(mpi_dims_mask=…)',
+    note: 'Fields are distributed by feectools; markers live on the rank that owns their region.',
+  },
+  {
+    level: 'MPI domain clones',
+    scope: 'Markers, split between groups of ranks',
+    how: 'EnvironmentOptions(num_clones=…)',
+    note: 'Each clone holds a share of the markers; accumulated quantities are summed across clones.',
+  },
+];
+
+const compileCode = `struphy compile                    # Fortran, GNU compiler (default)
+struphy compile --language c       # C instead of Fortran
+struphy compile --openmp           # kernels with OpenMP support
+struphy compile --status           # which kernels are compiled`;
+
+const mpiCode = `from struphy import EnvironmentOptions, grids
+
+grid = grids.TensorProductGrid(
+    num_elements=(64, 128, 16),
+    mpi_dims_mask=(True, True, False),   # decompose directions 1 and 2 only
+)
+env = EnvironmentOptions(num_clones=2)   # 2 clones; total ranks must be divisible by 2
+
+# then, from the shell:  mpirun -n 8 python my_simulation.py`;
+---
+
+<Layout
+  title="Implementation — Struphy"
+  description="How Struphy is organized: the package structure, kernels compiled with Pyccel, parallelization with OpenMP and MPI, and the status of GPU support through CuPy."
+>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">How it works</p>
+      <h1 id="page-title">Code structure and parallelization</h1>
+      <p class="standfirst">
+        Struphy is a Python package. The setup, the time loop and the models are written in Python; the
+        computationally intensive loops over markers, cells and spline coefficients are written in a restricted,
+        NumPy-based subset of Python and compiled to Fortran or C with Pyccel. Parallelism is provided by MPI and,
+        optionally, OpenMP. This page describes how these parts fit together.
+      </p>
+    </section>
+
+    <section class="section" aria-labelledby="structure-title">
+      <h2 id="structure-title">Package structure</h2>
+      <div class="prose">
+        <p>
+          The package <code>struphy</code> is organized in layers. A <code>Simulation</code> combines a model, a
+          domain, a grid and the numerical options. It builds the discrete de Rham complex on the domain and grid
+          (<code>feec</code>), instantiates the model's variables (finite element coefficient vectors or marker
+          arrays), and then calls the model's propagators in sequence at every time step. A propagator either solves
+          a linear or nonlinear system on the finite element spaces, or calls a pusher or accumulator that applies a
+          compiled kernel to all markers.
+        </p>
+      </div>
+
+      <div class="layers">
+        {packages.map((group) => (
+          <article class="layer">
+            <h3>{group.layer}</h3>
+            <dl>
+              {group.items.map((item) => (
+                <div><dt><code>struphy.{item.name}</code></dt><dd>{item.text}</dd></div>
+              ))}
+            </dl>
+          </article>
+        ))}
+      </div>
+
+      <div class="prose">
+        <p>
+          Struphy relies on a few external packages for the infrastructure below this layer.
+          <a href="https://github.com/struphy-hub/feectools">feectools</a>, a fork of
+          <a href="https://github.com/pyccel/psydac">Psydac</a>, provides the spline spaces, the distributed stencil
+          vectors and matrices, and the MPI wrapper. <a href="https://github.com/pyccel/pyccel">Pyccel</a> compiles
+          the kernels. <code>cunumpy</code> provides the array module used throughout the code (NumPy or CuPy, see
+          below), and <code>scope-profiler</code> records timings for the profiling regions.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="pyccel-title">
+      <h2 id="pyccel-title">Compiled kernels with Pyccel</h2>
+      <div class="prose">
+        <p>
+          The kernels are ordinary Python functions with type annotations, restricted to a NumPy subset that Pyccel
+          can translate. There are roughly three dozen kernel modules, in <code>bsplines</code>,
+          <code>feec</code>, <code>geometry</code>, <code>linear_algebra</code> and <code>pic</code>: spline
+          evaluation, domain mappings, mass-matrix assembly, matrix–vector products, marker pushing, and the
+          accumulation of marker contributions onto the grid. Working with a single Python source means that a
+          kernel can be read, tested and, if needed, debugged as Python.
+        </p>
+        <p>
+          <code>struphy compile</code> (or the <code>Compiler</code> class in Python) transpiles the kernels to
+          Fortran or C and builds shared libraries. Kernel modules that depend on each other are rebuilt in the
+          right order and only when needed. The GNU compiler is the one regularly tested; Intel, PGI, NVIDIA and LLVM
+          compilers can be selected through the <code>--compiler</code> option or a compiler configuration file.
+          A kernel that has not been compiled still runs as pure Python, which is slow but useful for development.
+        </p>
+      </div>
+      <pre><code>{compileCode}</code></pre>
+    </section>
+
+    <section class="section" aria-labelledby="parallel-title">
+      <h2 id="parallel-title">Parallelization</h2>
+      <div class="prose">
+        <p>
+          Three mechanisms are available and can be combined. They address different limits: OpenMP uses the cores
+          of one node, domain decomposition distributes both the fields and the markers, and clones distribute only
+          the markers when the field grid does not need to be split further.
+        </p>
+      </div>
+
+      <div class="table-wrap">
+        <table class="levels">
+          <thead>
+            <tr><th scope="col">Mechanism</th><th scope="col">What is distributed</th><th scope="col">How to enable</th><th scope="col">Notes</th></tr>
+          </thead>
+          <tbody>
+            {parallelLevels.map((row) => (
+              <tr>
+                <th scope="row">{row.level}</th>
+                <td>{row.scope}</td>
+                <td><code>{row.how}</code></td>
+                <td>{row.note}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h3>MPI domain decomposition</h3>
+      <div class="prose">
+        <p>
+          The logical grid is divided into blocks, one per rank, and the finite element vectors and matrices are
+          stored in distributed stencil format with ghost regions at the block boundaries. The directions that are
+          decomposed are chosen with <code>mpi_dims_mask</code>. As a guideline, a direction should only be
+          decomposed if every rank keeps enough elements in it.
+        </p>
+        <p>
+          Each marker belongs to the rank whose block contains it. After the markers have been moved, they are
+          sorted according to the decomposition (<code>mpi_sort_markers</code>): markers that left a block are sent
+          to their new owner, taking periodic boundary conditions into account. Accumulation kernels deposit marker
+          contributions into the local block and its ghost region, followed by a ghost-region exchange. For SPH
+          models, ghost markers are exchanged between neighbouring blocks.
+        </p>
+      </div>
+
+      <h3>Clones</h3>
+      <div class="prose">
+        <p>
+          With <code>num_clones</code> greater than one, the MPI ranks are split into groups. Each clone carries the
+          field decomposition and its share of the markers, and the accumulated quantities are summed over the
+          clones (an <code>Allreduce</code> over the communicator that links equivalent ranks of different clones).
+          The number of ranks must be divisible by the number of clones. This increases the number of markers that
+          can be used without splitting the field grid further, at the cost of replicating the fields.
+        </p>
+      </div>
+      <pre><code>{mpiCode}</code></pre>
+
+      <h3>Memory layout and sorting</h3>
+      <div class="prose">
+        <p>
+          Markers are stored in a single two-dimensional array, one row per marker, with columns for position,
+          velocity, weights and buffers used by the pushers. Removed markers leave holes that are refilled when
+          markers arrive from other ranks. With the option <code>sort_step</code>, markers are also sorted in memory
+          every N steps so that markers in the same cell are close together, which improves cache use in
+          evaluation and accumulation.
+        </p>
+      </div>
+
+      <h3>Profiling</h3>
+      <div class="prose">
+        <p>
+          A run can record the time spent in the setup, in each propagator, pusher and accumulation kernel, in
+          marker sorting and communication, and in the linear solves. The results are written to an HDF5 file, from
+          which per-rank timelines (Gantt charts) and flame graphs are generated. Optional hardware-counter
+          (LIKWID) and NVIDIA (NVTX, CUDA events) instrumentation is available in the profiler options. The
+          examples on this site show these charts for the example runs.
+        </p>
+        <p class="aside"><a href="/simulation/">Building a simulation</a> lists the profiling regions and the options of a run.</p>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="gpu-title">
+      <h2 id="gpu-title">GPU support and roadmap</h2>
+      <div class="prose">
+        <p>
+          <strong>Current status.</strong> The array module <code>xp</code> from <code>cunumpy</code> selects NumPy
+          or CuPy as the array backend, so that the Python part of the code can allocate its arrays on a GPU. The
+          compiled kernels, however, still run on the CPU. Pyccel produces Fortran or C code that only accepts NumPy
+          arrays, so CuPy arrays are copied to the host before a kernel call and the results are copied back
+          afterwards. The CuPy backend therefore does not accelerate the kernels by itself, and the numerical results
+          do not depend on the backend. The profiler can already record NVTX ranges and CUDA-event timings.
+        </p>
+        <p>
+          <strong>Planned.</strong> The particle kernels (pushers and accumulation) dominate the cost of kinetic
+          simulations, and porting them to run on the device is the next step. The approach under consideration is
+          to implement them as CuPy <code>RawKernel</code>s (CUDA C), to be used in place of the Pyccel kernels when
+          the CuPy backend is active, so that markers and fields stay on the device between substeps.
+        </p>
+        {/* TODO(max): fill in the RawKernel roadmap (target kernels and order, accumulation strategy / atomics, MPI + GPU communication, milestones, status). */}
+      </div>
+    </section>
+
+    <section class="section next" aria-labelledby="next-title">
+      <h2 id="next-title">Related pages</h2>
+      <div class="next-grid">
+        <a href="/numerics/"><h3>Numerical methods</h3><p>The discretizations these kernels implement.</p></a>
+        <a href="/simulation/"><h3>Building a simulation</h3><p>Options of a run, profiling regions and output.</p></a>
+        <a href="/time-integration/"><h3>Time integration</h3><p>How propagators are composed over a step.</p></a>
+        <a href="https://struphy-hub.github.io/struphy/sections/install.html"><h3>Installation guide</h3><p>Installing Struphy, with MPI and compiled kernels.</p></a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .intro{max-width:820px;padding-block:clamp(56px,8vw,92px)}
+  .eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  h1{margin:0 0 20px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}
+  .standfirst{color:var(--muted);font-size:1.12rem;line-height:1.6}
+  .section{padding-block:44px 62px;border-top:1px solid var(--rule)}
+  h2{margin:0 0 20px;font-size:clamp(1.4rem,2.6vw,1.85rem)}
+  h3{margin:34px 0 12px;font-size:1.1rem}
+  .prose{max-width:720px}
+  .prose p{margin:0 0 16px;color:var(--muted);line-height:1.68}
+  .prose p:last-child{margin-bottom:0}
+  .prose strong{color:var(--paper);font-weight:650}
+  .prose a{color:var(--cyan)}
+  .aside{margin-top:20px!important;padding-left:14px;border-left:2px solid var(--cyan);font-size:.9rem}
+  .layers{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1px;margin:30px 0;max-width:960px;background:var(--rule);border:1px solid var(--rule)}
+  .layer{padding:20px 22px;background:var(--ink)}
+  .layer h3{margin:0 0 12px;color:var(--cyan);font:650 .8rem var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  .layer dl{margin:0;display:grid;gap:12px}
+  .layer dt{margin:0}
+  .layer dd{margin:2px 0 0;color:var(--muted);font-size:.88rem;line-height:1.5}
+  .table-wrap{max-width:960px;margin:28px 0 0;overflow-x:auto}
+  .levels{width:100%;border-collapse:collapse;font-size:.88rem}
+  .levels th,.levels td{padding:12px 14px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top;line-height:1.5}
+  .levels thead th{color:var(--muted);font:600 .74rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+  .levels tbody th{color:var(--paper);font-weight:650;white-space:nowrap}
+  .levels td{color:var(--muted)}
+  .levels code{font-size:.8rem}
+  pre{max-width:820px;margin:24px 0 0;padding:20px 22px;overflow-x:auto;border:1px solid var(--rule);background:var(--code-bg);color:var(--paper);font:.85rem/1.7 var(--mono)}
+  .next-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;max-width:900px}
+  .next-grid a{display:block;padding:16px 18px;border:1px solid var(--rule);color:var(--paper);text-decoration:none}
+  .next-grid a:hover{border-color:var(--cyan);background:var(--accent-wash)}
+  .next-grid h3{margin:0 0 6px;color:var(--cyan);font-size:.95rem}
+  .next-grid p{margin:0;color:var(--muted);font-size:.82rem;line-height:1.5}
+</style>
