@@ -75,6 +75,7 @@ if __name__ == "__main__":
         electric_field,
         component=0,
         slice_at=[0, 0, None],
+        physical=True,
         do_plot=False,
         fit_branches=1,
         noise_level=0.5,
