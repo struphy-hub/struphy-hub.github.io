@@ -155,7 +155,8 @@ if __name__ == "__main__":
     # Export scope-profiler's plot-data JSON (durations, gantt, region
     # statistics) via its Python API, so the example page can render native
     # Plotly figures from the real run above -- not a separate report.
-    from scope_profiler import plot_durations, plot_gantt, read_h5, write_region_statistics_json
+    from _profiling_exports import plot_durations
+    from scope_profiler import plot_gantt, read_h5, write_region_statistics_json
 
     profile_reader = read_h5(sim.profiling_filepath)
     profile_h5_path = Path("hybrid-alfven-ion-coupling-profile.h5")
