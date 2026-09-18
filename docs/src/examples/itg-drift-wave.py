@@ -158,15 +158,16 @@ if __name__ == "__main__":
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
     sim.run(profiling_activated=True)
-    sim.pproc(create_vtk=False)
-    sim.load_plotting_data()
+    output = sim.output.process(create_vtk=False)
 
     # The field-projected density perturbation (cleaner than the raw,
     # particle-noise-dominated PIC histogram) is the standard diagnostic for
     # this kind of drift instability.
-    rho = sim.spline_values.diagnostics.rho_log.data
-    times = np.asarray(sorted(rho.keys()))
-    perturbation_energy = np.array([float(np.sum(np.asarray(rho[t][0]) ** 2)) for t in times])
+    rho = output.fields.diagnostics.rho_log
+    rho = rho.isel(component=0) if "component" in rho.dims else rho
+    spatial_dims = tuple(dim for dim in rho.dims if dim != "t")
+    times = np.asarray(rho.t)
+    perturbation_energy = np.asarray((rho**2).sum(spatial_dims))
 
     growth_window = (times > 25.0) & (times < 175.0)
     growth_rate = float(np.polyfit(times[growth_window], np.log(perturbation_energy[growth_window]), 1)[0] / 2)

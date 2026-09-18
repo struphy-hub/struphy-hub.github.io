@@ -13,11 +13,9 @@ Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
 import json
-import os
 import shutil
 from pathlib import Path
 
-import h5py
 import numpy as np
 import plotly.graph_objects as go
 
@@ -103,15 +101,14 @@ if __name__ == "__main__":
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
     sim.run(profiling_activated=True)
-    sim.pproc(create_vtk=False)
-    sim.load_plotting_data()
+    output = sim.output.process(create_vtk=False)
 
     # Total magnetic (B3) field energy at each saved time, summed over the grid.
-    b_field = sim.spline_values.em_fields.b_field_log.data
-    times = sorted(b_field.keys())
-    grid_shape = sim.grids_phy[0].shape
+    b_field = output.fields.em_fields.b_field_log
+    times = np.asarray(b_field.t)
+    grid_shape = tuple(b_field.sizes[dim] for dim in ("e1", "e2", "e3"))
     cell_volume = float(np.prod([1.0 / max(n - 1, 1) for n in grid_shape]))
-    magnetic_energy = np.array([float(np.sum(np.asarray(b_field[t][2]) ** 2)) * cell_volume / 2 for t in times])
+    magnetic_energy = np.asarray((b_field.isel(component=2) ** 2).sum(("e1", "e2", "e3"))) * cell_volume / 2
     time = np.asarray(times)
 
     # Fit the growth rate over the clean exponential window (roughly the

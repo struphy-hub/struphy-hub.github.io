@@ -11,11 +11,9 @@ Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
 import json
-import os
 import shutil
 from pathlib import Path
 
-import h5py
 import numpy as np
 import plotly.graph_objects as go
 
@@ -96,9 +94,9 @@ if __name__ == "__main__":
     # pusher and solver call during the run and writes a timing HDF5 file.
     sim.run(profiling_activated=True)
 
-    with h5py.File(os.path.join(env.path_out, "data", "data_proc0.hdf5"), "r") as f:
-        time = np.asarray(f["time"]["value"])
-        field_energy = np.asarray(f["scalar"]["electric_energy"])
+    output = sim.output
+    time = np.asarray(output.time)
+    field_energy = np.asarray(output.scalars["electric_energy"])
 
     # Fit the exponential growth rate over the clean linear-growth window
     # (before trapping saturates it, roughly t in [5, 25] for this setup).
@@ -137,13 +135,12 @@ if __name__ == "__main__":
     # The classic two-stream "movie": phase-space (x, v) density, showing the
     # two beams' initially flat bands roll up into the characteristic vortex
     # ("cat's eye") pattern as the instability traps particles.
-    sim.pproc(create_vtk=False)
-    sim.load_plotting_data()
-    phase_space = sim.f.kinetic_ions.e1_v1_density
-    position = phase_space.grid_e1 * domain.params["r1"]
-    velocity = phase_space.grid_v1
-    phase_frames_data = phase_space.f_binned  # (n_saved_times, n_position_bins, n_velocity_bins)
-    phase_times = np.linspace(0.0, time_opts.Tend, len(phase_frames_data))
+    output.process(create_vtk=False)
+    phase_space = output.distributions.kinetic_ions.e1_v1_density.f
+    position = np.asarray(phase_space.e1) * domain.params["r1"]
+    velocity = np.asarray(phase_space.v1)
+    phase_frames_data = np.asarray(phase_space)  # (time, position, velocity)
+    phase_times = np.asarray(phase_space.t)
 
     # Each frame auto-scales its own color range -- the interesting signal is
     # the *shape* (flat bands vs. trapped vortex), not the absolute density,

@@ -11,11 +11,9 @@ Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
 import json
-import os
 import shutil
 from pathlib import Path
 
-import h5py
 import numpy as np
 import plotly.graph_objects as go
 
@@ -96,9 +94,9 @@ if __name__ == "__main__":
         r, omega_r, omega_i, phi = 0.3677, 1.4156, -0.1533, 0.5362
         return (4 * perturbation_amplitude * r * np.exp(omega_i * t) * np.cos(omega_r * t - phi)) ** 2 * np.pi
 
-    with h5py.File(os.path.join(env.path_out, "data", "data_proc0.hdf5"), "r") as f:
-        time = np.asarray(f["time"]["value"])
-        field_energy = np.asarray(f["scalar"]["electric_energy"])
+    output = sim.output
+    time = np.asarray(output.time)
+    field_energy = np.asarray(output.scalars["electric_energy"])
 
     # Fit the damping rate from the envelope maxima, for comparison with omega_i = -0.1533.
     log_energy = np.log(field_energy)

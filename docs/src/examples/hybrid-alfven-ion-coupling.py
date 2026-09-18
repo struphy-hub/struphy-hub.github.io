@@ -11,11 +11,9 @@ Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
 import json
-import os
 import shutil
 from pathlib import Path
 
-import h5py
 import numpy as np
 import plotly.graph_objects as go
 
@@ -100,12 +98,12 @@ if __name__ == "__main__":
 
     # LinearMHDVlasovPC tracks each subsystem's energy as a scalar every step:
     # en_B/en_U (field/fluid), en_f (kinetic energetic ions), en_tot (total).
-    with h5py.File(os.path.join(env.path_out, "data", "data_proc0.hdf5"), "r") as f:
-        time = np.asarray(f["time"]["value"])
-        en_B = np.asarray(f["scalar"]["en_B"])
-        en_U = np.asarray(f["scalar"]["en_U"])
-        en_f = np.asarray(f["scalar"]["en_f"])
-        en_tot = np.asarray(f["scalar"]["en_tot"])
+    output = sim.output
+    time = np.asarray(output.time)
+    en_B = np.asarray(output.scalars["en_B"])
+    en_U = np.asarray(output.scalars["en_U"])
+    en_f = np.asarray(output.scalars["en_f"])
+    en_tot = np.asarray(output.scalars["en_tot"])
 
     relative_drift = float(np.max(np.abs(en_tot - en_tot[0]) / en_tot[0]))
     print(f"Max relative drift in total energy (should be ~0): {relative_drift:.2e}")

@@ -107,14 +107,13 @@ if __name__ == "__main__":
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
     sim.run(profiling_activated=True)
-    sim.pproc(create_vtk=False)
-    sim.load_plotting_data()
+    output = sim.output.process(create_vtk=False)
 
-    density = sim.f.kinetic_ions.e1_e2_density
-    radius = a1 + (a2 - a1) * density.grid_e1
-    angle_deg = 360.0 * density.grid_e2
-    frames_data = density.f_binned  # (n_saved_times, n_radius_bins, n_angle_bins)
-    times = np.linspace(0.0, time_opts.Tend, len(frames_data))
+    density = output.distributions.kinetic_ions.e1_e2_density.f
+    radius = a1 + (a2 - a1) * np.asarray(density.e1)
+    angle_deg = 360.0 * np.asarray(density.e2)
+    frames_data = np.asarray(density)  # (time, radius, angle)
+    times = np.asarray(density.t)
 
     # A simple measure of how far the ring has departed from its initial,
     # axisymmetric shape: the standard deviation of density around each

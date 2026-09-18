@@ -12,11 +12,9 @@ Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
 import json
-import os
 import shutil
 from pathlib import Path
 
-import h5py
 import numpy as np
 import plotly.graph_objects as go
 
@@ -91,9 +89,9 @@ if __name__ == "__main__":
     # pusher and solver call during the run and writes a timing HDF5 file.
     sim.run(profiling_activated=True)
 
-    with h5py.File(os.path.join(env.path_out, "data", "data_proc0.hdf5"), "r") as f:
-        time = np.asarray(f["time"]["value"])
-        field_energy = np.asarray(f["scalar"]["electric_energy"])
+    output = sim.output
+    time = np.asarray(output.time)
+    field_energy = np.asarray(output.scalars["electric_energy"])
 
     # The bounce period of trapped particles shows up as the spacing between
     # local maxima in the field energy, once the initial (linear) damping

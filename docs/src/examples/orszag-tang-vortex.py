@@ -54,23 +54,23 @@ sim = Simulation(
 
 if __name__ == "__main__":
     sim.run()
-    sim.pproc(create_vtk=False)
-    sim.load_plotting_data()
+    output = sim.output.process(create_vtk=False)
 
-    b_field = sim.spline_values.em_fields.b_field_log.data
-    times = sorted(b_field.keys())
-    x, y = sim.grids_phy[0][..., 0], sim.grids_phy[1][..., 0]
+    b_field = output.fields.em_fields.b_field_log
+    times = np.asarray(b_field.t)
+    x, y = b_field.X.isel(e3=0), b_field.Y.isel(e3=0)
 
     def magnetic_pressure(t):
-        bx, by = np.asarray(b_field[t][0])[..., 0], np.asarray(b_field[t][1])[..., 0]
+        field = b_field.sel(t=t).isel(e3=0)
+        bx, by = np.asarray(field.isel(component=0)), np.asarray(field.isel(component=1))
         return 0.5 * (bx**2 + by**2)
 
     frame_indices = np.linspace(0, len(times) - 1, min(80, len(times)), dtype=int)
     frames = [
-        go.Frame(name=f"{times[i]:.3f}", data=[go.Heatmap(x=x[:, 0], y=y[0, :], z=magnetic_pressure(times[i]).T, colorscale="Turbo")])
+        go.Frame(name=f"{times[i]:.3f}", data=[go.Heatmap(x=np.asarray(x[:, 0]), y=np.asarray(y[0, :]), z=magnetic_pressure(times[i]).T, colorscale="Turbo")])
         for i in frame_indices
     ]
-    figure = go.Figure(data=[go.Heatmap(x=x[:, 0], y=y[0, :], z=magnetic_pressure(times[-1]).T, colorscale="Turbo", colorbar={"title": "B² / 2"})], frames=frames)
+    figure = go.Figure(data=[go.Heatmap(x=np.asarray(x[:, 0]), y=np.asarray(y[0, :]), z=magnetic_pressure(times[-1]).T, colorscale="Turbo", colorbar={"title": "B² / 2"})], frames=frames)
     figure.update_layout(
         title="Orszag–Tang vortex: magnetic pressure",
         xaxis_title="x",

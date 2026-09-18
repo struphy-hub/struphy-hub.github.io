@@ -65,8 +65,7 @@ if __name__ == "__main__":
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
     sim.run(profiling_activated=True)
-    sim.pproc()
-    sim.load_plotting_data()
+    output = sim.output.process(create_vtk=False)
 
     # Exact solution of -d^2(phi)/dx^2 = rho(t, x), rho = A cos(k x) cos(omega t).
     Lx = domain.params["r1"] - domain.params["l1"]
@@ -75,15 +74,18 @@ if __name__ == "__main__":
     def phi_exact(x, t):
         return amplitude / k**2 * np.cos(k * x) * np.cos(omega * t)
 
-    phi = sim.spline_values.em_fields.phi_log.data
-    x = sim.grids_phy[0][:, 0, 0]
-    times = sorted(phi.keys())
+    phi = output.fields.em_fields.phi_log
+    phi_line = phi.isel(e2=0, e3=0)
+    if "component" in phi_line.dims:
+        phi_line = phi_line.isel(component=0)
+    x = np.asarray(phi_line.X)
+    times = np.asarray(phi_line.t)
 
     phi_scale = amplitude / k**2
     max_relative_error = 0.0
     frames = []
     for t in times:
-        phi_h = np.asarray(phi[t][0])[:, 0, 0]
+        phi_h = np.asarray(phi_line.sel(t=t))
         phi_e = phi_exact(x, t)
         max_relative_error = max(max_relative_error, float(np.max(np.abs(phi_h - phi_e))) / phi_scale)
         frames.append(
@@ -102,7 +104,7 @@ if __name__ == "__main__":
         data=[
             go.Scatter(
                 x=x,
-                y=np.asarray(phi[times[0]][0])[:, 0, 0],
+                y=np.asarray(phi_line.isel(t=0)),
                 mode="lines",
                 name="Struphy (FEEC)",
                 line={"color": "#168aad", "width": 3},

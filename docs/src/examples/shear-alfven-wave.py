@@ -77,16 +77,12 @@ if __name__ == "__main__":
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
     sim.run(profiling_activated=True)
-    sim.pproc(create_vtk=False)
-    sim.load_plotting_data()
+    output = sim.output.process(create_vtk=False)
 
     # Struphy's diagnostic computes the (k, omega) spectrum and fits its branch.
-    velocity = sim.spline_values.mhd.velocity_log.data
+    velocity = output.fields.mhd.velocity_log
     omega, kvec, dispersion, coefficients = power_spectrum_2d(
         velocity,
-        "velocity_log",
-        grids=sim.grids_log,
-        grids_mapped=sim.grids_phy,
         component=0,
         slice_at=[0, 0, None],
         do_plot=False,

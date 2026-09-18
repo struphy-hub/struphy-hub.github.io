@@ -82,11 +82,10 @@ if __name__ == "__main__":
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
     sim.run(profiling_activated=True)
-    sim.pproc(create_vtk=False)
-    sim.load_plotting_data()
+    output = sim.output.process(create_vtk=False)
 
     # (time, particle, [x, y, z, v1, v2, v3, weight, id]) in physical coordinates.
-    orbits = np.asarray(sim.orbits.kinetic_ions)
+    orbits = np.asarray(output.orbits.kinetic_ions)
 
     # A magnetic field alone does no work, so each particle's speed should be
     # conserved -- a genuine accuracy check on the pusher, not just a demo.
