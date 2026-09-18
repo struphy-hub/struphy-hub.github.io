@@ -72,7 +72,7 @@ if __name__ == "__main__":
     output = sim.output.process(create_vtk=False)
 
     # Struphy's diagnostic computes the (k, omega) spectrum and fits its branch.
-    electric_field = output.fields.em_fields.e_field_log
+    electric_field = output.fields.em_fields.e_field
     omega, kvec, dispersion, coefficients = power_spectrum_2d(
         electric_field,
         component=0,

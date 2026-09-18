@@ -163,7 +163,7 @@ if __name__ == "__main__":
     # The field-projected density perturbation (cleaner than the raw,
     # particle-noise-dominated PIC histogram) is the standard diagnostic for
     # this kind of drift instability.
-    rho = output.fields.diagnostics.rho_log
+    rho = output.fields.diagnostics.rho
     rho = rho.isel(component=0) if "component" in rho.dims else rho
     spatial_dims = tuple(dim for dim in rho.dims if dim != "t")
     times = np.asarray(rho.t)

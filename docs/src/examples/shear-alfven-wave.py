@@ -80,7 +80,7 @@ if __name__ == "__main__":
     output = sim.output.process(create_vtk=False)
 
     # Struphy's diagnostic computes the (k, omega) spectrum and fits its branch.
-    velocity = output.fields.mhd.velocity_log
+    velocity = output.fields.mhd.velocity
     omega, kvec, dispersion, coefficients = power_spectrum_2d(
         velocity,
         component=0,

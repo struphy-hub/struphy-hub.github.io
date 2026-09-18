@@ -104,7 +104,7 @@ if __name__ == "__main__":
     output = sim.output.process(create_vtk=False)
 
     # Total magnetic (B3) field energy at each saved time, summed over the grid.
-    b_field = output.fields.em_fields.b_field_log
+    b_field = output.fields.em_fields.b_field
     times = np.asarray(b_field.t)
     grid_shape = tuple(b_field.sizes[dim] for dim in ("e1", "e2", "e3"))
     cell_volume = float(np.prod([1.0 / max(n - 1, 1) for n in grid_shape]))

@@ -56,7 +56,7 @@ if __name__ == "__main__":
     sim.run()
     output = sim.output.process(create_vtk=False)
 
-    b_field = output.fields.em_fields.b_field_log
+    b_field = output.fields.em_fields.b_field
     times = np.asarray(b_field.t)
     x, y = b_field.X.isel(e3=0), b_field.Y.isel(e3=0)
 

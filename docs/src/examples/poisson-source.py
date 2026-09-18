@@ -74,7 +74,7 @@ if __name__ == "__main__":
     def phi_exact(x, t):
         return amplitude / k**2 * np.cos(k * x) * np.cos(omega * t)
 
-    phi = output.fields.em_fields.phi_log
+    phi = output.fields.em_fields.phi
     phi_line = phi.isel(e2=0, e3=0)
     if "component" in phi_line.dims:
         phi_line = phi_line.isel(component=0)
