@@ -45,6 +45,15 @@
     "thumbnail": "/images/examples/maxwell-dispersion.png"
   },
   {
+    "slug": "orszag-tang-vortex",
+    "href": "/examples/orszag-tang-vortex/",
+    "name": "Orszag–Tang vortex",
+    "description": "Crossed velocity and magnetic vortices cascade into current sheets and magnetic islands — a classic nonlinear, two-dimensional MHD benchmark.",
+    "model": "ViscoResistiveMHD",
+    "modelSlug": "visco-resistive-mhd",
+    "thumbnail": "/images/examples/orszag-tang-vortex.png"
+  },
+  {
     "slug": "poisson-source",
     "href": "/examples/poisson-source/",
     "name": "Poisson time-dependent source",

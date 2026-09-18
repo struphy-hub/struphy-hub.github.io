@@ -1,0 +1,14 @@
+{
+  "name": "Orszag–Tang vortex",
+  "description": "Crossed velocity and magnetic vortices cascade into current sheets and magnetic islands — a classic nonlinear, two-dimensional MHD benchmark.",
+  "model": "ViscoResistiveMHD",
+  "equationsMarkdown": "**PDEs solved by model:**\n\nContinuity:\n\n$$\\partial_t \\rho + \\nabla \\cdot (\\rho \\mathbf{u}) = 0$$\n\nInduction:\n\n$$\\partial_t \\mathbf{B} + \\nabla \\times (\\mathbf{B} \\times \\mathbf{u}) + \\nabla \\times \\eta \\nabla \\times \\mathbf{B} = 0$$\n",
+  "domain": "Cuboid (r1=6.28319, r2=6.28319)",
+  "grid": "64 × 64 × 1",
+  "degree": "2 × 2 × 1",
+  "steps": 100,
+  "visualization": "Plotly",
+  "finalTime": 0.5,
+  "thumbnail": "/images/examples/orszag-tang-vortex.png",
+  "interactive": "/examples/orszag-tang-vortex.html"
+}

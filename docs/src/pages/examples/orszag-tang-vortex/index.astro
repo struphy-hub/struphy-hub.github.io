@@ -1,0 +1,68 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import orszagTangVortex from '../../../examples/orszag-tang-vortex.py?raw';
+import data from '../../../../public/examples/orszag-tang-vortex.metadata.json';
+import { codeToHtml } from 'shiki';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
+import { toSlug } from '../../../lib/catalogue';
+
+function pdeMarkdownToHtml(markdown: string): string {
+  return markdown.split(/\$\$([\s\S]*?)\$\$/g).map((part, index) => index % 2
+    ? `<div class="math-display">${katex.renderToString(part.trim(), { displayMode: true, throwOnError: false, strict: false, output: 'html' })}</div>`
+    : part.split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean).map((paragraph) => `<p>${paragraph.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`).join('')).join('');
+}
+
+const equationsHtml = pdeMarkdownToHtml(data.equationsMarkdown);
+const highlightedSource = await codeToHtml(orszagTangVortex, { lang: 'python', themes: { light: 'github-light', dark: 'github-dark' }, defaultColor: false });
+---
+
+<Layout title={`${data.name} — Struphy Examples`} description={data.description}>
+  <main>
+    <header class="intro">
+      <p class="eyebrow"><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a> · Nonlinear MHD</p>
+      <h1>{data.name}</h1>
+      <p>{data.description}</p>
+      <a class="back" href="/examples/">← All examples</a>
+    </header>
+
+    <figure class="result">
+      <div class="plot-frame"><iframe src="/examples/orszag-tang-vortex.html" title="Interactive Plotly animation of magnetic pressure in the Orszag–Tang vortex" loading="eager"></iframe></div>
+      <noscript><img src="/images/examples/orszag-tang-vortex.png" alt="Turbulent magnetic pressure structures in the two-dimensional Orszag–Tang vortex" width="1254" height="1254" /></noscript>
+      <figcaption>The interactive view is generated from simulated magnetic pressure, animated from the initial crossed vortices to t = {data.finalTime}. The static fallback illustrates the characteristic sheets and islands.</figcaption>
+    </figure>
+
+    <section class="explanation" aria-labelledby="setup-title">
+      <div>
+        <p class="eyebrow">Physical problem</p>
+        <h2 id="setup-title">A small periodic box that becomes turbulent</h2>
+        <p>The benchmark starts with two simple, divergence-free sine patterns: one for the fluid velocity and one for the magnetic field. Their nonlinear interaction stretches and folds field lines, concentrating current into thin sheets and reconnecting them into magnetic islands. It is a stringent test because the initially smooth solution soon develops sharp structures without losing the magnetic field’s divergence-free constraint.</p>
+        <div class="equations prose" aria-label="Visco-resistive MHD equations" set:html={equationsHtml}></div>
+      </div>
+      <dl>
+        <div><dt>Model</dt><dd><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a></dd></div>
+        <div><dt>Domain</dt><dd><a href={`/domains/#${data.domain.split(' ')[0]}`}>{data.domain}</a></dd></div>
+        <div><dt>Grid</dt><dd>{data.grid}</dd></div>
+        <div><dt>FEEC degree</dt><dd>{data.degree}</dd></div>
+        <div><dt>Evolution</dt><dd>{data.steps.toLocaleString()} steps</dd></div>
+        <div><dt>Visualization</dt><dd>{data.visualization}</dd></div>
+      </dl>
+    </section>
+
+    <section class="source" aria-labelledby="source-title">
+      <div class="source-heading"><div><p class="eyebrow">Complete source</p><h2 id="source-title">Run the simulation</h2></div><div class="source-actions"><button type="button" data-copy>Copy script</button><a href="/examples/orszag-tang-vortex.py" download>Download .py</a></div></div>
+      <p class="requirements">Requires Struphy 3.2 with compiled kernels and Plotly. Run <code>struphy compile</code> once, then execute <code>python orszag-tang-vortex.py</code>.</p>
+      <div class="highlight" data-source set:html={highlightedSource}></div>
+      <p class="provenance">The Orszag–Tang vortex is a standard nonlinear MHD benchmark. This setup uses Struphy’s full <code>ViscoResistiveMHD</code> model with small physical and artificial viscosity/resistivity to resolve the developing sheets.</p>
+    </section>
+  </main>
+</Layout>
+
+<script>
+  function mountCopyButton() { const button=document.querySelector<HTMLButtonElement>('[data-copy]'); const source=document.querySelector<HTMLElement>('[data-source]'); if (!button || !source) return; button.onclick=async()=>{try { await navigator.clipboard.writeText(source.textContent || ''); button.textContent='Copied'; } catch { button.textContent='Copy failed'; } setTimeout(()=>button.textContent='Copy script',1800);}; }
+  mountCopyButton(); document.addEventListener('astro:page-load', mountCopyButton);
+</script>
+
+<style>
+  .intro{max-width:850px;padding-block:clamp(52px,7vw,84px)}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}.eyebrow a,.back,dd a,.provenance a{color:var(--cyan)}.eyebrow a,dd a{ text-decoration:none}.eyebrow a:hover,dd a:hover{text-decoration:underline}h1{margin:0 0 18px;font-size:clamp(2.2rem,5vw,3.8rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow),.requirements,.provenance,.result figcaption{color:var(--muted)}.intro>p:not(.eyebrow){font-size:1.05rem}.back{display:inline-block;margin-top:12px}.result{margin:0;padding-block:40px 52px;border-top:1px solid var(--rule)}.plot-frame{width:min(100%,900px);aspect-ratio:900/780;margin-inline:auto}.result iframe{display:block;width:100%;height:100%;border:1px solid var(--rule);background:#fff}.result img{display:block;width:min(100%,900px);height:auto;margin-inline:auto;border:1px solid var(--rule)}.result figcaption{width:min(100%,900px);margin:10px auto 0;font-size:.84rem}.explanation,.source{padding-block:clamp(44px,7vw,68px);border-top:1px solid var(--rule)}.explanation{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.48fr);gap:clamp(40px,8vw,100px)}h2{margin:0 0 14px;font-size:clamp(1.55rem,3vw,2.1rem)}.equations{margin-top:24px;padding:18px 20px;border-left:2px solid var(--cyan);background:var(--accent-wash);font-size:.95rem}.equations :global(p){margin:0 0 6px}.equations :global(.math-display){overflow-x:auto;margin:6px 0}dl{margin:0;border-top:1px solid var(--rule)}dl div{display:flex;justify-content:space-between;gap:24px;padding:10px 0;border-bottom:1px solid var(--rule)}dt{color:var(--muted);font-size:.82rem}dd{margin:0;text-align:right;font:700 .8rem var(--mono)}.source-heading{display:flex;align-items:end;justify-content:space-between;gap:24px}.source-actions{display:flex;gap:12px}.source-actions button,.source-actions a{padding:8px 12px;border:1px solid var(--cyan);background:none;color:var(--cyan);cursor:pointer;font:650 .78rem var(--sans);text-decoration:none}.source-actions button:hover,.source-actions a:hover{background:var(--accent-wash)}.highlight{max-height:720px;margin-top:24px;overflow:auto;border:1px solid var(--rule);background:var(--code-bg)}.highlight :global(.shiki){min-width:max-content;margin:0;padding:22px;background:var(--code-bg)!important;font:.79rem/1.65 var(--mono);tab-size:4}.highlight :global(.shiki),.highlight :global(.shiki span){color:var(--shiki-light)}:global(html[data-theme='dark'] .highlight .shiki),:global(html[data-theme='dark'] .highlight .shiki span){color:var(--shiki-dark)!important}.provenance{font-size:.82rem}.provenance code,.requirements code{color:var(--paper)}@media(max-width:720px){.explanation{grid-template-columns:1fr}.source-heading{align-items:flex-start;flex-direction:column}.source-actions{flex-wrap:wrap}.highlight :global(.shiki){padding:16px}}
+</style>
