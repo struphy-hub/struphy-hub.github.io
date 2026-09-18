@@ -83,7 +83,7 @@ const highlightedSource = await codeToHtml(bumpOnTail, {
         data-durations={data.profilingDurations} data-gantt={data.profilingGantt}
         data-stats={data.profilingRegionStats}>
         <div class="source-heading">
-          <div><p class="eyebrow">Performance</p><h2 id="profiling-title">Where the time goes</h2></div>
+          <div><p class="eyebrow">Performance</p><h2 id="profiling-title">Profiling</h2></div>
           <div class="source-actions"><a href={data.profilingData} download>Download profile .h5</a></div>
         </div>
         <p class="requirements">Struphy's built-in <a href="https://pypi.org/project/scope-profiler/">scope-profiler</a> instruments every propagator, pusher and solver call — these are the real per-call timings from the run above, rendered live from its data.</p>
