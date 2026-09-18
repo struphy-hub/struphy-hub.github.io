@@ -27,7 +27,9 @@ jobs:
       - name: List example scripts
         id: list
         run: |
-          examples=$(cd docs/src/examples && ls *.py | sed 's/\.py$//' | jq -R -s -c 'split("\n")[:-1]')
+          # Files prefixed with an underscore are shared helper modules, not runnable
+          # examples (for example, _profiling_exports.py). Keep them out of the matrix.
+          examples=$(cd docs/src/examples && find . -maxdepth 1 -type f -name '*.py' ! -name '_*.py' -printf '%f\n' | sed 's/\.py$//' | jq -R -s -c 'split("\n")[:-1]')
           echo "examples=$examples" >> "$GITHUB_OUTPUT"
 
   # Their outputs are gitignored (see .gitignore), so every deploy regenerates them here
@@ -217,7 +219,9 @@ jobs:
         if: steps.cache-example.outputs.cache-hit != 'true'
         run: |
           for f in docs/public/examples/${{ matrix.example }}*.png docs/public/examples/${{ steps.discover.outputs.output_stem }}*.png; do
-            [ -e "$f" ] && cp "$f" docs/public/images/examples/
+            if [ -e "$f" ]; then
+              cp "$f" docs/public/images/examples/
+            fi
           done
 
       - name: Clean up simulation scratch output
