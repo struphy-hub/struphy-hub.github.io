@@ -60,19 +60,20 @@ const publications = [
 ---
 
 <Layout
-  title="Struphy — Structure-preserving plasma physics in Python"
-  description="Struphy is an open-source Python package for structure-preserving simulations of fluid, kinetic, and hybrid plasma models."
+  title="Struphy — Structure-preserving simulation of plasma models"
+  description="Struphy is an open-source Python package for the numerical solution of fluid, kinetic and hybrid plasma models with structure-preserving finite elements and particle-in-cell methods."
 >
   <main>
     <section class="hero" aria-labelledby="page-title">
       <div class="hero-copy">
-        <h1 id="page-title">Structure-preserving plasma physics in Python.</h1>
+        <h1 id="page-title">Struphy</h1>
         <p>
-          Struphy is an open-source framework for solving fluid, kinetic, and hybrid
-          plasma models with geometric finite elements and Lagrangian particles.
+          Struphy is an open-source Python package for the numerical solution of fluid, kinetic and hybrid
+          plasma models. Fields are discretized with structure-preserving (geometric) finite elements and kinetic
+          species with particle-in-cell methods.
         </p>
         <div class="actions">
-          <a class="button primary" href={links.docs}>Get started</a>
+          <a class="button primary" href={links.docs}>Documentation</a>
           <a class="button secondary" href={links.github}>View on GitHub</a>
         </div>
       </div>
@@ -90,29 +91,30 @@ const publications = [
 
     <section class="why" aria-labelledby="why-title">
       <div class="section-heading">
-        <p class="eyebrow">Why Struphy</p>
-        <h2 id="why-title">One framework, from equations to reproducible simulations.</h2>
-        <p>Struphy connects geometric numerical methods with a practical Python workflow, so researchers can move between fluid, kinetic, and hybrid descriptions without rebuilding their simulation stack.</p>
+        <h2 id="why-title">Overview</h2>
+        <p>
+          Struphy provides a common interface for fluid, kinetic and hybrid plasma models, together with the
+          discretization, time stepping and post-processing tools needed to run them.
+        </p>
       </div>
       <div class="benefit-grid">
-        <article><h3>Preserve the physics</h3><p>Compatible discretizations retain structural identities and important invariants over long simulations.</p></article>
-        <article><h3>Combine model families</h3><p>Study fluid fields, kinetic particles, or coupled hybrid systems through a common model interface.</p></article>
-        <article><h3>Work with mapped geometry</h3><p>Run models on Cartesian, cylindrical, toroidal, and externally generated domains.</p></article>
-        <article><h3>Prototype in Python</h3><p>Use a researcher-friendly Python workflow backed by compiled performance-critical kernels.</p></article>
-        <article><h3>Reproduce every run</h3><p>Keep model, domain, equilibrium, perturbation, and parameters together in inspectable configurations.</p></article>
+        <article><h3>Discretization</h3><p>Fields are represented in B-spline finite element spaces forming a discrete de Rham complex. Kinetic species are represented by weighted markers (particle-in-cell), with an optional δf method.</p></article>
+        <article><h3>Models</h3><p>Fluid, kinetic and hybrid models are composed from shared propagators, so that the same substeps are reused across models.</p></article>
+        <article><h3>Geometry</h3><p>Simulations run on mapped domains, including Cartesian, cylindrical and toroidal geometries, and on domains generated externally.</p></article>
+        <article><h3>Implementation</h3><p>The interface is written in Python; performance-critical kernels are compiled. A simulation is defined by a model, a domain, an equilibrium, perturbations and numerical parameters, which are stored together with the output.</p></article>
       </div>
-      <p class="why-actions"><a href="/search/">Search the full catalogue</a><a href="/citation/">Citation and reproducibility</a></p>
+      <p class="why-actions"><a href="/numerics/">Numerical methods</a><a href="/search/">Search the catalogue</a><a href="/citation/">Citation and reproducibility</a></p>
     </section>
 
     <section class="explainer" aria-labelledby="explainer-title">
       <h2 id="explainer-title">What "structure-preserving" means</h2>
       <p class="intro">
-        Many plasma physics PDEs carry exact invariants: energy, mass, and the
-        divergence-free condition on magnetic fields among them. Standard discretizations
-        can violate these invariants over long simulations, letting numerical error
-        accumulate. Struphy instead builds its finite-element and particle discretizations
-        from a discrete de Rham complex, so these structural properties hold exactly at
-        the discrete level, not only in the limit of vanishing grid size.
+        The equations of plasma physics have structural properties such as conservation of energy and mass
+        and the divergence-free condition on the magnetic field. Standard discretizations satisfy these only
+        up to truncation error, which can accumulate over long simulations. Struphy builds its finite element
+        discretization on a discrete de Rham complex, for which the vector-calculus identities underlying these
+        properties, such as ∇·(∇×A) = 0, hold at the discrete level up to round-off and not only in the limit of
+        vanishing grid size. Conservation of energy additionally depends on the time discretization.
       </p>
 
       <figure class="derham">
@@ -154,8 +156,8 @@ const publications = [
           </defs>
         </svg>
         <figcaption>
-          Discrete fields live in compatible finite-element spaces linked by exact discrete
-          operators, so identities like ∇·(∇×E) = 0 hold precisely, not just approximately.
+          Discrete fields are elements of compatible finite element spaces connected by discrete
+          operators, so that identities such as ∇·(∇×A) = 0 hold to round-off.
         </figcaption>
       </figure>
     </section>
@@ -163,21 +165,20 @@ const publications = [
     <section class="overview" aria-labelledby="models-title">
       <h2 id="models-title">Models</h2>
       <p class="intro">
-        A common numerical framework supports several descriptions of plasma
-        dynamics while preserving their underlying geometric structure.
+        Struphy supports three classes of plasma models, all built on the same discretization.
       </p>
       <div class="model-list">
         <article>
           <h3>Fluid</h3>
-          <p>Maxwell, MHD, and multi-fluid systems using compatible finite elements.</p>
+          <p>Maxwell, MHD and multi-fluid models, discretized with compatible finite elements.</p>
         </article>
         <article>
           <h3>Kinetic</h3>
-          <p>Vlasov and drift-kinetic models represented by Lagrangian particles.</p>
+          <p>Vlasov and drift-kinetic models, represented by markers (particle-in-cell).</p>
         </article>
         <article>
           <h3>Hybrid</h3>
-          <p>Coupled field-particle descriptions, including MHD-kinetic models.</p>
+          <p>Coupled field–particle models, including MHD-kinetic models.</p>
         </article>
       </div>
     </section>
@@ -185,10 +186,11 @@ const publications = [
     <section class="quick-start" aria-labelledby="quick-start-title">
       <div>
         <h2 id="quick-start-title">Quick start</h2>
-        <p>Install Struphy and compile its performance-critical kernels.</p>
+        <p>Install Struphy and compile its kernels.</p>
         <p>
-          Then assemble a run: a model, the domain and grid it lives on, its discretization and time stepping, all
-          held by one <code>Simulation</code> object — see <a href="/simulation/">building a simulation</a>.
+          A simulation is defined by a model, a domain and grid, the discretization parameters and the time
+          stepping, which are collected in one <code>Simulation</code> object; see{' '}
+          <a href="/simulation/">building a simulation</a>.
         </p>
         <p class="more">
           Continue with the <a href={links.install}>installation guide</a>, the <a href={links.quickstart}>quick start guide</a>, and{' '}
@@ -205,7 +207,7 @@ const publications = [
     <section class="publications" aria-labelledby="publications-title">
       <h2 id="publications-title">Publications</h2>
       <p class="intro">
-        A selection of papers describing the methods and algorithms behind Struphy. See the{' '}
+        A selection of papers on the methods and algorithms implemented in Struphy. See the{' '}
         <a href={links.publications}>full publication list</a> for more.
       </p>
       <ul class="publication-list">
@@ -219,8 +221,8 @@ const publications = [
     </section>
 
     <aside class="next-page" aria-label="Domains">
-      <strong>Geometry:</strong> <a href="/domains/">Explore domains</a> used by Struphy models,
-      or the <a href="/perturbations/">initial-condition perturbations</a> used to seed them.
+      <strong>See also:</strong> the <a href="/domains/">domains</a> used by Struphy models and the
+      <a href="/perturbations/">initial-condition perturbations</a>.
     </aside>
   </main>
 </Layout>
@@ -351,10 +353,9 @@ const publications = [
   .health-links a { color: var(--cyan); }
 
   .section-heading { max-width: 790px; }
-  .section-heading > p:not(.eyebrow) { color: var(--muted); }
-  .eyebrow { margin: 0 0 7px; color: var(--muted); font: 600 .76rem/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
-  .benefit-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 34px; background: var(--rule); border: 1px solid var(--rule); }
-  .benefit-grid article { min-height: 160px; padding: 24px; background: var(--ink); }
+  .section-heading > p { color: var(--muted); }
+  .benefit-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; margin-top: 34px; background: var(--rule); border: 1px solid var(--rule); }
+  .benefit-grid article { min-height: 0; padding: 24px; background: var(--ink); }
   .benefit-grid p { margin: 0; color: var(--muted); font-size: .93rem; }
   .why-actions { display: flex; flex-wrap: wrap; gap: 22px; margin: 24px 0 0; }
   .why-actions a { color: var(--cyan); }

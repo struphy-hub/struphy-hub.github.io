@@ -74,7 +74,7 @@ for (const node of graph.nodes as any[]) {
     </section>
 
     <section class="section" aria-labelledby="why-title">
-      <h2 id="why-title">Why this is a numerical method, not just notation</h2>
+      <h2 id="why-title">Exactness of the discrete identities</h2>
       <div class="prose">
         <p>
           The names <em>0-form</em>, <em>1-form</em>, and so on are a compact way to say what a quantity is
@@ -84,17 +84,16 @@ for (const node of graph.nodes as any[]) {
           chain.
         </p>
         <p>
-          This is important because plasma equations contain identities that are true before any model-specific
-          approximation is made: <code>curl(grad φ) = 0</code> and <code>div(curl A) = 0</code>. In the discrete
-          complex the corresponding matrices satisfy <code>C G = 0</code> and <code>D C = 0</code>, up to round-off.
-          Thus a magnetic field produced as a discrete curl is divergence-free by construction. The method does
-          not need a later clean-up step to restore an identity it has already broken.
+          Plasma models contain identities that hold before any model-specific approximation is made:
+          <code>curl(grad φ) = 0</code> and <code>div(curl A) = 0</code>. In the discrete complex the corresponding
+          matrices satisfy <code>C G = 0</code> and <code>D C = 0</code> up to round-off, so a magnetic field
+          obtained as a discrete curl is divergence-free by construction and no clean-up step is needed.
         </p>
         <p>
-          Exact identities are not a claim that every calculation is exact: resolution, quadrature, time stepping,
-          particle sampling, and nonlinear solves still introduce error. FEEC isolates one especially harmful kind
-          of error — an incompatible spatial representation — so that refinement improves the physical
-          approximation instead of fighting spurious sources created by the grid.
+          This does not make the computation exact: resolution, quadrature, time stepping, particle sampling and
+          nonlinear solves still introduce errors. FEEC removes one class of error, namely an incompatible spatial
+          representation, so that refinement improves the physical approximation and does not have to compete with
+          spurious sources created by the grid.
         </p>
       </div>
 
@@ -124,10 +123,10 @@ for (const node of graph.nodes as any[]) {
           metric, material coefficients, and mapped geometry.
         </p>
         <p>
-          It helps to separate these two roles. The complex describes topology: what derivative follows what.
-          The mass matrices describe geometry: lengths, areas, volumes, and how a curved logical grid sits in
-          physical space. This separation is why the same FEEC machinery can be used on Cartesian, periodic,
-          and mapped domains.
+          The two roles are independent. The complex describes topology, i.e. which derivative maps which space
+          into which. The mass matrices describe geometry: lengths, areas, volumes, and how the logical grid is
+          mapped to physical space. Because of this separation the same FEEC operators can be used on Cartesian,
+          periodic and mapped domains.
         </p>
       </div>
 
@@ -172,11 +171,10 @@ for (const node of graph.nodes as any[]) {
       <h2 id="practice-title">Practical choices in Struphy</h2>
       <div class="prose">
         <p>
-          Start by resolving the physics, not by maximizing spline degree. Element count controls the smallest
-          spatial scale that can be represented; degree controls smoothness and approximation order inside and
-          across those elements. Raising both can be useful, but it also raises the cost of field evaluation,
-          quadrature, and linear solves. A small refinement study — change elements first, then degree — is more
-          informative than trusting a single attractive field plot.
+          The number of elements sets the smallest spatial scale that can be represented; the spline degree sets
+          the smoothness and the approximation order within and across elements. Increasing either improves the
+          accuracy but also raises the cost of field evaluation, quadrature and linear solves. A refinement study,
+          varying the number of elements first and then the degree, is the recommended way to select them.
         </p>
         <p>
           Boundary conditions are part of the space definition. Periodic directions use periodic splines. On a
@@ -185,19 +183,19 @@ for (const node of graph.nodes as any[]) {
           the tangential or normal continuity appropriate to their form degree is retained in physical space.
         </p>
         <p>
-          In a simulation, watch both physical diagnostics and discrete ones. Check conserved energy or expected
-          dissipation, monitor charge and magnetic-divergence constraints, and compare solutions across spatial
-          and time refinements. A structure-preserving discretization makes these diagnostics meaningful; it does
-          not remove the need to use them.
+          A simulation should be checked with both physical and discrete diagnostics: conserved energy or the
+          expected dissipation, the charge and magnetic-divergence constraints, and the convergence of the
+          solution under spatial and temporal refinement. A structure-preserving discretization guarantees some of
+          these properties but does not replace such checks.
         </p>
-        <p class="aside"><a href="/numerics/">How Struphy computes</a> explains how these field spaces couple to
-          particle markers and time stepping in a full plasma simulation.</p>
+        <p class="aside"><a href="/numerics/">Numerical methods</a> describes how these field spaces are coupled to
+          particle markers and advanced in time.</p>
       </div>
     </section>
 
     <section class="section" aria-labelledby="resources-title">
-      <h2 id="resources-title">Learn more and get hands-on</h2>
-      <p class="lead">A route from the ideas on this page to the implementation and the underlying theory.</p>
+      <h2 id="resources-title">References</h2>
+      <p class="lead">Implementation documentation and background theory.</p>
       <div class="resource-grid">
         <a class="resource" href="https://struphy-hub.github.io/struphy/sections/numerics.html">
           <span class="resource-kind">Struphy documentation</span>
@@ -207,12 +205,12 @@ for (const node of graph.nodes as any[]) {
         <a class="resource" href="https://github.com/struphy-hub/struphy-tutorials">
           <span class="resource-kind">Tutorial notebooks</span>
           <h3>Struphy tutorials</h3>
-          <p>Run the FEEC basics and boundary-condition notebooks in the same environment as the code.</p>
+          <p>Notebooks on the FEEC basics and on boundary conditions.</p>
         </a>
         <a class="resource" href="https://doi.org/10.1090/S0273-0979-10-01278-4">
           <span class="resource-kind">Foundational paper</span>
           <h3>Finite element exterior calculus</h3>
-          <p>Arnold, Falk, and Winther connect Hodge theory, compatible discretizations, and numerical stability.</p>
+          <p>Arnold, Falk and Winther: Hodge theory, compatible discretizations and numerical stability.</p>
         </a>
         <a class="resource" href="https://github.com/pyccel/psydac">
           <span class="resource-kind">Underlying library</span>

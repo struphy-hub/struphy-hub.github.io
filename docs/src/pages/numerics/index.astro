@@ -14,33 +14,35 @@ const kineticModels = (rawModels as any[]).filter((model) => model.type === 'Kin
 ---
 
 <Layout
-  title="How Struphy computes — Struphy"
-  description="A physics-first overview of Struphy's numerics: why the field discretization keeps the vector identities exact, what a marker really is, how particles and fields exchange energy, and what you can check afterwards."
+  title="Numerical methods — Struphy"
+  description="An overview of the numerical methods in Struphy: finite element exterior calculus for the fields, particle-in-cell sampling of kinetic species, field–particle coupling, operator splitting in time, and diagnostics for checking the results."
 >
   <main>
     <section class="intro" aria-labelledby="page-title">
       <p class="eyebrow">How it works</p>
-      <h1 id="page-title">How Struphy computes</h1>
+      <h1 id="page-title">Numerical methods</h1>
       <p class="standfirst">
-        A magnetized plasma is two things at once: electromagnetic fields over ordinary space, and a distribution
-        of particles over position <em>and</em> velocity. Those two objects want completely different numerical
-        treatments, and most of what makes a plasma code trustworthy — or not — is in how it handles each and
-        what happens where they meet. This page is that story, in physics terms first.
+        A magnetized plasma is described by electromagnetic and fluid fields on physical space and, for kinetic
+        species, by a distribution function on position–velocity phase space. Struphy discretizes the fields with
+        finite elements and the distribution function with a Monte Carlo (particle-in-cell) representation. This
+        page summarizes the two discretizations, their coupling, the time stepping, and the diagnostics available
+        for checking a result.
       </p>
     </section>
 
     <section class="section" aria-labelledby="problem-title">
-      <h2 id="problem-title">Why two discretizations</h2>
+      <h2 id="problem-title">Two discretizations</h2>
       <div class="prose">
         <p>
-          The fields live in three dimensions, so you can put them on a grid. The distribution function{' '}
-          <strong>f(x, v, t)</strong> lives in six, and you cannot. A modest 64 points per dimension is 69 billion
-          cells in 6D — before you have resolved anything interesting, and for each species separately.
+          The fields depend on three spatial coordinates and can be represented on a grid. The distribution function{' '}
+          <strong>f(x, v, t)</strong> depends on six phase-space coordinates: a grid with 64 points per dimension
+          would have 64⁶ ≈ 7·10¹⁰ cells for each species. Struphy therefore represents the fields by finite element
+          coefficients and the distribution function by a finite set of weighted markers.
         </p>
         <p>
-          So Struphy grids the fields and <em>samples</em> the distribution. That split is why a kinetic plasma
-          code has the structure it has: a field solver, a particle pusher, and — the part that decides whether
-          the answer is physics — the machinery that lets the two exchange energy without either one inventing it.
+          A kinetic time step then consists of three kinds of operation: updating the fields, pushing the markers,
+          and transferring quantities between the two representations. Whether the coupled system conserves
+          energy and charge depends largely on how this transfer is done.
         </p>
       </div>
 
@@ -90,36 +92,33 @@ const kineticModels = (rawModels as any[]).filter((model) => model.type === 'Kin
           </defs>
         </svg>
         <figcaption>
-          Every kinetic step in Struphy is one of these three things: a field update, a marker push, or a transfer
-          across the middle. The {propagators.length} propagators split
-          {` ${fieldCount} / ${particleCount} / ${couplingCount} `}
-          along exactly that line.
+          Each substep of a kinetic model is a field update, a marker push, or a transfer between the two. The
+          {` ${propagators.length} `}propagators are classified accordingly as field, particle and coupling steps
+          ({`${fieldCount} / ${particleCount} / ${couplingCount}`}).
         </figcaption>
       </figure>
     </section>
 
     <section class="section" aria-labelledby="fields-title">
-      <h2 id="fields-title">Fields: the identities are not optional</h2>
+      <h2 id="fields-title">Fields</h2>
       <div class="prose">
         <p>
-          ∇·<strong>B</strong> = 0 is not a boundary condition you impose, it is a property of the magnetic field.
-          If your discrete curl and divergence only satisfy ∇·(∇×<strong>A</strong>) = 0 to truncation error, then
-          your simulated <strong>B</strong> acquires a small monopole charge — and a monopole exerts a force. The
-          same goes for ∇×∇φ = 0 on the electrostatic side: a curl that does not vanish on a gradient is a
-          spurious electric field that does work on your plasma.
+          The field equations rely on the identities ∇·(∇×<strong>A</strong>) = 0 and ∇×∇φ = 0. If a
+          discretization satisfies them only up to truncation error, a magnetic field obtained as a discrete curl
+          has a small non-zero divergence (a spurious magnetic charge), and a discrete gradient field has a small
+          non-zero curl (a spurious electric field). Both can act on the plasma as non-physical forces.
         </p>
         <p>
-          These errors do not average out. They accumulate with the run, and they look like physics: anomalous
-          heating, drifts that should not be there, instabilities with no free energy behind them. The usual
-          remedy is to keep cleaning up after them — divergence cleaning, filtering, periodic re-projection.
+          Such errors accumulate over a run and can show up as artificial heating, spurious drifts or
+          instabilities without a physical energy source. Common remedies, such as divergence cleaning, filtering
+          or periodic projection, reduce the error after it has been introduced.
         </p>
         <p>
-          Struphy instead puts each field in the spline space where its identity holds <em>exactly</em>:
-          potentials in one space, fields with a meaningful curl in the next, fields with a meaningful divergence
-          in the next, densities in the last, connected by discrete gradient, curl and divergence operators whose
-          compositions vanish to machine precision. An initially divergence-free <strong>B</strong> stays
-          divergence-free for the whole run because the discrete curl cannot produce divergence — not because
-          anything corrects it.
+          Struphy instead uses finite element exterior calculus (FEEC). Each field is assigned to one of four
+          B-spline spaces forming a discrete de Rham complex: potentials, fields with a curl, fields with a
+          divergence, and densities. The spaces are connected by discrete gradient, curl and divergence operators
+          whose successive compositions vanish up to round-off. A magnetic field that is initially divergence-free
+          therefore remains so, since its time evolution is given by a discrete curl.
         </p>
         <p class="aside">
           <a href="/feec/">FEEC basics</a> shows the four spaces and which model variable sits in each.
@@ -128,28 +127,26 @@ const kineticModels = (rawModels as any[]).filter((model) => model.type === 'Kin
     </section>
 
     <section class="section" aria-labelledby="markers-title">
-      <h2 id="markers-title">Markers are samples, not particles</h2>
+      <h2 id="markers-title">Markers</h2>
       <div class="prose">
         <p>
-          The single most useful thing to know about the particle side: a marker is <em>not</em> an ion. It is a
-          sample point of the distribution function, carrying a weight that says how much phase-space volume it
-          represents. A run with 10⁵ markers is not modelling 10⁵ ions — it is doing a Monte-Carlo integral of a
-          plasma containing 10²⁰ of them.
+          A marker is a sample point in phase space that carries a weight; it does not represent a single physical
+          particle. The distribution function is approximated by a sum over N weighted markers, and its moments
+          (density, current) are obtained as Monte Carlo estimates. A simulation with 10⁵ markers thus samples a
+          plasma with a much larger number of physical particles.
         </p>
         <p>
-          That framing explains the knobs. The number of markers sets the <em>statistical</em> error of that
-          integral, which falls like 1/√N — so halving the noise costs four times the markers. Struphy can draw
-          them pseudo-randomly, or from low-discrepancy (Sobol) sequences that cover phase space more evenly and
-          beat 1/√N in practice, or place them on a regular tesselation. The starting distribution is a physical
-          one: a Maxwellian at a given density and temperature, optionally drifting or anisotropic in the
-          parallel and perpendicular directions.
+          The number of markers determines the statistical error, which decreases as 1/√N for pseudo-random
+          sampling. Markers can alternatively be drawn from low-discrepancy (Sobol) sequences, which can converge
+          faster, or placed on a regular tesselation. The initial distribution is specified in physical terms, as a
+          Maxwellian with given density and temperature, optionally with a drift or with different parallel and
+          perpendicular temperatures.
         </p>
         <p>
-          And it explains delta-f. If the mode you are chasing is a 0.1% perturbation on a Maxwellian, sampling
-          the <em>whole</em> distribution wastes nearly all your statistics resolving the equilibrium you already
-          know analytically. Instead, subtract it: evolve only the departure f − f₀, with the known background as
-          a control variate. The sampling noise then scales with the size of the perturbation rather than the
-          size of the plasma, which is what makes a linear growth rate measurable at all.
+          For small perturbations of a known equilibrium f₀, the δf method reduces the noise: only the deviation
+          f − f₀ is evolved, and f₀ serves as a control variate. The sampling noise then scales with the amplitude
+          of the perturbation rather than with the full distribution, so that linear growth or damping rates can be
+          measured with moderate marker numbers.
         </p>
         <p class="aside">
           <a href="/backgrounds/">Kinetic backgrounds</a> are the f₀ you subtract — the distributions themselves,
@@ -159,27 +156,23 @@ const kineticModels = (rawModels as any[]).filter((model) => model.type === 'Kin
     </section>
 
     <section class="section" aria-labelledby="coupling-title">
-      <h2 id="coupling-title">Where the two meet</h2>
+      <h2 id="coupling-title">Field–particle coupling</h2>
       <div class="prose">
         <p>
-          Particles feel fields, and fields feel particles. Numerically these are opposite directions, and the
-          temptation is to treat them as separate conveniences: interpolate the field to the particle however is
-          cheapest, smear the particle's charge onto the grid however is cheapest. That is where energy
-          conservation goes to die — if the two operations are not adjoint, the coupled system quietly gains or
-          loses energy every step.
+          Markers are pushed by the fields, and the fields are driven by currents and densities computed from the
+          markers. If the interpolation of the fields to the marker positions and the deposition of marker
+          quantities onto the grid are not adjoint to each other, the coupled system does not conserve energy.
         </p>
         <p>
-          Struphy uses the same spline basis in both directions. Pushing a marker evaluates the field's splines at
-          the marker's position. Building the current or density that drives the fields evaluates the <em>same</em>{' '}
-          splines and sums over markers — which is precisely a Monte-Carlo quadrature of the phase-space integrals
-          that appear in the coupled equations, with the markers as quadrature points. Deposition is not an
-          approximation bolted onto the field solve; it <em>is</em> the field solve's integral, evaluated with the
-          samples you have.
+          Struphy uses the same spline basis for both operations. Pushing a marker evaluates the field splines at
+          its position. The current or density that drives the fields is obtained by evaluating the <em>same</em>{' '}
+          splines at all marker positions and summing over the markers. This is a Monte Carlo quadrature of the
+          phase-space integrals in the weak form of the coupled equations, with the markers as quadrature points.
         </p>
         <p>
-          Because sampling noise is loudest at the shortest wavelengths — where it is least physical and most
-          destabilizing — the deposited quantities can optionally be filtered before they reach the field solve,
-          either with a local three-point stencil or by keeping selected toroidal mode numbers.
+          Since sampling noise is largest at short wavelengths, the deposited quantities can optionally be filtered
+          before they enter the field solve, either with a local three-point stencil or by retaining selected
+          toroidal mode numbers.
         </p>
         <p class="aside">
           The {couplingCount} coupling propagators are the steps that do this, across {kineticModels} kinetic and
@@ -189,21 +182,21 @@ const kineticModels = (rawModels as any[]).filter((model) => model.type === 'Kin
     </section>
 
     <section class="section" aria-labelledby="time-title">
-      <h2 id="time-title">Splitting the physics, not the equations</h2>
+      <h2 id="time-title">Time stepping</h2>
       <div class="prose">
         <p>
-          A time step is not solved in one piece. It is split into substeps, and Struphy splits along{' '}
-          <em>physical</em> lines: one step rotates velocities about the magnetic field (the gyration), one
-          streams markers along their velocity, one accelerates them in the electric field, one exchanges momentum
-          between an energetic species and a bulk fluid. Each of those is a process you can name, and each is
-          solved in a way that respects its own structure — the magnetic rotation, for instance, changes a
-          particle's direction but not its speed, so it cannot heat the plasma no matter the step size.
+          A time step is split into substeps (propagators), each corresponding to a distinct physical process: for
+          example the rotation of velocities about the magnetic field, the streaming of markers along their
+          velocity, the acceleration by the electric field, or the momentum exchange between an energetic species
+          and a bulk fluid. Each substep is solved with a method suited to its structure. The rotation about the
+          magnetic field, for instance, changes the direction but not the magnitude of the velocity and therefore
+          leaves the kinetic energy unchanged for any step size.
         </p>
         <p>
-          Composing them in sequence is first-order accurate; composing them symmetrically — half-steps out, a
-          full step, half-steps back — is second-order. The practical consequence is the one that matters for long
-          runs: the energy error oscillates within a bounded envelope instead of drifting in one direction, so a
-          simulation run ten times longer does not have ten times the energy error.
+          Composing the substeps sequentially (Lie–Trotter) is first-order accurate in the step size. A symmetric
+          composition (Strang), with half-steps, a full step and the half-steps in reverse order, is second-order
+          accurate. For long runs, the energy error of a symmetric composition typically oscillates within a
+          bounded range instead of drifting in one direction.
         </p>
         <p class="aside">
           <a href="/time-integration/">Time integration</a> shows the splitting for any model, and the
@@ -213,27 +206,25 @@ const kineticModels = (rawModels as any[]).filter((model) => model.type === 'Kin
     </section>
 
     <section class="section" aria-labelledby="check-title">
-      <h2 id="check-title">How you check it held</h2>
+      <h2 id="check-title">Diagnostics and verification</h2>
       <div class="prose">
         <p>
-          None of the above is a promise you have to take on faith. Every model tracks its energies as scalar
-          diagnostics over the run — field energy, kinetic energy, thermal energy, and their total — so a
-          structure-preserving claim is a curve you can plot. If the total drifts, something is wrong, and the
-          decomposition tells you which channel is leaking.
+          Each model records its energies as scalar time series: field energy, kinetic energy, thermal energy and
+          their sum. Conservation can be assessed by plotting the total energy, and the individual contributions
+          show which of them changes.
         </p>
         <p>
-          The electrostatic models go further: Gauss's law is imposed once at t = 0 by solving a Poisson problem
-          for the initial field, and after that it is a <em>consequence</em> of the discrete scheme rather than
-          something re-imposed. The Vlasov–Maxwell model can track the residual as <code>gauss_error</code>,
-          which should stay at round-off. A growing <code>gauss_error</code> means the charge continuity your
-          scheme depends on is not holding.
+          In the electrostatic models, Gauss's law is imposed at t = 0 by solving a Poisson problem for the initial
+          electric field; at later times it follows from the discrete scheme. The Vlasov–Maxwell model can record
+          the residual as <code>gauss_error</code>, which should remain at round-off level. A growing{' '}
+          <code>gauss_error</code> indicates that the discrete charge continuity equation is not satisfied.
         </p>
         <p>
-          And the physics itself is the final check. Several models carry verification tests that reproduce a
-          known answer, and the examples put the measured number next to the analytic one: Landau damping comes
-          out at {landau.measuredDampingRate.toFixed(4)} against an exact {landau.exactDampingRate}, and a light
-          wave propagates at {maxwellWave.measuredPhaseVelocity.toFixed(4)} c against an exact
-          {` ${maxwellWave.exactPhaseVelocity}`} c — on a grid coarse enough to run in seconds.
+          Several models are additionally verified against known analytic results. The examples list the measured
+          value next to the analytic one: a damping rate of {landau.measuredDampingRate.toFixed(4)} for weak
+          Landau damping against an exact value of {landau.exactDampingRate}, and a light-wave phase velocity of
+          {` ${maxwellWave.measuredPhaseVelocity.toFixed(4)} `}c against {maxwellWave.exactPhaseVelocity} c, both on
+          grids coarse enough to run in seconds.
         </p>
         <p class="aside">
           <a href="/examples/">The examples</a> run these end to end, each with its measured result next to the
@@ -243,14 +234,14 @@ const kineticModels = (rawModels as any[]).filter((model) => model.type === 'Kin
     </section>
 
     <section class="section next" aria-labelledby="next-title">
-      <h2 id="next-title">Going deeper</h2>
+      <h2 id="next-title">Related pages</h2>
       <div class="next-grid">
         <a href="/feec/"><h3>FEEC basics</h3><p>The four spline spaces, and which variable of which model lives in each.</p></a>
-        <a href="/backgrounds/"><h3>Kinetic backgrounds</h3><p>The f₀ a species starts from, in its own velocity coordinates.</p></a>
+        <a href="/backgrounds/"><h3>Kinetic backgrounds</h3><p>The distributions f₀ that kinetic species start from.</p></a>
         <a href="/time-integration/"><h3>Time integration</h3><p>How a model's propagators are composed over a step.</p></a>
         <a href="/propagators/"><h3>Propagators</h3><p>Every substep, what it solves, and which models use it.</p></a>
-        <a href="/simulation/"><h3>Building a simulation</h3><p>How the pieces are assembled into a run.</p></a>
-        <a href="/models/"><h3>Models</h3><p>The {modelCount} systems of equations Struphy solves.</p></a>
+        <a href="/simulation/"><h3>Building a simulation</h3><p>How the components are assembled into a simulation.</p></a>
+        <a href="/models/"><h3>Models</h3><p>The {modelCount} models available in Struphy.</p></a>
       </div>
     </section>
   </main>
