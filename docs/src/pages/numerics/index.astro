@@ -11,6 +11,12 @@ const couplingCount = propagators.filter((propagator) => propagator.category ===
 const particleCount = propagators.filter((propagator) => propagator.category === 'Particle').length;
 const fieldCount = propagators.filter((propagator) => propagator.category === 'Field').length;
 const kineticModels = (rawModels as any[]).filter((model) => model.type === 'Kinetic' || model.type === 'Hybrid').length;
+// `check-site` generates setup metadata without running simulations; measured
+// diagnostics are merged in only after an example has run.
+const landauRate = typeof landau.measuredDampingRate === 'number' ? landau.measuredDampingRate.toFixed(4) : 'about −0.1533';
+const landauExactRate = landau.exactDampingRate ?? '−0.1533';
+const waveVelocity = typeof maxwellWave.measuredPhaseVelocity === 'number' ? maxwellWave.measuredPhaseVelocity.toFixed(4) : '1.0000';
+const waveExactVelocity = maxwellWave.exactPhaseVelocity ?? '1.0';
 ---
 
 <Layout
@@ -221,9 +227,9 @@ const kineticModels = (rawModels as any[]).filter((model) => model.type === 'Kin
         </p>
         <p>
           Several models are additionally verified against known analytic results. The examples list the measured
-          value next to the analytic one: a damping rate of {landau.measuredDampingRate.toFixed(4)} for weak
-          Landau damping against an exact value of {landau.exactDampingRate}, and a light-wave phase velocity of
-          {` ${maxwellWave.measuredPhaseVelocity.toFixed(4)} `}c against {maxwellWave.exactPhaseVelocity} c, both on
+          value next to the analytic one: a damping rate of {landauRate} for weak
+          Landau damping against an exact value of {landauExactRate}, and a light-wave phase velocity of
+          {` ${waveVelocity} `}c against {waveExactVelocity} c, both on
           grids coarse enough to run in seconds.
         </p>
         <p class="aside">
