@@ -56,9 +56,9 @@ const highlightedSource = await codeToHtml(exampleSource, {
     </header>
 
     <figure class="result">
-      <div class="plot-frame"><iframe src="/examples/orszag-tang-vortex.html" title="Density, pressure, magnetic pressure and current in the Orszag–Tang vortex" loading="eager"></iframe></div>
-      <noscript><img src="/images/examples/orszag-tang-vortex.png" alt="Density, pressure, magnetic pressure and current in the Orszag–Tang vortex" width="2200" height="1500" /></noscript>
-      <figcaption>Physical density, gas pressure, magnetic pressure and axial current during evolution to t = {data.finalTime}. Each panel uses a fixed colour scale. The current is a finite-difference diagnostic of the sampled magnetic field, not a discrete FEEC curl. The thumbnail is taken from the final frame.</figcaption>
+      <div class="plot-frame"><iframe src="/examples/orszag-tang-vortex.html" title="Density and magnetic field lines in the Orszag–Tang vortex" loading="eager"></iframe></div>
+      <noscript><img src="/images/examples/orszag-tang-vortex.png" alt="Density and magnetic field lines in the Orszag–Tang vortex" width="1800" height="1700" /></noscript>
+      <figcaption>Physical density (colour) with magnetic field lines (white) during evolution to t = {data.finalTime}. The colour scale is fixed and the field lines are contours of the magnetic flux function, recovered spectrally from the sampled in-plane field. The thumbnail is taken from the final frame.</figcaption>
     </figure>
 
     {data.figures && <ExtraFigures figures={data.figures} />}
@@ -68,7 +68,7 @@ const highlightedSource = await codeToHtml(exampleSource, {
         <p class="eyebrow">Physical problem</p>
         <h2 id="setup-title">Early nonlinear evolution of crossed vortices</h2>
         <p>On the periodic square [0, 2π]², the initial velocity is u = (−sin y, sin x, 0) and the magnetic field is B = (−sin y, sin 2x, 0). Uniform density and entropy complete the initial condition. The ideal version of ViscoResistiveMHD evolves density, velocity, entropy and magnetic flux without the optional viscous and resistive propagators.</p>
-        <p>This compact calculation follows the early nonlinear interaction to t = 0.5. It illustrates compression and magnetic-field deformation on a coarse grid; it is not a resolved calculation of late-time shocks or turbulence. The pressure is reconstructed from the model’s internal-energy density, p = (γ − 1) ρᵞ exp(s/ρ), with γ = 5/3. The plotted fields are transformed to physical coordinates before the diagnostics are calculated.</p>
+        <p>This compact calculation follows the early nonlinear interaction to t = 0.5. It illustrates compression and magnetic-field deformation on a coarse grid; it is not a resolved calculation of late-time shocks or turbulence. The pressure is reconstructed from the model’s internal-energy density, p = (γ − 1) ρᵞ exp(s/ρ), with γ = 5/3. The plotted fields are transformed to physical coordinates before the diagnostics are calculated. The gas pressure is used for the midplane cut below the main figure.</p>
         <div class="equations prose" aria-label="Governing equations" set:html={equationsHtml}></div>
       </div>
       <dl>

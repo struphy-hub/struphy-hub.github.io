@@ -42,7 +42,7 @@ env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="orszag_
 sim = Simulation(
     model=model,
     name="Orszag–Tang vortex",
-    description="Early nonlinear evolution of crossed velocity and magnetic vortices in ideal MHD, with density, pressure, current and conservation diagnostics.",
+    description="Early nonlinear evolution of crossed velocity and magnetic vortices in ideal MHD, with density, magnetic field lines, pressure and conservation diagnostics.",
     env=env,
     time_opts=time_opts,
     domain=domain,
@@ -72,44 +72,46 @@ if __name__ == "__main__":
     entropy_values = entropy.transpose("t", "e1", "e2").values
     gamma = model.propagators.variat_dens.options.gamma
     pressure = (gamma - 1) * rho_values**gamma * np.exp(entropy_values / rho_values)
-    magnetic_pressure = 0.5 * (bx**2 + by**2)
-    # A sampled-field diagnostic, separate from the FEEC divergence scalar below.
-    current = np.gradient(by, x, axis=1, edge_order=2) - np.gradient(bx, y, axis=2, edge_order=2)
-    fields = (rho_values, pressure, magnetic_pressure, current)
-    if not all(np.isfinite(field).all() for field in fields):
+
+    # Field lines of the in-plane B are contours of the flux function A_z, with Bx = dA/dy and By = -dA/dx.
+    # A_z is recovered spectrally (the mean field vanishes); a duplicated periodic end point is dropped first.
+    period = 2 * np.pi
+    nx, ny = (n - 1 if abs(c[-1] - c[0] - period) < 1e-6 * period else n for n, c in ((len(x), x), (len(y), y)))
+    kx = 2 * np.pi * np.fft.fftfreq(nx, d=period / nx)[:, None]
+    ky = 2 * np.pi * np.fft.fftfreq(ny, d=period / ny)[None, :]
+    k2 = np.where((kx == 0) & (ky == 0), 1.0, kx**2 + ky**2)
+    bx_hat, by_hat = (np.fft.fft2(field[:, :nx, :ny], axes=(1, 2)) for field in (bx, by))
+    flux = np.fft.ifft2(1j * (kx * by_hat - ky * bx_hat) / k2, axes=(1, 2)).real
+    flux = np.pad(flux, ((0, 0), (0, len(x) - nx), (0, len(y) - ny)), mode="wrap")
+
+    # The classic picture: the density in a jet colour scale with the magnetic field lines on top.
+    if not all(np.isfinite(field).all() for field in (rho_values, pressure, flux)):
         raise RuntimeError("Non-finite field diagnostic")
-    names = ("Density ρ", "Gas pressure p", "Magnetic pressure B²/2", "Axial current j_z")
-    limits = [(float(v.min()), float(v.max())) for v in fields]
-    limits[-1] = (-float(np.abs(current).max()), float(np.abs(current).max()))
+    # Fixed levels over all times, so the lines follow the same flux surfaces as the field evolves.
+    flux_levels = {"start": float(flux.min()), "end": float(flux.max()), "size": float(np.ptp(flux)) / 14}
+    limits = (float(rho_values.min()), float(rho_values.max()))
 
     def traces(index):
-        result = []
-        for k, values in enumerate(fields):
-            suffix = str(k + 1) if k else ""
-            result.append(go.Heatmap(
-                x=x, y=y, z=values[index].T, zmin=limits[k][0], zmax=limits[k][1],
-                colorscale="RdBu" if k == 3 else "Viridis", xaxis="x" + suffix, yaxis="y" + suffix,
-                colorbar={"len": 0.38, "x": 0.45 if k % 2 == 0 else 1.0, "y": 0.79 if k < 2 else 0.21},
-            ))
-        return result
+        return [
+            go.Heatmap(x=x, y=y, z=rho_values[index].T, zmin=limits[0], zmax=limits[1], colorscale="Jet",
+                       colorbar={"title": "Density ρ"}),
+            go.Contour(x=x, y=y, z=flux[index].T, contours={"coloring": "none", **flux_levels},
+                       line={"color": "white", "width": 1}, showscale=False, hoverinfo="skip"),
+        ]
 
     picks = np.unique(np.linspace(0, len(times) - 1, min(51, len(times)), dtype=int))
-    figure = make_subplots(rows=2, cols=2, subplot_titles=names, horizontal_spacing=0.18, vertical_spacing=0.15)
-    for k, trace in enumerate(traces(0)):
-        figure.add_trace(trace, row=k // 2 + 1, col=k % 2 + 1)
-    figure.frames = [go.Frame(name=f"{times[i]:.3f}", data=traces(i), traces=[0, 1, 2, 3]) for i in picks]
+    figure = go.Figure(data=traces(0), frames=[go.Frame(name=f"{times[i]:.3f}", data=traces(i), traces=[0, 1]) for i in picks])
     figure.update_layout(
-        title="Orszag–Tang vortex: early nonlinear evolution", template="plotly_white",
-        margin={"l": 60, "r": 60, "t": 90, "b": 130},
-        updatemenus=[{"type": "buttons", "showactive": False, "x": 0, "y": -0.15,
+        title="Orszag–Tang vortex: density and magnetic field lines", template="plotly_white",
+        margin={"l": 70, "r": 30, "t": 80, "b": 130},
+        xaxis={"title": "x", "range": [0, period], "constrain": "domain"},
+        yaxis={"title": "y", "range": [0, period], "scaleanchor": "x", "scaleratio": 1},
+        updatemenus=[{"type": "buttons", "showactive": False, "x": 0, "y": -0.12,
                       "buttons": [{"label": "Play", "method": "animate", "args": [None, {"frame": {"duration": 60, "redraw": True}, "transition": {"duration": 0}, "fromcurrent": True}]}]}],
-        sliders=[{"active": 0, "x": 0.12, "len": 0.88, "y": -0.1, "currentvalue": {"prefix": "t = "},
+        sliders=[{"active": 0, "x": 0.12, "len": 0.88, "y": -0.07, "currentvalue": {"prefix": "t = "},
                   "steps": [{"args": [[frame.name], {"frame": {"duration": 0, "redraw": True}, "transition": {"duration": 0}, "mode": "immediate"}], "label": frame.name, "method": "animate"} for frame in figure.frames]}],
     )
-    for k in range(4):
-        figure.update_xaxes(title_text="x", range=[0, 2*np.pi], constrain="domain", row=k//2+1, col=k%2+1)
-        figure.update_yaxes(title_text="y", range=[0, 2*np.pi], scaleanchor="x" + (str(k+1) if k else ""), scaleratio=1, row=k//2+1, col=k%2+1)
-    save_figure(figure, "orszag-tang-vortex", height=850, static_data=traces(len(times)-1), static_active=len(picks)-1)
+    save_figure(figure, "orszag-tang-vortex", width=900, height=850, static_data=traces(len(times)-1), static_active=len(picks)-1)
 
     scalars = output.scalars
     energy = scalars.en_tot

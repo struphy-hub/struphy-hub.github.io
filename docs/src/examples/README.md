@@ -11,7 +11,7 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `coaxial-waveguide.py` — rotating Maxwell eigenmode, physical-plane field/error animation, probe frequency and energy
 - `guiding-center-orbits.py` — passing and trapped orbits, parallel velocity and per-particle invariants
 - `vortex-merger.py` — physical-plane density animation of two charge blobs and electrostatic-energy drift
-- `orszag-tang-vortex.py` — early nonlinear MHD to t = 0.5, four field panels, energy/divergence diagnostics and a pressure cut
+- `orszag-tang-vortex.py` — early nonlinear MHD to t = 0.5, density with magnetic field lines, energy/divergence diagnostics and a pressure cut
 - `strong-landau-damping.py`, `two-stream-instability.py`, `bump-on-tail.py`, `weibel-instability.py` — other Vlasov-Ampère/Maxwell instability benchmarks, all sharing the same field-energy-vs-time diagnostic pattern
 
 This walks through adding a new one, using `poisson-source.py` as the worked reference.
