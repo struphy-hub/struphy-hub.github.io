@@ -1,7 +1,7 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
-import exampleSource from '../../../examples/orszag-tang-vortex.py?raw';
-import data from '../../../../public/examples/orszag-tang-vortex.metadata.json';
+import exampleSource from '../../../examples/guiding-center-orbits.py?raw';
+import data from '../../../../public/examples/guiding-center-orbits.metadata.json';
 import { codeToHtml } from 'shiki';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -49,16 +49,16 @@ const highlightedSource = await codeToHtml(exampleSource, {
 <Layout title={`${data.name} — Struphy Examples`} description={data.description}>
   <main>
     <header class="intro">
-      <p class="eyebrow"><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a> · Nonlinear MHD</p>
+      <p class="eyebrow"><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a> · Particle orbits</p>
       <h1>{data.name}</h1>
       <p>{data.description}</p>
       <a class="back" href="/examples/">← All examples</a>
     </header>
 
     <figure class="result">
-      <div class="plot-frame"><iframe src="/examples/orszag-tang-vortex.html" title="Density and magnetic field lines in the Orszag–Tang vortex" loading="eager"></iframe></div>
-      <noscript><img src="/images/examples/orszag-tang-vortex.png" alt="Density and magnetic field lines in the Orszag–Tang vortex" width="1800" height="1700" /></noscript>
-      <figcaption>Physical density (colour) with magnetic field lines (white) during evolution to t = {data.finalTime}. The colour scale is fixed and the field lines are contours of the magnetic flux function, recovered spectrally from the sampled in-plane field. The thumbnail is taken from the final frame.</figcaption>
+      <div class="plot-frame"><iframe src="/examples/guiding-center-orbits.html" title="Animated guiding-center trajectories in the poloidal plane of a circular tokamak" loading="eager"></iframe></div>
+      <noscript><img src="/images/examples/guiding-center-orbits.png" alt="Animated guiding-center trajectories in the poloidal plane of a circular tokamak" width="2200" height="1500" /></noscript>
+      <figcaption>Eight particles start with the same speed and position but different pitch. In this run, {data.nTrapped} are trapped and {data.nPassing} are passing; {data.lostMarkers} leave the domain. Moving markers and trails show their poloidal motion. Grey curves mark magnetic flux surfaces.</figcaption>
     </figure>
 
     {data.figures && <ExtraFigures figures={data.figures} />}
@@ -66,9 +66,10 @@ const highlightedSource = await codeToHtml(exampleSource, {
     <section class="explanation" aria-labelledby="setup-title">
       <div>
         <p class="eyebrow">Physical problem</p>
-        <h2 id="setup-title">Early nonlinear evolution of crossed vortices</h2>
-        <p>On the periodic square [0, 2π]², the initial velocity is u = (−sin y, sin x, 0) and the magnetic field is B = (−sin y, sin 2x, 0). Uniform density and entropy complete the initial condition. The ideal version of ViscoResistiveMHD evolves density, velocity, entropy and magnetic flux without the optional viscous and resistive propagators.</p>
-        <p>This compact calculation follows the early nonlinear interaction to t = 0.5. It illustrates compression and magnetic-field deformation on a coarse grid; it is not a resolved calculation of late-time shocks or turbulence. The pressure is reconstructed from the model’s internal-energy density, p = (γ − 1) ρᵞ exp(s/ρ), with γ = 5/3. The plotted fields are transformed to physical coordinates before the diagnostics are calculated. The gas pressure is used for the midplane cut below the main figure.</p>
+        <h2 id="setup-title">Passing and trapped guiding centers</h2>
+        <p>The magnetic-field strength varies around a tokamak flux surface. At fixed energy and magnetic moment, an increase in field strength reduces the parallel kinetic energy. Particles with sufficiently small initial parallel speed reflect at mirror points and follow banana-shaped paths in the poloidal plane. Passing particles retain the sign of their parallel velocity and travel around the magnetic axis.</p>
+        <p>The example uses the analytic AdhocTorus equilibrium, projected onto spline spaces, and Strang splitting of the guiding-center propagators. All particles have initial speed {data.speed}; their initial parallel velocity fractions range from −0.9 to +0.9. The fixed-surface estimate of the trapping boundary is |v∥/v| ≈ {data.boundaryPitch.toFixed(3)}. Finite orbit widths mean this estimate is not an exact classification rule; the labels below use observed parallel-velocity reversals.</p>
+        <p>The conservation diagnostic evaluates energy and canonical toroidal momentum particle by particle using the analytic equilibrium. It therefore includes the effect of approximating that equilibrium by splines as well as the time-integration error. It does not use the cached kinetic-energy scalar.</p>
         <div class="equations prose" aria-label="Governing equations" set:html={equationsHtml}></div>
       </div>
       <dl>
@@ -124,11 +125,11 @@ const highlightedSource = await codeToHtml(exampleSource, {
     <section class="source" aria-labelledby="source-title">
       <div class="source-heading">
         <div><p class="eyebrow">Complete source</p><h2 id="source-title">Run the simulation</h2></div>
-        <div class="source-actions"><button type="button" data-copy>Copy script</button><a href="/examples/orszag-tang-vortex.py" download>Download .py</a></div>
+        <div class="source-actions"><button type="button" data-copy>Copy script</button><a href="/examples/guiding-center-orbits.py" download>Download .py</a></div>
       </div>
-      <p class="requirements">Requires the Struphy revision pinned by this site, with compiled kernels, Plotly and Kaleido. Run <code>struphy compile</code> once, then execute <code>python orszag-tang-vortex.py</code>.</p>
+      <p class="requirements">Requires the Struphy revision pinned by this site, with compiled kernels, Plotly and Kaleido. Run <code>struphy compile</code> once, then execute <code>python guiding-center-orbits.py</code>.</p>
       <div class="highlight" data-source set:html={highlightedSource}></div>
-      <p class="provenance">Uses Struphy’s <a href="/models/viscoresistivemhd/">ViscoResistiveMHD</a> model in its entropy formulation. The energy and divergence diagnostics below quantify this run; no external reference data are overlaid.</p>
+      <p class="provenance">Adapted from Struphy’s <a href="https://github.com/struphy-hub/struphy/blob/devel/tutorials/tutorial_particle_tracing.ipynb">particle-tracing tutorial</a>.</p>
     </section>
   </main>
 </Layout>
@@ -154,7 +155,7 @@ const highlightedSource = await codeToHtml(exampleSource, {
 
 <style>
   .intro{max-width:850px;padding-block:clamp(52px,7vw,84px)}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}h1{margin:0 0 18px;font-size:clamp(2.2rem,5vw,3.8rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow){color:var(--muted);font-size:1.05rem}.eyebrow a{color:var(--cyan);text-decoration:none}.eyebrow a:hover{text-decoration:underline}.back{display:inline-block;margin-top:12px;color:var(--cyan)}
-  .result{margin:0;padding-block:40px 52px;border-top:1px solid var(--rule)}.plot-frame{width:min(100%,1100px);aspect-ratio:1100/850;margin-inline:auto}.result iframe{display:block;width:100%;height:100%;border:1px solid var(--rule);background:#fff}.result img{display:block;width:min(100%,1100px);height:auto;margin-inline:auto;border:1px solid var(--rule);background:#fff}.result figcaption{width:min(100%,1100px);margin:10px auto 0;color:var(--muted);font-size:.84rem}
+  .result{margin:0;padding-block:40px 52px;border-top:1px solid var(--rule)}.plot-frame{width:min(100%,1100px);aspect-ratio:1100/750;margin-inline:auto}.result iframe{display:block;width:100%;height:100%;border:1px solid var(--rule);background:#fff}.result img{display:block;width:min(100%,1100px);height:auto;margin-inline:auto;border:1px solid var(--rule);background:#fff}.result figcaption{width:min(100%,1100px);margin:10px auto 0;color:var(--muted);font-size:.84rem}
   .explanation,.source,.profiling{padding-block:clamp(44px,7vw,68px);border-top:1px solid var(--rule)}
   .pf-grid{display:grid;grid-template-columns:1fr;gap:20px;margin-top:24px}.pf-tile{border:1px solid var(--rule);padding:16px}.pf-tile-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.pf-tile-header h3{margin:0;font-size:1rem}.pf-select,.pf-filter{font:600 .78rem var(--sans);border:1px solid var(--rule);background:var(--paper-bg,transparent);color:var(--paper);padding:6px 8px}.pf-filter{width:100%;margin-bottom:10px}.pf-plot{width:100%;min-height:340px;max-height:640px;overflow-y:auto}.pf-error{color:var(--muted);font-size:.85rem}.table-wrap{margin-top:16px;overflow-x:auto;border:1px solid var(--rule)}.table-wrap table{width:100%;border-collapse:collapse;font:.8rem var(--mono)}.table-wrap th,.table-wrap td{padding:7px 10px;border-bottom:1px solid var(--rule);text-align:left;white-space:nowrap}.table-wrap th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--code-bg)}.explanation{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.48fr);gap:clamp(40px,8vw,100px)}h2{margin:0 0 14px;font-size:clamp(1.55rem,3vw,2.1rem)}.explanation>div>p:not(.eyebrow),.requirements,.provenance{color:var(--muted)}.provenance code{color:var(--paper)}.equations{margin-top:24px;padding:18px 20px;border-left:2px solid var(--cyan);background:var(--accent-wash);font-size:.95rem}.equations :global(p){margin:0 0 6px;color:inherit}.equations :global(p:last-child){margin-bottom:0}.equations :global(strong){color:var(--cyan)}.equations :global(.math-display){overflow-x:auto;margin:6px 0}
   dl{margin:0;border-top:1px solid var(--rule)}dl div{display:flex;justify-content:space-between;gap:24px;padding:10px 0;border-bottom:1px solid var(--rule)}dt{color:var(--muted);font-size:.82rem}dd{margin:0;text-align:right;font:700 .8rem var(--mono)}dd a{color:var(--cyan);text-decoration:none}dd a:hover{text-decoration:underline}
