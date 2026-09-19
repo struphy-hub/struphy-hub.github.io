@@ -7,7 +7,6 @@ import 'katex/dist/katex.min.css';
 import ExamplePage from '../../../components/ExamplePage.astro';
 import { exampleConfig } from '../../../data/example-config';
 
-const examplesDir = join(process.cwd(), 'public', 'examples');
 const sourceModules = import.meta.glob('../../../examples/*.py', { query: '?raw', import: 'default', eager: true });
 
 function pdeMarkdownToHtml(markdown = ''): string {
@@ -18,6 +17,8 @@ function pdeMarkdownToHtml(markdown = ''): string {
 }
 
 export async function getStaticPaths() {
+  // getStaticPaths is hoisted out of the page, so it cannot see variables of the frontmatter; only imports.
+  const examplesDir = join(process.cwd(), 'public', 'examples');
   const files = (await readdir(examplesDir)).filter((name) => name.endsWith('.metadata.json'));
   return Promise.all(files.map(async (file) => ({ params: { slug: file.replace(/\.metadata\.json$/, '') }, props: { data: JSON.parse(await readFile(join(examplesDir, file), 'utf8')) } })));
 }
