@@ -298,7 +298,12 @@ def merge_metadata(stem: str, **fields) -> Path:
         return path
     metadata = json.loads(path.read_text()) if path.exists() else {}
     metadata.update(fields)
-    path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False))
+    # NaN and Infinity are not valid JSON: Python writes them anyway, and the site build then fails to
+    # parse the file. A non-finite result is a broken run, so stop here and name it.
+    broken = [key for key, value in metadata.items() if isinstance(value, float) and not np.isfinite(value)]
+    if broken:
+        raise RuntimeError(f"Non-finite values in the metadata of {stem}: {', '.join(broken)}; refusing to publish the run")
+    path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False, allow_nan=False))
     print(f"Saved {path.resolve()}")
     return path
 

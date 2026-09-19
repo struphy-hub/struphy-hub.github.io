@@ -195,6 +195,8 @@ jobs:
           # OpenMPI counts physical cores as slots and refuses to start on more ranks than that, but
           # a hosted runner's vCPUs are hyperthreads (4 vCPUs = 2 cores), hence --use-hwthread-cpus;
           # --oversubscribe keeps a smaller runner from failing and --bind-to none from pinning ranks.
+          # guiding-center-orbits tracks a few markers, and their saved orbits are empty after the first row on
+          # several ranks (NaN drifts), so it runs serially too.
           # The SPH examples hang under MPI in Struphy (ranks disagree on the box communication in
           # `update_distr_functions`), so they run serially until that is fixed. `timeout` keeps any
           # other hang from holding the runner.
@@ -206,6 +208,7 @@ jobs:
           ranks=$(( MPI_RANKS < cpus ? MPI_RANKS : cpus ))
           case "${{ matrix.example }}" in
             dam-break|gas-expansion|zeldovich-caustic|incompressible-shear-relaxation) ranks=1 ;;
+            guiding-center-orbits) ranks=1 ;;
           esac
           echo "Running ${{ matrix.example }} on $ranks MPI rank(s); $cpus CPU(s) visible"
           timeout 90m mpirun --use-hwthread-cpus --oversubscribe --bind-to none -n "$ranks" \

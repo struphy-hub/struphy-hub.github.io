@@ -125,6 +125,7 @@ Locally: `python cli.py run <example> --mpi 4`, or `mpirun -n 4 python ../../src
 - The grid must split over the ranks: with four ranks, keep at least a few cells per rank and direction
   (Orszag–Tang uses 32 × 32 × 1, i.e. 16 × 16 cells per rank).
 - Particle results depend on the rank count (each rank draws its own markers), so measured rates move a little.
+- Saved orbits of tracked markers (`SavingParameters(n_markers=...)`) are empty after the first time step on several ranks, so `guiding-center-orbits` runs on one rank in CI.
 - The SPH examples (`dam-break`, `gas-expansion`, `zeldovich-caustic`, `incompressible-shear-relaxation`) hang under MPI in Struphy, so CI runs them on one rank.
 
 ## 4. Add the download route: `docs/src/pages/examples/<script-stem>.py.ts`
