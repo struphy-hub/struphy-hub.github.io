@@ -52,6 +52,7 @@ const highlightedSource = await codeToHtml(exampleSource, {
       <p class="eyebrow"><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a> · Particle orbits</p>
       <h1>{data.name}</h1>
       <p>{data.description}</p>
+      <a class="source-shortcut" href="#source-title">Run the simulation ↓</a>
       <a class="back" href="/examples/">← All examples</a>
     </header>
 
@@ -154,6 +155,7 @@ const highlightedSource = await codeToHtml(exampleSource, {
 </script>
 
 <style>
+  .source-shortcut{display:inline-block;margin-top:12px;padding:8px 12px;border:1px solid var(--cyan);color:var(--cyan);font:650 .78rem var(--sans);text-decoration:none}.source-shortcut:hover{background:var(--accent-wash)}
   .intro{max-width:850px;padding-block:clamp(52px,7vw,84px)}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}h1{margin:0 0 18px;font-size:clamp(2.2rem,5vw,3.8rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow){color:var(--muted);font-size:1.05rem}.eyebrow a{color:var(--cyan);text-decoration:none}.eyebrow a:hover{text-decoration:underline}.back{display:inline-block;margin-top:12px;color:var(--cyan)}
   .result{margin:0;padding-block:40px 52px;border-top:1px solid var(--rule)}.plot-frame{width:min(100%,1100px);aspect-ratio:1100/750;margin-inline:auto}.result iframe{display:block;width:100%;height:100%;border:1px solid var(--rule);background:#fff}.result img{display:block;width:min(100%,1100px);height:auto;margin-inline:auto;border:1px solid var(--rule);background:#fff}.result figcaption{width:min(100%,1100px);margin:10px auto 0;color:var(--muted);font-size:.84rem}
   .explanation,.source,.profiling{padding-block:clamp(44px,7vw,68px);border-top:1px solid var(--rule)}
