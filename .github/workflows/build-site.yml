@@ -190,17 +190,23 @@ jobs:
         shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
-          # The runner has four cores, so the examples run on four MPI ranks (the scripts write
-          # their files on rank 0 only; see docs/src/examples/_gallery.py). One rank per core,
-          # hence a single OpenMP thread each. The SPH examples hang under MPI in Struphy
-          # (ranks disagree on the box communication in `update_distr_functions`), so they run
-          # serially until that is fixed. `timeout` keeps any other hang from holding the runner.
+          # The scripts run on up to four MPI ranks (they write their files on rank 0 only; see
+          # docs/src/examples/_gallery.py), one per visible CPU, hence a single OpenMP thread each.
+          # OpenMPI counts physical cores as slots and refuses to start on more ranks than that, but
+          # a hosted runner's vCPUs are hyperthreads (4 vCPUs = 2 cores), hence --use-hwthread-cpus;
+          # --oversubscribe keeps a smaller runner from failing and --bind-to none from pinning ranks.
+          # The SPH examples hang under MPI in Struphy (ranks disagree on the box communication in
+          # `update_distr_functions`), so they run serially until that is fixed. `timeout` keeps any
+          # other hang from holding the runner.
           export OMP_NUM_THREADS=1
+          cpus=$(nproc)
+          ranks=$(( MPI_RANKS < cpus ? MPI_RANKS : cpus ))
           case "${{ matrix.example }}" in
             dam-break|gas-expansion) ranks=1 ;;
-            *) ranks="$MPI_RANKS" ;;
           esac
-          timeout 90m mpirun -n "$ranks" python "../../src/examples/${{ matrix.example }}.py"
+          echo "Running ${{ matrix.example }} on $ranks MPI rank(s); $cpus CPU(s) visible"
+          timeout 90m mpirun --use-hwthread-cpus --oversubscribe --bind-to none -n "$ranks" \
+            python "../../src/examples/${{ matrix.example }}.py"
 
       - name: Copy example thumbnails
         if: steps.cache-example.outputs.cache-hit != 'true'

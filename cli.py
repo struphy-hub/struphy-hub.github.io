@@ -313,7 +313,20 @@ def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts
     if args.quiet:
         log = Path(os.environ.get("TMPDIR", "/tmp")) / f"struphy-gallery-{stem}.log"
     run_started = time.time() - 1  # file times can be coarser than the clock
-    launcher = ["mpirun", "-n", str(args.mpi)] if args.mpi > 1 else []
+    # The same flags as CI: hardware threads count as slots, and a machine with fewer of them still runs.
+    launcher = (
+        [
+            "mpirun",
+            "--use-hwthread-cpus",
+            "--oversubscribe",
+            "--bind-to",
+            "none",
+            "-n",
+            str(args.mpi),
+        ]
+        if args.mpi > 1
+        else []
+    )
     code = run_command(
         [*launcher, sys.executable, str(SCRIPTS_DIR / f"{stem}.py")], OUTPUT_DIR, log
     )
