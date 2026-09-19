@@ -161,6 +161,15 @@ if __name__ == "__main__":
 
     figures = [
         save_extra_figure(
+            velocity_time,
+            "two-stream-instability",
+            "velocity-time",
+            alt="Space-averaged velocity distribution as a function of time",
+            caption=(
+                "The distribution averaged over space, f(v, t). The two beams stay narrow and separate until about t = 20, when the instability saturates; over the following ten time units they merge into a single broad distribution that fills the gap between them."
+            ),
+        ),
+        save_extra_figure(
             phase_space,
             "two-stream-instability",
             "phasespace",
@@ -168,15 +177,6 @@ if __name__ == "__main__":
             alt="Phase-space density rolled up into the classic two-stream 'cat's eye' vortex pattern",
             caption=(
                 "The classic two-stream picture: the phase-space density f(x, v); drag the slider or press Play. The two beams, initially flat bands at v = ±3, are bent by the growing wave and roll up into a trapped-particle “cat’s eye” hole. The frame shown is from the middle of the run (t = 25)."
-            ),
-        ),
-        save_extra_figure(
-            velocity_time,
-            "two-stream-instability",
-            "velocity-time",
-            alt="Space-averaged velocity distribution as a function of time",
-            caption=(
-                "The distribution averaged over space, f(v, t). The two beams stay narrow and separate until about t = 20, when the instability saturates; over the following ten time units they merge into a single broad distribution that fills the gap between them."
             ),
         ),
     ]
