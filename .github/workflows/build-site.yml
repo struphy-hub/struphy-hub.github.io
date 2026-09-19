@@ -283,7 +283,9 @@ jobs:
 
       - name: Export the domain used by this example
         if: steps.cache-example.outputs.cache-hit != 'true'
+        shell: bash
         run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
           python generate_example_domain.py "${{ matrix.example }}" \
             --metadata-root docs/public/examples/struphy_gallery_runs \
             --output-dir docs/public/example-domains
