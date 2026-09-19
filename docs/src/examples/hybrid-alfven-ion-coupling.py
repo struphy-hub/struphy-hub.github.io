@@ -92,11 +92,11 @@ if __name__ == "__main__":
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
-    sim.run(profiling_activated=True)
+    output = sim.run(profiling_activated=True)
+    output.pproc()  # on every rank; under MPI the output is not processed implicitly
 
     # LinearMHDVlasovPC tracks each subsystem's energy as a scalar every step:
     # en_B/en_U (field/fluid), en_f (kinetic energetic ions), en_tot (total).
-    output = sim.output
     time = np.asarray(output.time)
     en_B = np.asarray(output.scalars["en_B"])
     en_U = np.asarray(output.scalars["en_U"])
