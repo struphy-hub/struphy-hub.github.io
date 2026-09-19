@@ -18,10 +18,10 @@ model = ViscoResistiveMHD(with_viscosity=False, with_resistivity=False)
 model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="full")
 
 domain = domains.Cuboid(r1=2 * np.pi, r2=2 * np.pi, r3=1.0)
-# A compact grid resolves the early nonlinear evolution at gallery scale.
-grid = grids.TensorProductGrid(num_elements=(16, 16, 1))
+# 32 x 32 cells, run on four MPI ranks in CI: each rank owns a 16 x 16 block, well above the spline degree.
+grid = grids.TensorProductGrid(num_elements=(32, 32, 1))
 derham_opts = DerhamOptions(degree=(2, 2, 1))
-time_opts = Time(dt=0.005, Tend=0.5, split_algo="LieTrotter")
+time_opts = Time(dt=0.0025, Tend=0.5, split_algo="LieTrotter")
 # The equilibrium supplies normalization; the evolved magnetic field has no guide component.
 equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=0.1)
 
