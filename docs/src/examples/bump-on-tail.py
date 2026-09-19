@@ -34,14 +34,15 @@ model = VlasovAmpereOneSpecies(alpha=1.0, epsilon=-1.0, with_B0=False)
 model.em_fields.e_field.save_data = True
 
 domain = domains.Cuboid(r1=62.83)
-grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
+grid = grids.TensorProductGrid(num_elements=(64, 1, 1))
 derham_opts = DerhamOptions(degree=(3, 1, 1))
 time_opts = Time(dt=0.1, Tend=60.0, split_algo="LieTrotter")
 
-# A binned x-v snapshot at every step: the bulk sits near v = 3, the bump near v = -4.5.
-phase_space_bins = BinningPlot(slice="e1_v1", n_bins=(32, 96), ranges=((0.0, 1.0), (-8.0, 8.0)))
+# A high-resolution binned x-v snapshot at every step: the bulk sits near v = 3,
+# the bump near v = -4.5.
+phase_space_bins = BinningPlot(slice="e1_v1", n_bins=(128, 128), ranges=((0.0, 1.0), (-8.0, 8.0)))
 model.kinetic_ions.set_markers(
-    loading_params=LoadingParameters(ppc=1000, moments=(0.0, 0.0, 0.0, 3.0, 1.0, 1.0)),
+    loading_params=LoadingParameters(ppc=2000, moments=(0.0, 0.0, 0.0, 3.0, 1.0, 1.0)),
     weights_params=WeightsParameters(control_variate=True),
     boundary_params=BoundaryParameters(),
     sorting_params=SortingParameters(boxes_per_dim=(16, 1, 1), do_sort=True),
@@ -163,7 +164,7 @@ if __name__ == "__main__":
             static_z=phase_static,
             alt="Phase-space density of the bump-on-tail instability",
             caption=(
-                "The phase-space density f(x, v) of the run above, binned in the 32 spatial cells and 96 velocity bins; drag the slider or press Play. Initially the bulk (v ≈ 3) and the bump (v ≈ −4.5) are almost uniform in x. The frame shown is from the middle of the run, where both populations have developed strong structure in x and spread far beyond their initial velocity widths."
+                "The phase-space density f(x, v) of the run above, resolved on 64 spatial cells and displayed in 128 × 128 bins; drag the slider or press Play. Initially the bulk (v ≈ 3) and the bump (v ≈ −4.5) are almost uniform in x. The frame shown is from the middle of the run, where both populations have developed strong structure in x and spread far beyond their initial velocity widths."
             ),
         ),
         save_extra_figure(
@@ -172,7 +173,7 @@ if __name__ == "__main__":
             "velocity-time",
             alt="Space-averaged velocity distribution as a function of time",
             caption=(
-                "The distribution averaged over space, f(v, t) (the mean of the binned f over the 32 cells). The bulk (v ≈ 3, peak f ≈ 0.36) and the much smaller bump (v ≈ −4.5, peak f ≈ 0.08) start as separate populations. As the wave grows, both broaden and the region between them fills in."
+                "The distribution averaged over space, f(v, t) (the mean of the binned f over the 64 cells). The bulk (v ≈ 3, peak f ≈ 0.36) and the much smaller bump (v ≈ −4.5, peak f ≈ 0.08) start as separate populations. As the wave grows, both broaden and the region between them fills in."
             ),
         ),
     ]
