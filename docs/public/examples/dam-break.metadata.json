@@ -1,0 +1,10 @@
+{
+  "name": "Dam break",
+  "description": "A dense fluid column collapses under gravity in a closed box. Smoothed particle hydrodynamics follows the splash, the run-up on the far wall and the sloshing that follows, using markers alone.",
+  "model": "ViscousEulerSPH",
+  "equationsMarkdown": "**PDEs solved by model:**\n\nContinuity:\n\n$$\n\\partial_t \\rho + \\nabla \\cdot (\\rho \\mathbf{u}) = 0\n$$\n\nMomentum:\n\n$$\n\\rho (\\partial_t \\mathbf{u} + \\mathbf{u} \\cdot \\nabla \\mathbf{u}) = -\\nabla \\left( \\rho^2 \\frac{\\partial \\mathcal{U}(\\rho, S)}{\\partial \\rho} \\right) - \\nabla \\cdot \\boldsymbol{\\pi}\n$$\n\nEntropy:\n\n$$\n\\partial_t S + \\mathbf{u} \\cdot \\nabla S = 0\n$$\n\nwhere :math:`S` denotes the entropy per unit mass and :math:`\\boldsymbol{\\pi}` is the viscous stress tensor.\n\nThe viscous stress tensor for a Newtonian fluid is given by:\n\n$$\n\\boldsymbol{\\sigma} = -\\mu \\left( \\nabla \\mathbf{u} + (\\nabla \\mathbf{u})^T - \\frac{2}{3} (\\nabla \\cdot \\mathbf{u}) \\mathbf{I} \\right)\n$$\n\nwhere :math:`\\mu` is the dynamic (shear) viscosity and :math:`\\mathbf{I}` is the identity tensor.\n\nThe internal energy per unit mass can be defined in two ways:\n\n$$\n\\mathrm{isothermal:} \\qquad \\mathcal{U}(\\rho, S) = \\kappa(S) \\log \\rho\n$$\n\n$$\n\\mathrm{polytropic:} \\qquad \\mathcal{U}(\\rho, S) = \\kappa(S) \\frac{\\rho^{\\gamma - 1}}{\\gamma - 1}\n$$\n",
+  "domain": "Cuboid",
+  "steps": 150,
+  "integrator": "Forward_euler",
+  "visualization": "Plotly"
+}

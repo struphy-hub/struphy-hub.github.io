@@ -34,7 +34,7 @@ def integrator_of(model) -> str | None:
     for propagator in vars(model.propagators).values():
         algo = getattr(getattr(propagator, "options", None), "algo", None)
         if algo:
-            return str(algo).capitalize()
+            return str(algo).replace("_", " ").capitalize()
     return None
 
 
@@ -70,10 +70,13 @@ def build_metadata(sim, namespace: dict) -> dict:
         "model": type(model).name(),
         "equationsMarkdown": type(model).pde_markdown(),
         "domain": describe_domain(sim.domain),
-        "grid": " × ".join(str(n) for n in sim.grid.num_elements),
-        "degree": " × ".join(str(p) for p in sim.derham_opts.degree),
         "steps": round(sim.time_opts.Tend / sim.time_opts.dt),
     }
+    # Particle-only models (SPH) have no finite element grid or spline degree.
+    if sim.grid is not None:
+        metadata["grid"] = " × ".join(str(n) for n in sim.grid.num_elements)
+    if sim.derham_opts is not None:
+        metadata["degree"] = " × ".join(str(p) for p in sim.derham_opts.degree)
     integrator = integrator_of(model)
     if integrator:
         metadata["integrator"] = integrator
