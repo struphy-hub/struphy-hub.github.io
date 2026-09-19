@@ -12,6 +12,10 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `guiding-center-orbits.py` — passing and trapped orbits, parallel velocity and per-particle invariants
 - `vortex-merger.py` — physical-plane density animation of two charge blobs and electrostatic-energy drift
 - `orszag-tang-vortex.py` — early nonlinear MHD to t = 0.5, density with magnetic field lines, energy/divergence diagnostics and a pressure cut
+- `mhd-slab-waves.py` — the shear Alfvén and the slow and fast magnetosonic waves of `LinearMHD`, from the (k, ω) spectra of the velocity and the pressure, with fitted against exact speeds
+- `zeldovich-caustic.py` — pressureless SPH collapse to a caustic and multi-stream flow, with the exact density from the Lagrangian map (animated density and phase space)
+- `diffusion-methods.py` — the random-walk and the deterministic particle methods for the diffusion equation, compared with the exact decay (two simulations in one script)
+- `incompressible-shear-relaxation.py` — incompressible SPH between no-slip walls: the pressure projection removes a compressive wave, and the shear mode decays at the exact viscous rate
 - `strong-landau-damping.py`, `two-stream-instability.py`, `bump-on-tail.py`, `weibel-instability.py` — other Vlasov-Ampère/Maxwell instability benchmarks, all sharing the same field-energy-vs-time diagnostic pattern
 
 To build the assets of existing examples, use the CLI at the repository root (standard library only):
@@ -121,7 +125,7 @@ Locally: `python cli.py run <example> --mpi 4`, or `mpirun -n 4 python ../../src
 - The grid must split over the ranks: with four ranks, keep at least a few cells per rank and direction
   (Orszag–Tang uses 32 × 32 × 1, i.e. 16 × 16 cells per rank).
 - Particle results depend on the rank count (each rank draws its own markers), so measured rates move a little.
-- The SPH examples (`dam-break`, `gas-expansion`) hang under MPI in Struphy, so CI runs them on one rank.
+- The SPH examples (`dam-break`, `gas-expansion`, `zeldovich-caustic`, `incompressible-shear-relaxation`) hang under MPI in Struphy, so CI runs them on one rank.
 
 ## 4. Add the download route: `docs/src/pages/examples/<script-stem>.py.ts`
 

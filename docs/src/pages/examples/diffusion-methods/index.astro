@@ -1,7 +1,7 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
-import exampleSource from '../../../examples/orszag-tang-vortex.py?raw';
-import data from '../../../../public/examples/orszag-tang-vortex.metadata.json';
+import exampleSource from '../../../examples/diffusion-methods.py?raw';
+import data from '../../../../public/examples/diffusion-methods.metadata.json';
 import { codeToHtml } from 'shiki';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -49,16 +49,16 @@ const highlightedSource = await codeToHtml(exampleSource, {
 <Layout title={`${data.name} — Struphy Examples`} description={data.description}>
   <main>
     <header class="intro">
-      <p class="eyebrow"><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a> · Nonlinear MHD</p>
+      <p class="eyebrow"><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a> · Diffusion</p>
       <h1>{data.name}</h1>
       <p>{data.description}</p>
       <a class="back" href="/examples/">← All examples</a>
     </header>
 
     <figure class="result">
-      <div class="plot-frame"><iframe src="/examples/orszag-tang-vortex.html" title="Density and magnetic field lines in the Orszag–Tang vortex" loading="eager"></iframe></div>
-      <noscript><img src="/images/examples/orszag-tang-vortex.png" alt="Density and magnetic field lines in the Orszag–Tang vortex" width="1800" height="1700" /></noscript>
-      <figcaption>Physical density (colour) with magnetic field lines (white) during evolution to t = {data.finalTime}. The colour scale is fixed and the field lines are contours of the magnetic flux function, recovered spectrally from the sampled in-plane field. The thumbnail is taken from the final frame.</figcaption>
+      <div class="plot-frame"><iframe src="/examples/diffusion-methods.html" title="Interactive Plotly animation of a density mode diffusing, computed by a random-walk and a deterministic particle method" loading="eager"></iframe></div>
+      <noscript><img src="/images/examples/diffusion-methods.png" alt="A cosine density profile flattening by diffusion, from a random-walk particle method and a deterministic one, together with the exact decay of its amplitude" width="1800" height="1700" /></noscript>
+      <figcaption>Actual output from the script below. Top: the density of the markers of each method with the exact profile (dashed). Bottom: the amplitude of the cosine mode on a logarithmic scale. Fitted decay rates: {data.randomDecayRate.toFixed(3)} for the random walk and {data.deterministicDecayRate.toFixed(3)} for the deterministic method, against the exact {data.exactDecayRate.toFixed(3)}. The rms density errors are {data.randomRmsError.toFixed(3)} and {data.deterministicRmsError.toFixed(3)}.</figcaption>
     </figure>
 
     {data.figures && <ExtraFigures figures={data.figures} />}
@@ -66,10 +66,10 @@ const highlightedSource = await codeToHtml(exampleSource, {
     <section class="explanation" aria-labelledby="setup-title">
       <div>
         <p class="eyebrow">Physical problem</p>
-        <h2 id="setup-title">Early nonlinear evolution of crossed vortices</h2>
-        <p>On the periodic square [0, 2π]², the initial velocity is u = (−sin y, sin x, 0) and the magnetic field is B = (−sin y, sin 2x, 0). Uniform density and entropy complete the initial condition. The ideal version of ViscoResistiveMHD evolves density, velocity, entropy and magnetic flux without the optional viscous and resistive propagators.</p>
-        <p>This compact calculation follows the early nonlinear interaction to t = 0.5. It illustrates compression and magnetic-field deformation on a coarse grid; it is not a resolved calculation of late-time shocks or turbulence. The pressure is reconstructed from the model’s internal-energy density, p = (γ − 1) ρᵞ exp(s/ρ), with γ = 5/3. The plotted fields are transformed to physical coordinates before the diagnostics are calculated. The gas pressure is used for the midplane cut below the main figure.</p>
-        <div class="equations prose" aria-label="Governing equations" set:html={equationsHtml}></div>
+        <h2 id="setup-title">Diffusion with random and with deterministic particles</h2>
+        <p>A periodic density u(x, 0) = 1 + ½ cos(2πx) relaxes to the uniform state by diffusion, ∂u/∂t = D ∂²u/∂x² with D = 0.05. The amplitude of the mode decays as exp(−D k² t) with k = 2π, at the rate 1.974. Struphy solves this with markers in two ways, starting from the same 100 000 markers and weights.</p>
+        <p><code>RandomParticleDiffusion</code> moves each marker by a Wiener process, dx = √(2D) dB. The result is unbiased, but noisy, and the noise falls only as 1/√N. <code>DeterministicParticleDiffusion</code> moves each marker with the velocity −D u′/u, where the density u is a finite element projection of the marker weights. It has no random noise, and is limited by the resolution of that projection. The random walk must use the forward Euler scheme, the only one it supports: with the default Runge–Kutta tableau the noise would be added at every stage and the diffusion coefficient would come out sixteen times too large.</p>
+        <div class="equations prose" aria-label="Diffusion equation" set:html={equationsHtml}></div>
       </div>
       <dl>
         <div><dt>Model</dt><dd><a href={`/models/${toSlug(data.model)}/`}>{data.model}</a></dd></div>
@@ -124,11 +124,11 @@ const highlightedSource = await codeToHtml(exampleSource, {
     <section class="source" aria-labelledby="source-title">
       <div class="source-heading">
         <div><p class="eyebrow">Complete source</p><h2 id="source-title">Run the simulation</h2></div>
-        <div class="source-actions"><button type="button" data-copy>Copy script</button><a href="/examples/orszag-tang-vortex.py" download>Download .py</a></div>
+        <div class="source-actions"><button type="button" data-copy>Copy script</button><a href="/examples/diffusion-methods.py" download>Download .py</a></div>
       </div>
-      <p class="requirements">Requires the Struphy revision pinned by this site, with compiled kernels, Plotly and Kaleido. Run <code>struphy compile</code> once, then execute <code>python orszag-tang-vortex.py</code>.</p>
+      <p class="requirements">Requires the Struphy revision pinned by this site, with compiled kernels, Plotly and Kaleido. Run <code>struphy compile</code> once, then execute <code>python diffusion-methods.py</code>.</p>
       <div class="highlight" data-source set:html={highlightedSource}></div>
-      <p class="provenance">Uses Struphy’s <a href={`/models/${toSlug(data.model)}/`}>{data.model}</a> model in its entropy formulation. The energy and divergence diagnostics below quantify this run; no external reference data are overlaid.</p>
+      <p class="provenance">The example’s model is <a href={`/models/${toSlug(data.model)}/`}>{data.model}</a>. The second simulation uses <a href={`/models/${toSlug('DeterministicParticleDiffusion')}/`}>DeterministicParticleDiffusion</a>, run for the comparison. Both run in the same script.</p>
     </section>
   </main>
 </Layout>
