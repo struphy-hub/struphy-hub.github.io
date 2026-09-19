@@ -34,9 +34,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 SCRIPTS_DIR = ROOT / "docs" / "src" / "examples"
-OUTPUT_DIR = ROOT / "docs" / "public" / "examples"  # scripts run here and write their files here
-IMAGES_DIR = ROOT / "docs" / "public" / "images" / "examples"  # thumbnails, copied there by the scripts
-SCRATCH = ("struphy_gallery_runs", "struphy.log")  # simulation scratch output, never part of the site
+OUTPUT_DIR = (
+    ROOT / "docs" / "public" / "examples"
+)  # scripts run here and write their files here
+IMAGES_DIR = (
+    ROOT / "docs" / "public" / "images" / "examples"
+)  # thumbnails, copied there by the scripts
+SCRATCH = (
+    "struphy_gallery_runs",
+    "struphy.log",
+)  # simulation scratch output, never part of the site
 DEV_SERVER = "http://localhost:4321"
 
 
@@ -88,7 +95,9 @@ def human_time(seconds: float) -> str:
 
 def all_stems() -> list[str]:
     """The scripts of the gallery; files starting with an underscore are shared helpers."""
-    return sorted(p.stem for p in SCRIPTS_DIR.glob("*.py") if not p.name.startswith("_"))
+    return sorted(
+        p.stem for p in SCRIPTS_DIR.glob("*.py") if not p.name.startswith("_")
+    )
 
 
 def metadata_of(stem: str) -> dict:
@@ -108,7 +117,11 @@ def resolve(names: list[str], everything: bool) -> list[str]:
         name = name.removesuffix(".py").rsplit("/", 1)[-1]
         matches = [name] if name in known else [s for s in known if s.startswith(name)]
         if len(matches) != 1:
-            hint = f"Ambiguous, could be: {', '.join(matches)}" if matches else "No such example."
+            hint = (
+                f"Ambiguous, could be: {', '.join(matches)}"
+                if matches
+                else "No such example."
+            )
             close = [s for s in known if name in s]
             if not matches and close:
                 hint += f" Did you mean: {', '.join(close)}?"
@@ -127,9 +140,13 @@ def fail(message: str) -> None:
 class Artifacts:
     """The files an example's run produced, in the two places the site reads them from."""
 
-    figures: list[Path] = field(default_factory=list)  # interactive .html and static .png
+    figures: list[Path] = field(
+        default_factory=list
+    )  # interactive .html and static .png
     data: list[Path] = field(default_factory=list)  # metadata and profiling exports
-    thumbnails: list[Path] = field(default_factory=list)  # copies of the PNGs for the gallery
+    thumbnails: list[Path] = field(
+        default_factory=list
+    )  # copies of the PNGs for the gallery
 
     @property
     def has_html(self) -> bool:
@@ -147,7 +164,10 @@ def collect(stem: str, since: float | None = None) -> Artifacts:
         if not directory.is_dir():
             return []
         found = {
-            p for prefix in prefixes for p in directory.glob(f"{prefix}*") if p.is_file() and p.name != "README.md"
+            p
+            for prefix in prefixes
+            for p in directory.glob(f"{prefix}*")
+            if p.is_file() and p.name != "README.md"
         }
         return sorted(p for p in found if since is None or p.stat().st_mtime >= since)
 
@@ -181,7 +201,9 @@ def print_artifacts(stem: str, artifacts: Artifacts, indent: str = "  ") -> None
 
 def open_figures(artifacts: Artifacts) -> None:
     for path in artifacts.figures:
-        if path.suffix == ".html" and not path.name.endswith(("-gantt.html", "-durations.html")):
+        if path.suffix == ".html" and not path.name.endswith(
+            ("-gantt.html", "-durations.html")
+        ):
             webbrowser.open(path.as_uri())
 
 
@@ -193,7 +215,8 @@ def python_env_problem(need_kernels: bool) -> str | None:
         return (
             "Struphy is not importable in this Python. From the repository root:\n"
             "  python -m venv .venv && source .venv/bin/activate\n"
-            "  pip install ./submodules/struphy" + ("\n  struphy compile" if need_kernels else "")
+            "  pip install ./submodules/struphy"
+            + ("\n  struphy compile" if need_kernels else "")
         )
     for module in ("plotly", "kaleido"):
         if need_kernels and importlib.util.find_spec(module) is None:
@@ -222,10 +245,18 @@ def cmd_list(args: argparse.Namespace) -> int:
     print(bold(f"{'example':<{width}}  {'model':<{model_width}}  run   title"))
     for r in rows:
         mark = green("yes  ") if r["generated"] else dim("no   ")
-        print(f"{r['example']:<{width}}  {r['model']:<{model_width}}  {mark} {r['name']}")
+        print(
+            f"{r['example']:<{width}}  {r['model']:<{model_width}}  {mark} {r['name']}"
+        )
     done = sum(r["generated"] for r in rows)
-    print(dim(f"\n{len(rows)} examples, {done} with generated figures in docs/public/examples/."))
-    print(dim("Run one with: python cli.py run <example>   (a unique prefix is enough)"))
+    print(
+        dim(
+            f"\n{len(rows)} examples, {done} with generated figures in docs/public/examples/."
+        )
+    )
+    print(
+        dim("Run one with: python cli.py run <example>   (a unique prefix is enough)")
+    )
     return 0
 
 
@@ -234,7 +265,9 @@ def run_command(command: list[str], cwd: Path, log: Path | None) -> int:
     if log is None:
         return subprocess.call(command, cwd=cwd)
     with log.open("w") as handle:
-        return subprocess.call(command, cwd=cwd, stdout=handle, stderr=subprocess.STDOUT)
+        return subprocess.call(
+            command, cwd=cwd, stdout=handle, stderr=subprocess.STDOUT
+        )
 
 
 def cmd_metadata(args: argparse.Namespace) -> int:
@@ -242,7 +275,9 @@ def cmd_metadata(args: argparse.Namespace) -> int:
     problem = python_env_problem(need_kernels=False)
     if problem:
         fail(problem)
-    return subprocess.call([sys.executable, str(ROOT / "generate_examples.py"), *stems], cwd=ROOT)
+    return subprocess.call(
+        [sys.executable, str(ROOT / "generate_examples.py"), *stems], cwd=ROOT
+    )
 
 
 def clean_scratch() -> None:
@@ -261,30 +296,49 @@ def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts
 
     if not args.skip_metadata:
         print(dim("  1/2 generating metadata"))
-        code = subprocess.call([sys.executable, str(ROOT / "generate_examples.py"), stem], cwd=ROOT)
+        code = subprocess.call(
+            [sys.executable, str(ROOT / "generate_examples.py"), stem], cwd=ROOT
+        )
         if code:
-            return False, time.time() - started, Artifacts(), "metadata generation failed"
+            return (
+                False,
+                time.time() - started,
+                Artifacts(),
+                "metadata generation failed",
+            )
 
     print(dim(f"  2/2 running docs/src/examples/{stem}.py in docs/public/examples/"))
     log = None
     if args.quiet:
         log = Path(os.environ.get("TMPDIR", "/tmp")) / f"struphy-gallery-{stem}.log"
     run_started = time.time() - 1  # file times can be coarser than the clock
-    code = run_command([sys.executable, str(SCRIPTS_DIR / f"{stem}.py")], OUTPUT_DIR, log)
+    code = run_command(
+        [sys.executable, str(SCRIPTS_DIR / f"{stem}.py")], OUTPUT_DIR, log
+    )
     if code:
         tail = ""
         if log is not None:
             tail = "\n".join(log.read_text(errors="replace").splitlines()[-25:])
             tail = f"\n{tail}\n(full output: {log})"
         tail += "\nIf the error mentions Chrome (PNG export by Kaleido), install it once with `plotly_get_chrome`."
-        return False, time.time() - started, collect(stem, run_started), f"script exited with code {code}{tail}"
+        return (
+            False,
+            time.time() - started,
+            collect(stem, run_started),
+            f"script exited with code {code}{tail}",
+        )
 
     if not args.keep_scratch:
         clean_scratch()
 
     artifacts = collect(stem, run_started)
     if not artifacts.has_html:
-        return False, time.time() - started, artifacts, "the script finished but wrote no interactive .html figure"
+        return (
+            False,
+            time.time() - started,
+            artifacts,
+            "the script finished but wrote no interactive .html figure",
+        )
     return True, time.time() - started, artifacts, ""
 
 
@@ -302,7 +356,9 @@ def cmd_run(args: argparse.Namespace) -> int:
             print(green(f"\n  {stem}: done in {human_time(seconds)}. Generated files:"))
             print_artifacts(stem, artifacts)
             if args.keep_scratch:
-                print(f"  {bold('Simulation data')} (kept)\n    {OUTPUT_DIR / SCRATCH[0]}")
+                print(
+                    f"  {bold('Simulation data')} (kept)\n    {OUTPUT_DIR / SCRATCH[0]}"
+                )
             if args.open:
                 open_figures(artifacts)
         else:
@@ -314,11 +370,19 @@ def cmd_run(args: argparse.Namespace) -> int:
     if len(stems) > 1 or not all(ok for _, ok, _ in results):
         print(bold("\nSummary"))
         for stem, ok, seconds in results:
-            print(f"  {green('ok    ') if ok else red('FAILED')} {stem:<{max(map(len, stems))}}  {human_time(seconds)}")
+            print(
+                f"  {green('ok    ') if ok else red('FAILED')} {stem:<{max(map(len, stems))}}  {human_time(seconds)}"
+            )
         skipped = [s for s in stems if s not in {r[0] for r in results}]
         for stem in skipped:
-            print(f"  {yellow('skipped')} {stem}  (stopped after a failure; use --keep-going to continue)")
-    print(dim("\nEverything above is generated and git-ignored; CI rebuilds it. Remove it with: python cli.py clean"))
+            print(
+                f"  {yellow('skipped')} {stem}  (stopped after a failure; use --keep-going to continue)"
+            )
+    print(
+        dim(
+            "\nEverything above is generated and git-ignored; CI rebuilds it. Remove it with: python cli.py clean"
+        )
+    )
     return 0 if all(ok for _, ok, _ in results) and len(results) == len(stems) else 1
 
 
@@ -343,7 +407,11 @@ def cmd_clean(args: argparse.Namespace) -> int:
     doomed: list[Path] = []
     for stem in stems:
         artifacts = collect(stem)
-        doomed += [p for p in artifacts.all() if args.metadata or not p.name.endswith(".metadata.json")]
+        doomed += [
+            p
+            for p in artifacts.all()
+            if args.metadata or not p.name.endswith(".metadata.json")
+        ]
     doomed += [OUTPUT_DIR / name for name in SCRATCH if (OUTPUT_DIR / name).exists()]
     doomed = sorted(set(doomed))
     if not doomed:
@@ -360,7 +428,12 @@ def cmd_clean(args: argparse.Namespace) -> int:
 
 
 def add_selection(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("examples", nargs="*", metavar="EXAMPLE", help="script name(s); a unique prefix is enough")
+    parser.add_argument(
+        "examples",
+        nargs="*",
+        metavar="EXAMPLE",
+        help="script name(s); a unique prefix is enough",
+    )
     parser.add_argument("-a", "--all", action="store_true", help="every example")
 
 
@@ -376,7 +449,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true", help="machine-readable output")
     p.set_defaults(func=cmd_list)
 
-    p = sub.add_parser("metadata", help="regenerate the structural metadata JSON (needs Struphy, no kernels)")
+    p = sub.add_parser(
+        "metadata",
+        help="regenerate the structural metadata JSON (needs Struphy, no kernels)",
+    )
     add_selection(p)
     p.set_defaults(func=cmd_metadata)
 
@@ -386,22 +462,57 @@ def build_parser() -> argparse.ArgumentParser:
         description="Build the page assets of one or more examples and print the files that were generated.",
     )
     add_selection(p)
-    p.add_argument("--open", action="store_true", help="open the interactive figures in a browser afterwards")
-    p.add_argument("-q", "--quiet", action="store_true", help="hide the simulation output (shown only on failure)")
-    p.add_argument("--keep-scratch", action="store_true", help="keep struphy_gallery_runs/ (raw HDF5 run data)")
-    p.add_argument("--skip-metadata", action="store_true", help="do not regenerate the metadata first")
-    p.add_argument("-k", "--keep-going", action="store_true", help="continue with the next example after a failure")
+    p.add_argument(
+        "--open",
+        action="store_true",
+        help="open the interactive figures in a browser afterwards",
+    )
+    p.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="hide the simulation output (shown only on failure)",
+    )
+    p.add_argument(
+        "--keep-scratch",
+        action="store_true",
+        help="keep struphy_gallery_runs/ (raw HDF5 run data)",
+    )
+    p.add_argument(
+        "--skip-metadata",
+        action="store_true",
+        help="do not regenerate the metadata first",
+    )
+    p.add_argument(
+        "-k",
+        "--keep-going",
+        action="store_true",
+        help="continue with the next example after a failure",
+    )
     p.set_defaults(func=cmd_run)
 
-    p = sub.add_parser("show", help="print the paths of the files generated by earlier runs")
+    p = sub.add_parser(
+        "show", help="print the paths of the files generated by earlier runs"
+    )
     add_selection(p)
-    p.add_argument("--open", action="store_true", help="open the interactive figures in a browser")
+    p.add_argument(
+        "--open", action="store_true", help="open the interactive figures in a browser"
+    )
     p.set_defaults(func=cmd_show)
 
-    p = sub.add_parser("clean", help="remove generated figures, thumbnails, profiling data and scratch output")
+    p = sub.add_parser(
+        "clean",
+        help="remove generated figures, thumbnails, profiling data and scratch output",
+    )
     add_selection(p)
-    p.add_argument("--metadata", action="store_true", help="also remove the metadata JSON files (`npm run dev` needs them)")
-    p.add_argument("-n", "--dry-run", action="store_true", help="only print what would be removed")
+    p.add_argument(
+        "--metadata",
+        action="store_true",
+        help="also remove the metadata JSON files (`npm run dev` needs them)",
+    )
+    p.add_argument(
+        "-n", "--dry-run", action="store_true", help="only print what would be removed"
+    )
     p.set_defaults(func=cmd_clean)
     return parser
 
