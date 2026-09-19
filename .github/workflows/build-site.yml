@@ -52,6 +52,9 @@ jobs:
       matrix:
         example: ${{ fromJson(needs.list-examples.outputs.examples) }}
     runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      MPI_RANKS: 4
     container:
       image: ghcr.io/struphy-hub/struphy/ubuntu-with-struphy:latest
       credentials:
@@ -84,7 +87,7 @@ jobs:
           path: |
             docs/public/examples/${{ matrix.example }}*
             docs/public/images/examples/${{ matrix.example }}*
-          key: struphy-example-${{ matrix.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', matrix.example), 'submodules/struphy/src/struphy/**/*.py') }}
+          key: struphy-example-mpi${{ env.MPI_RANKS }}-${{ matrix.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', matrix.example), 'docs/src/examples/_*.py', 'submodules/struphy/src/struphy/**/*.py') }}
 
       - name: Install Struphy from this repo's pinned submodule commit
         # Same approach as struphy's own CI
@@ -187,7 +190,17 @@ jobs:
         shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
-          python "../../src/examples/${{ matrix.example }}.py"
+          # The runner has four cores, so the examples run on four MPI ranks (the scripts write
+          # their files on rank 0 only; see docs/src/examples/_gallery.py). One rank per core,
+          # hence a single OpenMP thread each. The SPH examples hang under MPI in Struphy
+          # (ranks disagree on the box communication in `update_distr_functions`), so they run
+          # serially until that is fixed. `timeout` keeps any other hang from holding the runner.
+          export OMP_NUM_THREADS=1
+          case "${{ matrix.example }}" in
+            dam-break|gas-expansion) ranks=1 ;;
+            *) ranks="$MPI_RANKS" ;;
+          esac
+          timeout 90m mpirun -n "$ranks" python "../../src/examples/${{ matrix.example }}.py"
 
       - name: Copy example thumbnails
         if: steps.cache-example.outputs.cache-hit != 'true'
