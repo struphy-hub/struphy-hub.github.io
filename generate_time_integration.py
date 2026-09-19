@@ -71,13 +71,19 @@ def verify_split_algos() -> None:
     declared = set(LiteralOptions.SplitAlgos.__args__)
 
     if in_source != declared:
-        raise SystemExit(f"LiteralOptions.SplitAlgos {sorted(declared)} does not match integrate() {sorted(in_source)}")
+        raise SystemExit(
+            f"LiteralOptions.SplitAlgos {sorted(declared)} does not match integrate() {sorted(in_source)}"
+        )
     if declared != set(SPLIT_ALGOS):
-        raise SystemExit(f"Struphy implements {sorted(declared)}, this generator documents {sorted(SPLIT_ALGOS)}")
+        raise SystemExit(
+            f"Struphy implements {sorted(declared)}, this generator documents {sorted(SPLIT_ALGOS)}"
+        )
 
     # Strang asserts it has something to fold in half; the page says so.
     if "assert len(self.prop_list) > 1" not in source:
-        print("  note: Strang no longer asserts more than one propagator -- check minimumPropagators")
+        print(
+            "  note: Strang no longer asserts more than one propagator -- check minimumPropagators"
+        )
 
 
 def as_fraction(value: float) -> str:
@@ -105,12 +111,17 @@ def butcher_tableaux() -> list[dict]:
                 "order": int(tableau.conv_rate),
                 # a is strictly lower-triangular (explicit methods only), so each
                 # row i only carries its first i entries.
-                "a": [[as_fraction(value) for value in row[:index]] for index, row in enumerate(np.asarray(tableau.a))],
+                "a": [
+                    [as_fraction(value) for value in row[:index]]
+                    for index, row in enumerate(np.asarray(tableau.a))
+                ],
                 "b": [as_fraction(value) for value in np.asarray(tableau.b)],
                 "c": [as_fraction(value) for value in np.asarray(tableau.c)],
             }
         )
-    return sorted(tableaux, key=lambda entry: (entry["order"], entry["stages"], entry["algo"]))
+    return sorted(
+        tableaux, key=lambda entry: (entry["order"], entry["stages"], entry["algo"])
+    )
 
 
 def generate(output_file: Path = OUTPUT_FILE) -> None:
@@ -118,7 +129,9 @@ def generate(output_file: Path = OUTPUT_FILE) -> None:
 
     defaults = Time()
     data = {
-        "splitAlgos": [{"name": name, **details} for name, details in SPLIT_ALGOS.items()],
+        "splitAlgos": [
+            {"name": name, **details} for name, details in SPLIT_ALGOS.items()
+        ],
         "butcher": butcher_tableaux(),
         "defaults": {
             "dt": defaults.dt,

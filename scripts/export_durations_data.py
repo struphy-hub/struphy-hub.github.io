@@ -61,13 +61,22 @@ def export(profile: Path, destination: Path) -> None:
     with tempfile.TemporaryDirectory() as scratch:
         subprocess.run(
             [
-                "scope-profiler", "export", "plot-data", str(profile),
-                "--output", scratch,
-                "--label", "profiling_data",
-                "--format", "json",
-                "--plots", "durations",
-                "--metrics", *METRICS,
-                "--sort-by", "total",
+                "scope-profiler",
+                "export",
+                "plot-data",
+                str(profile),
+                "--output",
+                scratch,
+                "--label",
+                "profiling_data",
+                "--format",
+                "json",
+                "--plots",
+                "durations",
+                "--metrics",
+                *METRICS,
+                "--sort-by",
+                "total",
                 "--stack-children",
             ],
             check=True,
@@ -77,7 +86,9 @@ def export(profile: Path, destination: Path) -> None:
         payload = prune_zero_segments(json.loads(exported.read_text(encoding="utf-8")))
 
     before = destination.stat().st_size if destination.exists() else 0
-    destination.write_text(json.dumps(payload, separators=(",", ":")) + "\n", encoding="utf-8")
+    destination.write_text(
+        json.dumps(payload, separators=(",", ":")) + "\n", encoding="utf-8"
+    )
     print(
         f"  {destination.name}: {len(payload['bars'])} bars, "
         f"{before / 1024:.0f} KB -> {destination.stat().st_size / 1024:.0f} KB"
@@ -91,15 +102,22 @@ def main(names: list[str]) -> int:
 
     profiles = sorted(EXAMPLES_DIR.glob("*-profile.h5"))
     if names:
-        wanted = {name.removesuffix("-profile.h5").removesuffix(".h5") for name in names}
-        profiles = [path for path in profiles if path.name.removesuffix("-profile.h5") in wanted]
+        wanted = {
+            name.removesuffix("-profile.h5").removesuffix(".h5") for name in names
+        }
+        profiles = [
+            path for path in profiles if path.name.removesuffix("-profile.h5") in wanted
+        ]
         if not profiles:
             print(f"No profiles matched {sorted(wanted)}")
             return 1
 
     print(f"Re-exporting durations data for {len(profiles)} example(s):")
     for profile in profiles:
-        export(profile, EXAMPLES_DIR / f"{profile.name.removesuffix('-profile.h5')}-durations.json")
+        export(
+            profile,
+            EXAMPLES_DIR / f"{profile.name.removesuffix('-profile.h5')}-durations.json",
+        )
     return 0
 
 

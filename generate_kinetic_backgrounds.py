@@ -28,13 +28,16 @@ import re
 from pathlib import Path
 
 import numpy as np
-from catalogue_docs import class_description
 from struphy.fields_background import equils
 from struphy.kinetic_background import maxwellians
 from struphy.kinetic_background.base import KineticBackground
 from struphy.utils.docstring_converter import latex_to_unicode
 
-OUTPUT_FILE = Path(__file__).parent / "docs" / "src" / "data" / "kinetic-backgrounds.json"
+from catalogue_docs import class_description
+
+OUTPUT_FILE = (
+    Path(__file__).parent / "docs" / "src" / "data" / "kinetic-backgrounds.json"
+)
 
 # Velocity space is sampled at one point in logical space. It only matters for
 # backgrounds whose moments vary spatially (CanonicalMaxwellian2D, or any
@@ -83,10 +86,15 @@ def available_backgrounds() -> list[tuple[str, KineticBackground]]:
 def axis_labels(background: KineticBackground) -> list[str]:
     labels = VELOCITY_LABELS.get(background.velocity_coords, ())
     # Fall back to the raw axis keys for a coordinate system added later.
-    return [labels[index] if index < len(labels) else f"v{index + 1}" for index in range(background.vdim)]
+    return [
+        labels[index] if index < len(labels) else f"v{index + 1}"
+        for index in range(background.vdim)
+    ]
 
 
-def integration_resolution(background: KineticBackground, plotted: tuple[int, ...]) -> tuple:
+def integration_resolution(
+    background: KineticBackground, plotted: tuple[int, ...]
+) -> tuple:
     """Build ``reduced_eval``'s per-axis resolution argument.
 
     One entry per phase-space axis (3 space + ``vdim`` velocity): ``None`` for
@@ -102,7 +110,9 @@ def integration_resolution(background: KineticBackground, plotted: tuple[int, ..
 
 def finite(values: np.ndarray, significant: int = 6) -> np.ndarray:
     """Sanitize for JSON and drop precision no plot can show, to keep the file small."""
-    clean = np.nan_to_num(np.asarray(values, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
+    clean = np.nan_to_num(
+        np.asarray(values, dtype=float), nan=0.0, posinf=0.0, neginf=0.0
+    )
     with np.errstate(divide="ignore"):
         magnitude = np.where(clean == 0.0, 0.0, np.floor(np.log10(np.abs(clean))))
     factor = 10.0 ** np.clip(significant - 1 - magnitude, -15, 15)
@@ -158,7 +168,9 @@ def summarize(cls: type, limit: int = 190) -> str:
     # Math first: the generic role strip below would otherwise unwrap `:math:`
     # too, and the LaTeX inside it would then be eaten as unknown commands.
     intro = re.sub(r":math:`([^`]+)`", lambda m: latex_to_unicode(m.group(1)), intro)
-    intro = re.sub(r":\w+:`(?:~[^`]*\.)?([^`]+)`", lambda m: m.group(1).rsplit(".", 1)[-1], intro)
+    intro = re.sub(
+        r":\w+:`(?:~[^`]*\.)?([^`]+)`", lambda m: m.group(1).rsplit(".", 1)[-1], intro
+    )
     # latex_to_unicode marks sub/superscripts it has no character for with HTML
     # tags, and leaves commands it doesn't know as-is; neither belongs in text.
     intro = re.sub(r"</?su[bp]>", "", intro)
@@ -178,7 +190,9 @@ def parameter_descriptions(cls: type) -> dict[str, str]:
     tuple``), so each name in the header shares the description.
     """
     docstring = inspect.getdoc(cls) or ""
-    match = re.search(r"\nParameters\n-+[ \t]*\n([\s\S]*?)(?:\n\S.*\n-+[ \t]*\n|$)", docstring)
+    match = re.search(
+        r"\nParameters\n-+[ \t]*\n([\s\S]*?)(?:\n\S.*\n-+[ \t]*\n|$)", docstring
+    )
     if not match:
         return {}
 
@@ -195,7 +209,9 @@ def parameter_descriptions(cls: type) -> dict[str, str]:
         header = re.match(r"([\w, ]+?)\s*:\s*\S", line)
         if header and not line.startswith((" ", "\t")):
             flush()
-            names = [part.strip() for part in header.group(1).split(",") if part.strip()]
+            names = [
+                part.strip() for part in header.group(1).split(",") if part.strip()
+            ]
             lines = []
         elif names:
             lines.append(line)
@@ -215,7 +231,9 @@ def json_parameters(parameters: dict) -> dict:
 
     def convert(value):
         if isinstance(value, dict):
-            return {str(key): convert(item) for key, item in value.items() if key != "self"}
+            return {
+                str(key): convert(item) for key, item in value.items() if key != "self"
+            }
         if isinstance(value, (list, tuple)):
             return [convert(item) for item in value]
         if isinstance(value, np.generic):
@@ -240,22 +258,32 @@ def generate(output_file: Path = OUTPUT_FILE) -> None:
             "velocityCoords": background.velocity_coords,
             "velocityLabels": axis_labels(background),
             "volumeForm": bool(background.volume_form),
-            "descriptionHtml": description_html or "<p>No description is available.</p>",
+            "descriptionHtml": description_html
+            or "<p>No description is available.</p>",
             "descriptionMath": description_math,
             "parameters": json_parameters(getattr(background, "params", {})),
             "parameterDescriptions": parameter_descriptions(type(background)),
             "constructedWith": sorted(CONSTRUCTOR_ARGS.get(name, dict)()),
             "eta": list(ETA),
-            "profiles": [sample_profile(background, axis) for axis in range(background.vdim)],
+            "profiles": [
+                sample_profile(background, axis) for axis in range(background.vdim)
+            ],
             "slice": sample_slice(background) if background.vdim >= 2 else None,
             "docsUrl": f"{DOCS_BASE}#struphy.kinetic_background.maxwellians.{name}",
         }
         catalogue.append(entry)
-        plots = f"{len(entry['profiles'])} profile(s)" + (", 1 slice" if entry["slice"] else "")
-        print(f"  {name}: vdim={background.vdim}, {background.velocity_coords or 'no velocity space'}, {plots}")
+        plots = f"{len(entry['profiles'])} profile(s)" + (
+            ", 1 slice" if entry["slice"] else ""
+        )
+        print(
+            f"  {name}: vdim={background.vdim}, {background.velocity_coords or 'no velocity space'}, {plots}"
+        )
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    output_file.write_text(json.dumps(catalogue, separators=(",", ":"), allow_nan=False) + "\n", encoding="utf-8")
+    output_file.write_text(
+        json.dumps(catalogue, separators=(",", ":"), allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
     print(f"Generated {len(catalogue)} kinetic backgrounds in {output_file}")
 
 

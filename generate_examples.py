@@ -55,7 +55,9 @@ def describe_domain(domain) -> str:
     interesting = [
         f"{key}={value:g}"
         for key, value in getattr(domain, "params", {}).items()
-        if isinstance(value, (int, float)) and not isinstance(value, bool) and value not in (0.0, 1.0)
+        if isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and value not in (0.0, 1.0)
     ]
     if not interesting:
         return type(domain).__name__
@@ -88,7 +90,9 @@ def build_metadata(sim, namespace: dict) -> dict:
 
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    for script in sorted(path for path in EXAMPLES_DIR.glob("*.py") if not path.name.startswith("_")):
+    for script in sorted(
+        path for path in EXAMPLES_DIR.glob("*.py") if not path.name.startswith("_")
+    ):
         # `run_name` deliberately isn't "__main__", so each script's own
         # `if __name__ == "__main__":` block (the run + plotting) stays skipped.
         namespace = runpy.run_path(str(script), run_name=script.stem)
