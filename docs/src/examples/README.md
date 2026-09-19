@@ -34,6 +34,15 @@ filename.
   `export_profiling(sim, "<script-stem>")` writes the profiling files and returns their metadata
   fields; `merge_metadata("<script-stem>", **fields)` adds result fields to the metadata JSON.
   The script is run from inside `docs/public/examples/`, so these land there directly.
+- Additional figures go below the main one. `heatmap_figure`, `space_time_figure` (a field over
+  space and time) and `heatmap_movie` (an animation over one dimension) build them from xarray
+  arrays such as `output.evaluate("kinetic_ions/e1_v1_density/f")`, and
+  `save_extra_figure(figure, "<script-stem>", "<key>", alt=..., caption=...)` saves one (plus its
+  committed thumbnail in `docs/public/images/examples/`) and returns its entry for
+  `merge_metadata("<script-stem>", figures=[...])`. The page shows every entry of `figures`
+  through `ExtraFigures.astro`, so no page edit is needed beyond adding that component once.
+  Reductions such as `f.struphy.analysis.spatial_average()` and `.velocity_moments()` turn a
+  binned distribution into f(v, t) or the velocity variance.
 - Analyze with the `Output` returned by the run (`sim.output`), e.g.
   `sim.output.evaluate("electric_energy").struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True)`;
   see `weak-landau-damping.py`.

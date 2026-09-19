@@ -69,7 +69,13 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, save_figure
+    from _gallery import (
+        export_profiling,
+        merge_metadata,
+        save_extra_figure,
+        save_figure,
+        space_time_figure,
+    )
 
     # Run, evaluate the FEEC fields on a grid, and load the result.
     # scope-profiler is built into Struphy: this instruments every propagator,
@@ -152,11 +158,35 @@ if __name__ == "__main__":
 
     save_figure(figure, "shear-alfven-wave")
 
+    # The same field along z, over time: waves travelling in both directions leave diagonal
+    # stripes, whose slope is the wave speed.
+    transverse = output.evaluate("mhd/velocity").isel(component=0, e1=0, e2=0)  # (t, e3)
+    space_time = space_time_figure(
+        transverse,
+        space="e3",
+        x_values=transverse.e3.values * domain.params["r3"],
+        xaxis_title="z [a.u.]",
+        title="Shear-Alfvén waves: transverse velocity u(z, t)",
+        colorbar_title="u₁ (logical component)",
+    )
+    figures = [
+        save_extra_figure(
+            space_time,
+            "shear-alfven-wave",
+            "space-time",
+            alt="Space-time map of the transverse velocity of shear-Alfvén waves",
+            caption=(
+                "The transverse velocity of the run above along z, over time. The broadband noise launches shear-Alfvén waves in both directions, which appear as criss-crossing diagonal stripes; their slope is the Alfvén speed, v_A = 1 in these units. The colors show the first logical component of the velocity."
+            ),
+        ),
+    ]
+
     profiling = export_profiling(sim, "shear-alfven-wave")
 
     merge_metadata(
         "shear-alfven-wave",
         measuredAlfvenSpeed=phase_velocity,
         exactAlfvenSpeed=1.0,
+        figures=figures,
         **profiling,
     )

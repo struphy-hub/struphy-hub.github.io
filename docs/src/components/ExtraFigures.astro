@@ -1,0 +1,29 @@
+---
+// The additional figures of an example: the `figures` list that its script writes to its
+// metadata with `save_extra_figure` (docs/src/examples/_gallery.py).
+interface ExampleFigure {
+  key: string;
+  interactive: string;
+  thumbnail: string;
+  alt: string;
+  caption: string;
+}
+
+const { figures = [] } = Astro.props as { figures?: ExampleFigure[] };
+---
+
+{figures.map((figure) => (
+  <figure class="extra">
+    <div class="plot-frame"><iframe src={figure.interactive} title={figure.alt} loading="lazy"></iframe></div>
+    <noscript><img src={figure.thumbnail} alt={figure.alt} width="2200" height="1300" /></noscript>
+    <figcaption>{figure.caption}</figcaption>
+  </figure>
+))}
+
+<style>
+  .extra{margin:0;padding-block:40px 52px;border-top:1px solid var(--rule)}
+  .plot-frame{width:min(100%,1100px);aspect-ratio:1100/650;margin-inline:auto}
+  .extra iframe{display:block;width:100%;height:100%;border:1px solid var(--rule);background:#fff}
+  .extra img{display:block;width:min(100%,1100px);height:auto;margin-inline:auto;border:1px solid var(--rule);background:#fff}
+  .extra figcaption{width:min(100%,1100px);margin:10px auto 0;color:var(--muted);font-size:.84rem}
+</style>

@@ -10,10 +10,10 @@ Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/bump_
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
-import numpy as np
 import plotly.graph_objects as go
 
 from struphy import (
+    BinningPlot,
     BoundaryParameters,
     DerhamOptions,
     EnvironmentOptions,
@@ -38,12 +38,14 @@ grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
 derham_opts = DerhamOptions(degree=(3, 1, 1))
 time_opts = Time(dt=0.1, Tend=60.0, split_algo="LieTrotter")
 
+# A binned x-v snapshot at every step: the bulk sits near v = 3, the bump near v = -4.5.
+phase_space_bins = BinningPlot(slice="e1_v1", n_bins=(32, 96), ranges=((0.0, 1.0), (-8.0, 8.0)))
 model.kinetic_ions.set_markers(
     loading_params=LoadingParameters(ppc=1000, moments=(0.0, 0.0, 0.0, 3.0, 1.0, 1.0)),
     weights_params=WeightsParameters(control_variate=True),
     boundary_params=BoundaryParameters(),
     sorting_params=SortingParameters(boxes_per_dim=(16, 1, 1), do_sort=True),
-    saving_params=SavingParameters(),
+    saving_params=SavingParameters(binning_plots=(phase_space_bins,)),
     bufsize=0.4,
 )
 
@@ -80,24 +82,34 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, save_figure
+    from _gallery import (
+        export_profiling,
+        heatmap_figure,
+        heatmap_movie,
+        merge_metadata,
+        save_extra_figure,
+        save_figure,
+    )
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
-    sim.run(profiling_activated=True)
+    output = sim.run(profiling_activated=True)
 
-    output = sim.output
-    time = np.asarray(output.time)
-    field_energy = np.asarray(output.scalars["electric_energy"])
+    field_energy = output.evaluate("electric_energy")
 
     # Fit the exponential growth rate over the clean linear-growth window.
-    linear = (time > 5.0) & (time < 25.0)
-    growth_rate = float(np.polyfit(time[linear], np.log(field_energy[linear]), 1)[0] / 2)
+    growth_rate = field_energy.struphy.analysis.growth_rate(window=(5.0, 25.0), amplitude=True).rate
     print(f"Measured growth rate: {growth_rate:.4f}")
 
     figure = go.Figure(
         data=[
-            go.Scatter(x=time, y=field_energy, mode="lines", name="Struphy (PIC)", line={"color": "#168aad", "width": 3}),
+            go.Scatter(
+                x=field_energy.t.values,
+                y=field_energy.values,
+                mode="lines",
+                name="Struphy (PIC)",
+                line={"color": "#168aad", "width": 3},
+            ),
         ],
     )
     figure.update_layout(
@@ -112,10 +124,64 @@ if __name__ == "__main__":
 
     save_figure(figure, "bump-on-tail")
 
+    # Evaluate the saved products on their grids, then look at them in more than one way.
+    output.pproc()
+    length = domain.params["r1"]
+    f = output.evaluate("kinetic_ions/e1_v1_density/f")  # (t, e1, v1)
+
+    # The distribution averaged over space, f(v, t): how the whole velocity distribution changes,
+    # with less sampling noise than the individual x-v bins.
+    f_of_v = f.struphy.analysis.spatial_average()
+    velocity_time = heatmap_figure(
+        f_of_v,
+        x="t",
+        y="v1",
+        title="Bump-on-tail instability: space-averaged distribution f(v, t)",
+        xaxis_title="t [a.u.]",
+        yaxis_title="v [a.u.]",
+        colorbar_title="f(v)",
+        zmin=0.0,
+    )
+
+    # The x-v phase space as a movie.
+    phase_space, phase_static = heatmap_movie(
+        f,
+        x="e1",
+        y="v1",
+        x_values=f.e1.values * length,
+        title="Bump-on-tail instability: phase-space density f(x, v)",
+        xaxis_title="x [a.u.]",
+        yaxis_title="v [a.u.]",
+        colorbar_title="f(x, v)",
+    )
+
+    figures = [
+        save_extra_figure(
+            phase_space,
+            "bump-on-tail",
+            "phasespace",
+            static_z=phase_static,
+            alt="Phase-space density of the bump-on-tail instability",
+            caption=(
+                "The phase-space density f(x, v) of the run above, binned in the 32 spatial cells and 96 velocity bins; drag the slider or press Play. Initially the bulk (v ≈ 3) and the bump (v ≈ −4.5) are almost uniform in x. The frame shown is from the middle of the run, where both populations have developed strong structure in x and spread far beyond their initial velocity widths."
+            ),
+        ),
+        save_extra_figure(
+            velocity_time,
+            "bump-on-tail",
+            "velocity-time",
+            alt="Space-averaged velocity distribution as a function of time",
+            caption=(
+                "The distribution averaged over space, f(v, t) (the mean of the binned f over the 32 cells). The bulk (v ≈ 3, peak f ≈ 0.36) and the much smaller bump (v ≈ −4.5, peak f ≈ 0.08) start as separate populations. As the wave grows, both broaden and the region between them fills in."
+            ),
+        ),
+    ]
+
     profiling = export_profiling(sim, "bump-on-tail")
 
     merge_metadata(
         "bump-on-tail",
         measuredGrowthRate=growth_rate,
+        figures=figures,
         **profiling,
     )
