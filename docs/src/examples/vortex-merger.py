@@ -99,8 +99,58 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
+    import xarray as xr
+    from scipy.ndimage import map_coordinates
+    from _gallery import export_profiling, heatmap_movie, merge_metadata, publish_thumbnail, save_extra_figure, save_figure
+
     output = sim.run(profiling_activated=True)
     output.pproc()
-    print("scalars:", list(output.scalars.data_vars))
-    f = output.evaluate("kinetic_ions/e1_e2_density/f")
-    print(f.dims, f.shape, float(f.max()), float(f.isel(t=0).max()))
+    density = output.evaluate("kinetic_ions/e1_e2_density/f")
+    times = density.t.values
+    if times[-1] < time_opts.Tend - 0.5 * time_opts.dt:
+        raise RuntimeError("Vortex-merger simulation ended before the requested final time")
+
+    # Display the radial-angular bins in the physical plane. Pad the angular
+    # coordinate periodically so that interpolation is continuous at theta = 0.
+    axis = np.linspace(-a2, a2, 128)
+    xx, yy = np.meshgrid(axis, axis)
+    rr = np.hypot(xx, yy)
+    eta_r = (rr - a1) / (a2 - a1)
+    eta_theta = np.mod(np.arctan2(yy, xx) / (2 * np.pi), 1.0)
+    ir = (eta_r - float(density.e1[0])) / float(density.e1[1] - density.e1[0])
+    itheta = (eta_theta - float(density.e2[0])) / float(density.e2[1] - density.e2[0]) + 1
+    picks = np.unique(np.linspace(0, len(times) - 1, min(100, len(times)), dtype=int))
+    images = []
+    for index in picks:
+        bins = density.isel(t=index).transpose("e1", "e2").values
+        padded = np.pad(bins, ((0, 0), (1, 1)), mode="wrap")
+        image = map_coordinates(padded, [ir, itheta], order=1, mode="nearest").astype(np.float32)
+        image[(rr < a1) | (rr > a2)] = np.nan
+        images.append(image)
+    mapped = xr.DataArray(np.array(images), dims=("t", "y", "x"), coords={"t": times[picks], "x": axis, "y": axis})
+    figure, _ = heatmap_movie(
+        mapped, x="x", y="y", title="Vortex merger: binned charge density",
+        xaxis_title="x", yaxis_title="y", colorbar_title="density", zmax=float(density.max()),
+    )
+    figure.update_xaxes(range=[-a2, a2], constrain="domain")
+    figure.update_yaxes(range=[-a2, a2], scaleanchor="x", scaleratio=1)
+    still_position = len(figure.frames) // 2
+    still = go.Heatmap(figure.data[0])
+    still.z = figure.frames[still_position].data[0].z
+    save_figure(figure, "vortex-merger", height=750,
+                static_data=[still], static_active=still_position)
+
+    # The first Poisson solve initializes the field energy after t=0. Compare
+    # subsequent field energies to that first solved state, not to the zero placeholder.
+    energy = output.evaluate("en_phi").isel(t=slice(1, None))
+    drift = (energy / energy.isel(t=0) - 1).values
+    energy_figure = go.Figure(go.Scatter(x=energy.t.values, y=drift, mode="lines", name="field energy"))
+    energy_figure.update_layout(title="Vortex merger: electrostatic-energy change", template="plotly_white",
+                               xaxis_title="t", yaxis_title="(W − W₁) / W₁", margin={"l": 80, "r": 30, "t": 80, "b": 60})
+    figures = [save_extra_figure(
+        energy_figure, "vortex-merger", "energy",
+        alt="Electrostatic energy change after the first Poisson solve",
+        caption="Electrostatic energy relative to the first solved field, at t = 0.02. The t = 0 scalar is an uninitialized zero and is omitted. The drift measures the error of this finite-resolution particle and field calculation; it is not a convergence study.",
+    )]
+    merge_metadata("vortex-merger", finalTime=float(times[-1]), maxEnergyDrift=float(np.abs(drift).max()),
+                   figures=figures, **publish_thumbnail("vortex-merger"), **export_profiling(sim, "vortex-merger"))

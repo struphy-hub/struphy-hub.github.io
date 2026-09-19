@@ -74,7 +74,7 @@ sim = Simulation(
     name="Guiding-center orbits in a tokamak",
     description=(
         "Guiding centers with different pitch angles follow the field of a circular tokamak: "
-        "fast particles circle the magnetic axis, slow ones are reflected on the high-field "
+        "particles with large parallel velocity circle the magnetic axis; others are reflected on the high-field "
         "side and bounce in banana-shaped orbits."
     ),
     env=env,
@@ -86,7 +86,7 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from _gallery import export_profiling, merge_metadata, publish_thumbnail, save_extra_figure, save_figure
 
     output = sim.run(profiling_activated=True)
     output.pproc()
@@ -131,7 +131,10 @@ if __name__ == "__main__":
     energy = 0.5 * v_parallel**2 + moment * field_strength
     momentum = major_radius * v_parallel * b_toroidal - flux / epsilon
     energy_drift = np.abs(energy - energy[0]) / np.abs(energy[0])
-    momentum_drift = np.abs(momentum - momentum[0]) / np.abs(momentum[0])
+    # P_phi can be nearly zero by cancellation. Normalize by the sum of the
+    # magnitudes of its initial mechanical and flux contributions instead.
+    momentum_scale = np.abs(major_radius[0] * v_parallel[0] * b_toroidal[0]) + np.abs(flux[0] / epsilon)
+    momentum_drift = np.abs(momentum - momentum[0]) / momentum_scale
     print(f"Largest relative drift: energy {energy_drift.max():.2e}, canonical momentum {momentum_drift.max():.2e}")
     lost = int(output.scalars["n_lost_particles"].max())
 
@@ -177,7 +180,6 @@ if __name__ == "__main__":
     picks = np.linspace(0, len(times) - 1, n_frames, dtype=int)
     figure = go.Figure()
     add_flux_surfaces(figure)
-    n_static = len(figure.data)
     for i in range(n_markers):
         figure.add_trace(
             go.Scatter(
@@ -363,6 +365,7 @@ if __name__ == "__main__":
             )
     conservation.update_yaxes(type="log", title_text="relative change", col=1)
     conservation.update_yaxes(type="log", col=2)
+    conservation.update_yaxes(exponentformat="power")
     conservation.update_xaxes(title_text="t [a.u.]")
     conservation.update_layout(
         title="Conserved quantities along the orbits",
@@ -377,21 +380,21 @@ if __name__ == "__main__":
             "guiding-center-orbits",
             "panels",
             alt="Poloidal-plane orbits of eight guiding centers, one panel each",
-            caption="DRAFT",
+            caption='The eight orbits start at the same position and speed, with different parallel velocity fractions. Four reflect and form banana-shaped paths; four pass around the magnetic axis. Grey curves mark flux surfaces and the open circle marks the initial position.',
         ),
         save_extra_figure(
             velocity,
             "guiding-center-orbits",
             "velocity",
             alt="Parallel velocity of the guiding centers against time",
-            caption="DRAFT",
+            caption='The parallel velocity changes sign at each mirror reflection for trapped particles (solid curves). Passing particles (dotted curves) retain their initial sign. The normalization uses the common initial speed, not the instantaneous parallel speed.',
         ),
         save_extra_figure(
             conservation,
             "guiding-center-orbits",
             "conservation",
             alt="Relative change of energy and canonical toroidal momentum against time",
-            caption="DRAFT",
+            caption='Changes in energy and canonical toroidal momentum evaluated using the analytic equilibrium along the computed orbits. Energy is normalized to its initial value. Momentum is normalized to the sum of the magnitudes of its initial mechanical and magnetic-flux contributions, since their sum can nearly cancel. Values below 1e-12 are clipped for the logarithmic display. These diagnostics include equilibrium projection and time-integration errors.',
         ),
     ]
 
@@ -410,5 +413,6 @@ if __name__ == "__main__":
         speed=speed,
         equilibrium="AdhocTorus (a = 1, R0 = 3, B0 = 2)",
         figures=figures,
+        **publish_thumbnail("guiding-center-orbits"),
         **profiling,
     )

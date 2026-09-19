@@ -7,6 +7,11 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `vlasov-tokamak.py` — kinetic/PIC 3D particle trajectories (`Scatter3d`)
 - `diocotron-instability.py` — a 2D binned density animated over time (`Heatmap` + frames)
 - `dam-break.py` — SPH markers (no grid): a two-panel animation of the markers and their kernel density estimate, built with `make_subplots` and a frame per saved step
+- `gas-expansion.py` — isothermal SPH rarefaction, with an analytic reference, similarity profiles and error diagnostics
+- `coaxial-waveguide.py` — rotating Maxwell eigenmode, physical-plane field/error animation, probe frequency and energy
+- `guiding-center-orbits.py` — passing and trapped orbits, parallel velocity and per-particle invariants
+- `vortex-merger.py` — physical-plane density animation of two charge blobs and electrostatic-energy drift
+- `orszag-tang-vortex.py` — early nonlinear MHD to t = 0.5, four field panels, energy/divergence diagnostics and a pressure cut
 - `strong-landau-damping.py`, `two-stream-instability.py`, `bump-on-tail.py`, `weibel-instability.py` — other Vlasov-Ampère/Maxwell instability benchmarks, all sharing the same field-energy-vs-time diagnostic pattern
 
 This walks through adding a new one, using `poisson-source.py` as the worked reference.
@@ -164,3 +169,15 @@ in its metadata. No list to edit by hand.
 - [ ] `docs/src/pages/examples/<script-stem>.py.ts` — download route
 - [ ] `docs/src/pages/examples/<script-stem>/index.astro` — detail page
 - [ ] `npm run build` (or `dev`) — regenerates `examples-index.json` and confirms it builds
+
+## Reproducing the completed examples
+
+Use the Struphy revision pinned by this repository, including local submodule changes while developing.
+The full Orszag–Tang run needs the fix in `struphy/feec/mass.py` that preserves geometric weights
+between density-weighted matrix assemblies. Commit that fix and its regression test in Struphy,
+then update the website's submodule pointer before publishing. A website-only commit cannot
+reproduce this example in CI.
+
+The Orszag–Tang script checks for non-finite diagnostics, non-positive density and incomplete
+evolution before publishing figures. The plotted current uses differences of sampled physical
+fields; `sqrt(tot_div_B)` is the independent FEEC divergence norm. These are distinct diagnostics.

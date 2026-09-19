@@ -9,6 +9,15 @@
     "thumbnail": "/images/examples/bump-on-tail.png"
   },
   {
+    "slug": "coaxial-waveguide",
+    "href": "/examples/coaxial-waveguide/",
+    "name": "Coaxial waveguide",
+    "description": "An exact electromagnetic mode between two concentric conducting cylinders rotates around the annulus. Struphy's structure-preserving Maxwell solver reproduces its shape, its frequency and the conservation of its energy.",
+    "model": "Maxwell",
+    "modelSlug": "maxwell",
+    "thumbnail": "/images/examples/coaxial-waveguide.png"
+  },
+  {
     "slug": "dam-break",
     "href": "/examples/dam-break/",
     "name": "Dam break",
@@ -25,6 +34,24 @@
     "model": "ToyDrift",
     "modelSlug": "toy-drift",
     "thumbnail": "/images/examples/diocotron-instability.png"
+  },
+  {
+    "slug": "gas-expansion",
+    "href": "/examples/gas-expansion/",
+    "name": "Gas expansion into vacuum",
+    "description": "An isothermal gas initially occupies the left part of a one-dimensional box and expands into the vacuum. Smoothed particle hydrodynamics follows the rarefaction wave and the gas streaming into the vacuum, and the result is compared with the exact self-similar solution.",
+    "model": "ViscousEulerSPH",
+    "modelSlug": "viscous-euler-sph",
+    "thumbnail": "/images/examples/gas-expansion.png"
+  },
+  {
+    "slug": "guiding-center-orbits",
+    "href": "/examples/guiding-center-orbits/",
+    "name": "Guiding-center orbits in a tokamak",
+    "description": "Guiding centers with different pitch angles follow the field of a circular tokamak: particles with large parallel velocity circle the magnetic axis; others are reflected on the high-field side and bounce in banana-shaped orbits.",
+    "model": "GuidingCenter",
+    "modelSlug": "guiding-center",
+    "thumbnail": "/images/examples/guiding-center-orbits.png"
   },
   {
     "slug": "hybrid-alfven-ion-coupling",
@@ -106,6 +133,15 @@
     "model": "Vlasov",
     "modelSlug": "vlasov",
     "thumbnail": "/images/examples/vlasov-tokamak.png"
+  },
+  {
+    "slug": "vortex-merger",
+    "href": "/examples/vortex-merger/",
+    "name": "Vortex merger",
+    "description": "Two blobs of charge of the same sign circle each other under E×B drift and merge into one, the guiding-centre analogue of the merger of two like-signed vortices.",
+    "model": "ToyDrift",
+    "modelSlug": "toy-drift",
+    "thumbnail": "/images/examples/vortex-merger.png"
   },
   {
     "slug": "weak-landau-damping",

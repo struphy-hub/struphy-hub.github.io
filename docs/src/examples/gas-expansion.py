@@ -73,8 +73,8 @@ sim = Simulation(
     model=model,
     name="Gas expansion into vacuum",
     description=(
-        "An isothermal gas fills half of a one-dimensional box and is released into "
-        "the empty half. Smoothed particle hydrodynamics follows the rarefaction wave "
+        "An isothermal gas initially occupies the left part of a one-dimensional box and expands into "
+        "the vacuum. Smoothed particle hydrodynamics follows the rarefaction wave "
         "and the gas streaming into the vacuum, and the result is compared with the "
         "exact self-similar solution."
     ),
@@ -256,6 +256,76 @@ if __name__ == "__main__":
         static_active=still_index,
     )
 
+    # A spatial view of every SPH particle. Fixed display lanes separate overlapping particles;
+    # only x is a physical coordinate in this one-dimensional simulation.
+    particle_lanes = (np.arange(marker_position.shape[1]) % 16 + 0.5) / 16
+
+    def particle_trace(index):
+        return go.Scatter(
+            x=marker_position[index],
+            y=particle_lanes,
+            mode="markers",
+            marker={
+                "size": 5,
+                "color": marker_velocity[index],
+                "colorscale": "Viridis",
+                "cmin": 0,
+                "cmax": float(np.max(marker_velocity)),
+                "colorbar": {"title": "velocity"},
+            },
+            customdata=marker_velocity[index],
+            hovertemplate="x = %{x:.3f}<br>velocity = %{customdata:.3f}<extra>SPH particle</extra>",
+            showlegend=False,
+        )
+
+    particles = go.Figure(data=[particle_trace(0)])
+    particles.frames = [
+        go.Frame(name=f"{time:.2f}", data=[particle_trace(i)], traces=[0])
+        for i, time in enumerate(times)
+    ]
+    particles.update_layout(
+        title="Gas expansion: SPH particles",
+        template="plotly_white",
+        autosize=True,
+        xaxis={"title": "x [a.u.]", "range": [0, box_length]},
+        yaxis={"range": [0, 1], "visible": False, "fixedrange": True},
+        margin={"l": 55, "r": 100, "t": 85, "b": 130},
+        updatemenus=[{
+            "type": "buttons", "direction": "left", "showactive": False,
+            "x": 0, "xanchor": "left", "y": -0.23, "yanchor": "top",
+            "buttons": [
+                {"label": "Play", "method": "animate", "args": [None, {
+                    "frame": {"duration": 60, "redraw": True},
+                    "transition": {"duration": 0}, "fromcurrent": True,
+                }]},
+                {"label": "Pause", "method": "animate", "args": [[None], {
+                    "mode": "immediate", "frame": {"duration": 0, "redraw": False},
+                    "transition": {"duration": 0},
+                }]},
+            ],
+        }],
+        sliders=[{
+            "active": 0, "x": 0, "len": 1, "y": -0.08,
+            "currentvalue": {"prefix": "t = "},
+            "steps": [{
+                "label": frame.name, "method": "animate",
+                "args": [[frame.name], {"mode": "immediate",
+                    "frame": {"duration": 0, "redraw": True}, "transition": {"duration": 0}}],
+            } for frame in particles.frames],
+        }],
+    )
+    particles.add_vline(x=release_point, line_dash="dash", line_color="#64748b",
+                        annotation_text="initial gas edge", annotation_position="top right")
+    particle_figure = save_extra_figure(
+        particles, "gas-expansion", "particles",
+        alt="Animation of SPH particles expanding into vacuum, colored by velocity",
+        caption=(
+            "The 768 SPH particles move from the initially filled region into the vacuum; color shows velocity. "
+            "The dashed line marks the initial gas edge. Vertical lanes only separate the particles visually: "
+            "this simulation is one-dimensional. Press Play, Pause, or drag the time slider."
+        ),
+    )
+
     # The same data against the similarity variable xi = (x - x0) / t, where every time falls on one curve.
     similarity = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1)
     xi_line = np.linspace(-2.5, 5.0, 600)
@@ -343,6 +413,7 @@ if __name__ == "__main__":
     )
 
     figures = [
+        particle_figure,
         save_extra_figure(
             similarity,
             "gas-expansion",
