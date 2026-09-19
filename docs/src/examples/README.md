@@ -24,7 +24,7 @@ python cli.py clean --all             # remove generated figures, profiling data
 ```
 
 `run` does what steps 2 and 3 below do by hand, and what CI does per example. Use `python cli.py run --help` for
-`--open`, `--quiet`, `--keep-scratch` and `--keep-going`.
+`--open`, `--quiet`, `--mpi`, `--keep-scratch` and `--keep-going`.
 
 This walks through adding a new one, using `poisson-source.py` as the worked reference.
 
@@ -108,6 +108,20 @@ every script from scratch before each site build. A fresh clone therefore has no
 `npm run dev` stops with instructions to generate them: `python cli.py metadata --all` is enough for
 the pages to build (Struphy needed, compiled kernels not), and `python cli.py run <example>` also
 makes that example's figures.
+
+### Running on several MPI ranks
+
+CI runs every example with `mpirun -n 4` (see `run-example` in `.github/workflows/build-site.yml`), so
+a script can afford a finer grid, more markers or more time steps than one process would allow.
+Locally: `python cli.py run <example> --mpi 4`, or `mpirun -n 4 python ../../src/examples/<script-stem>.py`.
+
+- The simulation, `output.pproc(...)` and the analysis run on every rank; the `_gallery.py` helpers
+  (`save_figure`, `save_extra_figure`, `merge_metadata`, `export_profiling`) write on rank 0 only. Write
+  files only through them, or guard the code with `_gallery.is_root()`.
+- The grid must split over the ranks: with four ranks, keep at least a few cells per rank and direction
+  (Orszag–Tang uses 32 × 32 × 1, i.e. 16 × 16 cells per rank).
+- Particle results depend on the rank count (each rank draws its own markers), so measured rates move a little.
+- The SPH examples (`dam-break`, `gas-expansion`) hang under MPI in Struphy, so CI runs them on one rank.
 
 ## 4. Add the download route: `docs/src/pages/examples/<script-stem>.py.ts`
 

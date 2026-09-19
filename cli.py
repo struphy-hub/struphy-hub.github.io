@@ -10,6 +10,7 @@ This tool does the same locally for the examples you name, and prints every file
     python cli.py list                      # what examples exist, and which have been run
     python cli.py run orszag-tang-vortex    # metadata + run + clean-up
     python cli.py run orszag dam --open     # unique prefixes work; --open shows the figures
+    python cli.py run orszag --mpi 4        # on 4 MPI ranks, as CI does (rank 0 writes the files)
     python cli.py show orszag-tang-vortex   # paths of the files of an earlier run
     python cli.py clean --all               # remove everything a run generated
 
@@ -312,8 +313,9 @@ def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts
     if args.quiet:
         log = Path(os.environ.get("TMPDIR", "/tmp")) / f"struphy-gallery-{stem}.log"
     run_started = time.time() - 1  # file times can be coarser than the clock
+    launcher = ["mpirun", "-n", str(args.mpi)] if args.mpi > 1 else []
     code = run_command(
-        [sys.executable, str(SCRIPTS_DIR / f"{stem}.py")], OUTPUT_DIR, log
+        [*launcher, sys.executable, str(SCRIPTS_DIR / f"{stem}.py")], OUTPUT_DIR, log
     )
     if code:
         tail = ""
@@ -347,6 +349,10 @@ def cmd_run(args: argparse.Namespace) -> int:
     problem = python_env_problem(need_kernels=True)
     if problem:
         fail(problem)
+    if args.mpi > 1 and shutil.which("mpirun") is None:
+        fail("--mpi needs `mpirun` (OpenMPI or MPICH) and mpi4py in this Python.")
+    if args.mpi > 1:
+        os.environ.setdefault("OMP_NUM_THREADS", "1")  # one thread per rank, as in CI
     results = []
     for number, stem in enumerate(stems, 1):
         print(bold(f"\n[{number}/{len(stems)}] {stem}"))
@@ -477,6 +483,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--keep-scratch",
         action="store_true",
         help="keep struphy_gallery_runs/ (raw HDF5 run data)",
+    )
+    p.add_argument(
+        "-n",
+        "--mpi",
+        type=int,
+        default=1,
+        metavar="N",
+        help="run on N MPI ranks (default 1); CI uses 4",
     )
     p.add_argument(
         "--skip-metadata",
