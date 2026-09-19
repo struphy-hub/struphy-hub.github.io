@@ -210,6 +210,12 @@ jobs:
           echo "Running ${{ matrix.example }} on $ranks MPI rank(s); $cpus CPU(s) visible"
           timeout 90m mpirun --use-hwthread-cpus --oversubscribe --bind-to none -n "$ranks" \
             python "../../src/examples/${{ matrix.example }}.py"
+          # Struphy calls MPI_Abort (with error code 0) when a rank runs out of marker slots, and mpirun
+          # then exits with status 0. Without this check that would only show up as a missing figure later.
+          if [ ! -f "${{ matrix.example }}.html" ]; then
+            echo "::error::${{ matrix.example }}: mpirun finished without writing ${{ matrix.example }}.html; look for MPI_ABORT or a load imbalance warning above (raise bufsize in set_markers)."
+            exit 1
+          fi
 
       - name: Copy example thumbnails
         if: steps.cache-example.outputs.cache-hit != 'true'
