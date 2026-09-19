@@ -80,7 +80,13 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, save_figure
+    from _gallery import (
+        export_profiling,
+        merge_metadata,
+        save_extra_figure,
+        save_figure,
+        space_time_figure,
+    )
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
@@ -92,7 +98,8 @@ if __name__ == "__main__":
         r, omega_r, omega_i, phi = 0.3677, 1.4156, -0.1533, 0.5362
         return (4 * perturbation_amplitude * r * np.exp(omega_i * t) * np.cos(omega_r * t - phi)) ** 2 * np.pi
 
-    field_energy = sim.output.evaluate("electric_energy")
+    output = sim.output
+    field_energy = output.evaluate("electric_energy")
     time = np.asarray(field_energy.t)
 
     # Fit the damping rate from the envelope maxima, for comparison with omega_i = -0.1533.
@@ -104,7 +111,13 @@ if __name__ == "__main__":
 
     figure = go.Figure(
         data=[
-            go.Scatter(x=time, y=np.asarray(field_energy), mode="lines", name="Struphy (PIC)", line={"color": "#168aad", "width": 3}),
+            go.Scatter(
+                x=time,
+                y=np.asarray(field_energy),
+                mode="lines",
+                name="Struphy (PIC)",
+                line={"color": "#168aad", "width": 3},
+            ),
             go.Scatter(
                 x=time,
                 y=field_energy_exact(time),
@@ -121,16 +134,44 @@ if __name__ == "__main__":
         yaxis={"type": "log"},
         template="plotly_white",
         autosize=True,
-        legend={"x": 0.98, "y": 0.98, "xanchor": "right", "bgcolor": "rgba(255,255,255,0.82)"},
+        legend={
+            "x": 0.98,
+            "y": 0.98,
+            "xanchor": "right",
+            "bgcolor": "rgba(255,255,255,0.82)",
+        },
         margin={"l": 70, "r": 30, "t": 80, "b": 60},
     )
 
     save_figure(figure, "weak-landau-damping")
+
+    # The electric field along x, over time.
+    output.pproc()
+    electric_field = output.evaluate("em_fields/e_field").isel(component=0, e2=0, e3=0)  # (t, e1)
+    space_time = space_time_figure(
+        electric_field,
+        space="e1",
+        x_values=electric_field.e1.values * domain.params["r1"],
+        title="Weak Landau damping: electric field E(x, t)",
+        colorbar_title="E_x",
+    )
+    figures = [
+        save_extra_figure(
+            space_time,
+            "weak-landau-damping",
+            "space-time",
+            alt="Space-time map of the electric field of the damped Langmuir wave",
+            caption=(
+                "The electric field E(x, t) of the run above. The single cosine mode is a standing wave: its sign alternates in time with a period of about 4.4 (ω ≈ 1.42) around nodes that stay in place, while its amplitude decays."
+            ),
+        ),
+    ]
 
     profiling = export_profiling(sim, "weak-landau-damping")
     merge_metadata(
         "weak-landau-damping",
         measuredDampingRate=measured_rate,
         exactDampingRate=-0.1533,
+        figures=figures,
         **profiling,
     )

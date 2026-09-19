@@ -16,6 +16,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from struphy import (
+    BinningPlot,
     BoundaryParameters,
     DerhamOptions,
     EnvironmentOptions,
@@ -45,6 +46,8 @@ time_opts = Time(dt=0.1, Tend=200.0, split_algo="LieTrotter")
 # temperature anisotropy that Weibel feeds on.
 vth1 = 0.02 / np.sqrt(2)
 vth2 = vth1 * np.sqrt(12)
+# A binned (v1, v2) distribution at every step, to follow the temperature anisotropy.
+velocity_bins = BinningPlot(slice="v1_v2", n_bins=(48, 48), ranges=((-0.12, 0.12), (-0.3, 0.3)))
 model.kinetic_ions.set_markers(
     loading_params=LoadingParameters(
         Np=20_000,
@@ -56,7 +59,7 @@ model.kinetic_ions.set_markers(
     weights_params=WeightsParameters(control_variate=False),
     boundary_params=BoundaryParameters(),
     sorting_params=SortingParameters(boxes_per_dim=(16, 1, 1), do_sort=True),
-    saving_params=SavingParameters(),
+    saving_params=SavingParameters(binning_plots=(velocity_bins,)),
     bufsize=2.0,
 )
 
@@ -94,7 +97,13 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, save_figure
+    from _gallery import (
+        export_profiling,
+        merge_metadata,
+        save_extra_figure,
+        save_figure,
+        space_time_figure,
+    )
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
@@ -117,7 +126,13 @@ if __name__ == "__main__":
 
     figure = go.Figure(
         data=[
-            go.Scatter(x=time, y=magnetic_energy, mode="lines", name="|B₃|² / 2 (Struphy)", line={"color": "#168aad", "width": 3}),
+            go.Scatter(
+                x=time,
+                y=magnetic_energy,
+                mode="lines",
+                name="|B₃|² / 2 (Struphy)",
+                line={"color": "#168aad", "width": 3},
+            ),
         ],
     )
     figure.update_layout(
@@ -132,10 +147,64 @@ if __name__ == "__main__":
 
     save_figure(figure, "weibel-instability")
 
+    # The magnetic field along x, over time.
+    magnetic_field = b_field.isel(component=2, e2=0, e3=0)  # (t, e1)
+    space_time = space_time_figure(
+        magnetic_field,
+        space="e1",
+        x_values=magnetic_field.e1.values * domain.params["r1"],
+        title="Weibel instability: magnetic field B₃(x, t)",
+        colorbar_title="B₃",
+    )
+
+    # The temperature anisotropy from the binned (v1, v2) distribution: the ratio of the velocity
+    # variances, which the instability reduces by heating the cold direction.
+    f = output.evaluate("kinetic_ions/v1_v2_density/f")  # (t, v1, v2)
+    moments = f.struphy.analysis.velocity_moments()
+    anisotropy = moments.variance_v2 / moments.variance_v1
+    anisotropy_figure = go.Figure(
+        go.Scatter(
+            x=anisotropy.t.values,
+            y=anisotropy.values,
+            mode="lines",
+            line={"color": "#168aad", "width": 3},
+        ),
+    )
+    anisotropy_figure.update_layout(
+        title="Weibel instability: temperature anisotropy",
+        xaxis_title="t [a.u.]",
+        yaxis_title="⟨(v₂ − u₂)²⟩ / ⟨(v₁ − u₁)²⟩",
+        template="plotly_white",
+        autosize=True,
+        margin={"l": 70, "r": 30, "t": 80, "b": 60},
+    )
+
+    figures = [
+        save_extra_figure(
+            space_time,
+            "weibel-instability",
+            "space-time",
+            alt="Space-time map of the magnetic field of the Weibel instability",
+            caption=(
+                "The magnetic field B₃(x, t). The seeded cosine mode, one wavelength across the box, grows in place around fixed nodes. It remains small until t ≈ 100 and reaches |B₃| ≈ 0.1 by the end of the run."
+            ),
+        ),
+        save_extra_figure(
+            anisotropy_figure,
+            "weibel-instability",
+            "anisotropy",
+            alt="Temperature anisotropy as a function of time",
+            caption=(
+                "The temperature anisotropy: the ratio of the velocity variances along v₂ and v₁, computed from the binned (v₁, v₂) distribution with velocity_moments. It starts near 12, the ratio set by the initial temperatures, stays there while the field is small, and falls to about 3 by t = 200 as the magnetic field grows."
+            ),
+        ),
+    ]
+
     profiling = export_profiling(sim, "weibel-instability")
 
     merge_metadata(
         "weibel-instability",
         measuredGrowthRate=growth_rate,
+        figures=figures,
         **profiling,
     )

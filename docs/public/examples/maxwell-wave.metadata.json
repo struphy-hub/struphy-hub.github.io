@@ -17,5 +17,14 @@
   "profilingDurations": "/examples/maxwell-wave-durations.json",
   "profilingGantt": "/examples/maxwell-wave-gantt.json",
   "profilingFlame": "/examples/maxwell-wave-flame.json",
-  "profilingRegionStats": "/examples/maxwell-wave-region-stats.json"
+  "profilingRegionStats": "/examples/maxwell-wave-region-stats.json",
+  "figures": [
+    {
+      "key": "space-time",
+      "interactive": "/examples/maxwell-wave-space-time.html",
+      "thumbnail": "/images/examples/maxwell-wave-space-time.png",
+      "alt": "Space-time map of the electric field of vacuum light waves",
+      "caption": "The electric field of the run above along z, over time. The broadband noise launches waves in both directions, which appear as criss-crossing diagonal stripes; their slope is the wave speed, c = 1 in these units, as measured in the dispersion plot."
+    }
+  ]
 }

@@ -61,7 +61,13 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, save_figure
+    from _gallery import (
+        export_profiling,
+        merge_metadata,
+        save_extra_figure,
+        save_figure,
+        space_time_figure,
+    )
 
     # Run, evaluate the FEEC fields on a grid, and load the result.
     # scope-profiler is built into Struphy: this instruments every propagator,
@@ -144,6 +150,29 @@ if __name__ == "__main__":
 
     save_figure(figure, "maxwell-dispersion")
 
+    # The same field along z, over time: waves travelling in both directions leave diagonal
+    # stripes, whose slope is the wave speed.
+    transverse = output.evaluate("em_fields/e_field").isel(component=0, e1=0, e2=0)  # (t, e3)
+    space_time = space_time_figure(
+        transverse,
+        space="e3",
+        x_values=transverse.e3.values * domain.params["r3"],
+        xaxis_title="z [a.u.]",
+        title="Maxwell light waves: electric field E(z, t)",
+        colorbar_title="E_x",
+    )
+    figures = [
+        save_extra_figure(
+            space_time,
+            "maxwell-wave",
+            "space-time",
+            alt="Space-time map of the electric field of vacuum light waves",
+            caption=(
+                "The electric field of the run above along z, over time. The broadband noise launches waves in both directions, which appear as criss-crossing diagonal stripes; their slope is the wave speed, c = 1 in these units, as measured in the dispersion plot."
+            ),
+        ),
+    ]
+
     profiling = export_profiling(sim, "maxwell-wave")
 
     # Fold this run's measured result into the page metadata that
@@ -152,5 +181,6 @@ if __name__ == "__main__":
         "maxwell-wave",
         measuredPhaseVelocity=phase_velocity,
         exactPhaseVelocity=1.0,
+        figures=figures,
         **profiling,
     )

@@ -16,5 +16,14 @@
   "degree": "1 × 1 × 3",
   "steps": 1000,
   "integrator": "Implicit",
-  "visualization": "Plotly"
+  "visualization": "Plotly",
+  "figures": [
+    {
+      "key": "space-time",
+      "interactive": "/examples/shear-alfven-wave-space-time.html",
+      "thumbnail": "/images/examples/shear-alfven-wave-space-time.png",
+      "alt": "Space-time map of the transverse velocity of shear-Alfvén waves",
+      "caption": "The transverse velocity of the run above along z, over time. The broadband noise launches shear-Alfvén waves in both directions, which appear as criss-crossing diagonal stripes; their slope is the Alfvén speed, v_A = 1 in these units. The colors show the first logical component of the velocity."
+    }
+  ]
 }

@@ -10,17 +10,38 @@ import json
 import shutil
 from pathlib import Path
 
+import numpy as np
+import plotly.graph_objects as go
+
 # A gantt bar is one call, not an aggregate, and a run with thousands of steps draws tens of
 # thousands of near-identical bars -- heavy enough to hang the tab. Keeping the first
 # GANTT_MAX_INTERVALS in time order leaves the setup phase plus several complete step-loop iterations.
 GANTT_MAX_INTERVALS = 5000
 
 
-def save_figure(figure, stem: str, *, width: int = 1100, height: int = 650, suffix: str = "") -> None:
-    """Write `<stem><suffix>.png` (static fallback) and `<stem><suffix>.html` (interactive)."""
+def save_figure(
+    figure,
+    stem: str,
+    *,
+    width: int = 1100,
+    height: int = 650,
+    suffix: str = "",
+    static_z=None,
+) -> None:
+    """Write `<stem><suffix>.png` (static fallback) and `<stem><suffix>.html` (interactive).
+
+    `static_z` replaces the heatmap in the first trace for the PNG only, so an animation that
+    starts at t = 0 can still have an informative static image.
+    """
     png_path = Path(f"{stem}{suffix}.png")
     html_path = Path(f"{stem}{suffix}.html")
-    figure.write_image(png_path, width=width, height=height, scale=2)
+    if static_z is None:
+        figure.write_image(png_path, width=width, height=height, scale=2)
+    else:
+        initial_z = figure.data[0].z
+        figure.data[0].z = static_z
+        figure.write_image(png_path, width=width, height=height, scale=2)
+        figure.data[0].z = initial_z
     figure.write_html(
         html_path,
         include_plotlyjs="cdn",
@@ -30,6 +51,202 @@ def save_figure(figure, stem: str, *, width: int = 1100, height: int = 650, suff
     )
     print(f"Saved {png_path.resolve()}")
     print(f"Saved {html_path.resolve()}")
+
+
+def save_extra_figure(figure, stem: str, key: str, *, alt: str, caption: str, static_z=None) -> dict:
+    """Save an additional figure of an example and return its entry for the `figures` metadata list.
+
+    Writes `<stem>-<key>.png/.html` here and copies the PNG to `../images/examples/`, where the
+    committed thumbnails live. The example page shows every entry of `figures` below its main
+    figure: pass the list to `merge_metadata(stem, figures=[...])`.
+    """
+    save_figure(figure, stem, suffix=f"-{key}", static_z=static_z)
+    images = Path("../images/examples")
+    if images.is_dir():
+        shutil.copyfile(f"{stem}-{key}.png", images / f"{stem}-{key}.png")
+    return {
+        "key": key,
+        "interactive": f"/examples/{stem}-{key}.html",
+        "thumbnail": f"/images/examples/{stem}-{key}.png",
+        "alt": alt,
+        "caption": caption,
+    }
+
+
+def _finish_layout(figure, title, xaxis_title, yaxis_title, **layout):
+    layout.setdefault("margin", {"l": 70, "r": 30, "t": 80, "b": 60})
+    figure.update_layout(
+        title=title,
+        xaxis_title=xaxis_title,
+        yaxis_title=yaxis_title,
+        template="plotly_white",
+        autosize=True,
+        **layout,
+    )
+    return figure
+
+
+def heatmap_figure(
+    data,
+    *,
+    x: str,
+    y: str,
+    title: str,
+    xaxis_title: str,
+    yaxis_title: str,
+    colorbar_title: str = "",
+    colorscale: str = "Viridis",
+    zmin=None,
+    zmax=None,
+    x_values=None,
+    y_values=None,
+):
+    """A Plotly heatmap of a two-dimensional xarray array, with `x` and `y` naming its dimensions.
+
+    `x_values` and `y_values` replace the coordinates of those dimensions, e.g. to plot a logical
+    coordinate in physical length.
+    """
+    x_values = data[x].values if x_values is None else x_values
+    y_values = data[y].values if y_values is None else y_values
+    figure = go.Figure(
+        go.Heatmap(
+            z=data.transpose(y, x).values,
+            x=x_values,
+            y=y_values,
+            colorscale=colorscale,
+            zmin=zmin,
+            zmax=zmax,
+            colorbar={"title": colorbar_title},
+        )
+    )
+    return _finish_layout(figure, title, xaxis_title, yaxis_title)
+
+
+def space_time_figure(
+    data,
+    *,
+    space: str,
+    title: str,
+    colorbar_title: str,
+    xaxis_title: str = "x [a.u.]",
+    x_values=None,
+    colorscale: str = "RdBu",
+):
+    """A space-time map of a field with dimensions `(t, space)`: space along x, time up, colors symmetric about zero."""
+    limit = float(abs(data).max())
+    return heatmap_figure(
+        data,
+        x=space,
+        y="t",
+        x_values=x_values,
+        title=title,
+        xaxis_title=xaxis_title,
+        yaxis_title="t [a.u.]",
+        colorbar_title=colorbar_title,
+        colorscale=colorscale,
+        zmin=-limit,
+        zmax=limit,
+    )
+
+
+def heatmap_movie(
+    data,
+    *,
+    x: str,
+    y: str,
+    title: str,
+    xaxis_title: str,
+    yaxis_title: str,
+    colorbar_title: str = "",
+    sweep: str = "t",
+    colorscale: str = "Viridis",
+    zmin=0.0,
+    zmax=None,
+    x_values=None,
+    y_values=None,
+    max_frames: int = 150,
+):
+    """An animated Plotly heatmap of a three-dimensional xarray array, one frame per `sweep` value.
+
+    A frame per saved step would embed tens of megabytes in the page, so at most `max_frames`
+    evenly spaced frames are kept. Returns `(figure, static_z)`, where `static_z` is a
+    well-developed frame from the middle of the sweep, for `save_figure(..., static_z=...)`.
+    """
+    x_values = data[x].values if x_values is None else x_values
+    y_values = data[y].values if y_values is None else y_values
+    frames_data = data.transpose(sweep, y, x).values
+    labels = data[sweep].values
+    picks = np.linspace(0, len(labels) - 1, min(max_frames, len(labels)), dtype=int)
+
+    def heatmap(z, **extra):
+        return go.Heatmap(
+            z=z,
+            x=x_values,
+            y=y_values,
+            colorscale=colorscale,
+            zmin=zmin,
+            zmax=zmax,
+            **extra,
+        )
+
+    frames = [go.Frame(name=f"{labels[i]:.1f}", data=[heatmap(frames_data[i])]) for i in picks]
+    figure = go.Figure(
+        data=[heatmap(frames_data[0], colorbar={"title": colorbar_title})],
+        frames=frames,
+    )
+    _finish_layout(
+        figure,
+        title,
+        xaxis_title,
+        yaxis_title,
+        margin={"l": 70, "r": 30, "t": 80, "b": 130},
+        updatemenus=[
+            {
+                "type": "buttons",
+                "showactive": False,
+                "x": 0.0,
+                "xanchor": "left",
+                "y": -0.28,
+                "yanchor": "top",
+                "buttons": [
+                    {
+                        "label": "Play",
+                        "method": "animate",
+                        "args": [
+                            None,
+                            {
+                                "frame": {"duration": 30, "redraw": True},
+                                "fromcurrent": True,
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+        sliders=[
+            {
+                "steps": [
+                    {
+                        "args": [
+                            [frame.name],
+                            {
+                                "frame": {"duration": 0, "redraw": True},
+                                "mode": "immediate",
+                            },
+                        ],
+                        "label": frame.name,
+                        "method": "animate",
+                    }
+                    for frame in frames
+                ],
+                "x": 0.12,
+                "len": 0.88,
+                "y": -0.18,
+                "currentvalue": {"prefix": f"{sweep} = "},
+            },
+        ],
+    )
+    return figure, frames_data[len(frames_data) // 2]
 
 
 def merge_metadata(stem: str, **fields) -> Path:
@@ -79,7 +296,13 @@ def export_profiling(sim, stem: str) -> dict:
 
     gantt_path = Path(f"{stem}-gantt.json")
     region_stats_path = Path(f"{stem}-region-stats.json")
-    plot_gantt([profile_reader], ranks=[0], data_filepath=gantt_path, data_format="json", verbose=False)
+    plot_gantt(
+        [profile_reader],
+        ranks=[0],
+        data_filepath=gantt_path,
+        data_format="json",
+        verbose=False,
+    )
     write_region_statistics_json([profile_reader], region_stats_path, ranks=[0])
 
     gantt_payload = json.loads(gantt_path.read_text())

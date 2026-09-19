@@ -6,6 +6,7 @@ import { codeToHtml } from 'shiki';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { toSlug } from '../../../lib/catalogue';
+import ExtraFigures from '../../../components/ExtraFigures.astro';
 
 function pdeMarkdownToHtml(markdown: string): string {
   return markdown
@@ -59,6 +60,8 @@ const highlightedSource = await codeToHtml(bumpOnTail, {
       <noscript><img src="/images/examples/bump-on-tail.png" alt="Electric field energy growing unsteadily over time as the bump-on-tail instability develops, with bounce oscillations superimposed on the overall growth" width="2200" height="1300" /></noscript>
       <figcaption>Actual output from the script below. The field energy grows overall (fitted rate γ ≈ {data.measuredGrowthRate.toFixed(4)} over the early window) with bounce oscillations superimposed, as the minority beam continually re-drives and re-traps in the wave it excites.</figcaption>
     </figure>
+
+    {data.figures && <ExtraFigures figures={data.figures} />}
 
     <section class="explanation" aria-labelledby="setup-title">
       <div>

@@ -6,6 +6,7 @@ import { codeToHtml } from 'shiki';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { toSlug } from '../../../lib/catalogue';
+import ExtraFigures from '../../../components/ExtraFigures.astro';
 
 function pdeMarkdownToHtml(markdown: string): string {
   return markdown
@@ -60,11 +61,7 @@ const highlightedSource = await codeToHtml(twoStreamInstability, {
       <figcaption>Actual output from the script below. The fitted exponential growth rate over the linear phase gives γ = {data.measuredGrowthRate.toFixed(4)}, close to the ≈{data.expectedGrowthRate} predicted by the linear dispersion relation, before particle trapping saturates the growth around t ≈ 25.</figcaption>
     </figure>
 
-    <figure class="result">
-      <div class="plot-frame"><iframe src={data.phaseSpaceInteractive} title="Interactive Plotly animation of the two-stream instability's phase-space density" loading="lazy"></iframe></div>
-      <noscript><img src={data.phaseSpaceThumbnail} alt="Phase-space density rolled up into the classic two-stream 'cat's eye' vortex pattern" width="2200" height="1300" /></noscript>
-      <figcaption>The classic two-stream "movie" — phase-space density f(x, v), drag the slider (or press Play) to watch it evolve. The two initially flat beams (at v ≈ ±3) roll up into the characteristic trapped-particle "cat's eye" vortex as the instability grows.</figcaption>
-    </figure>
+    {data.figures && <ExtraFigures figures={data.figures} />}
 
     <section class="explanation" aria-labelledby="setup-title">
       <div>

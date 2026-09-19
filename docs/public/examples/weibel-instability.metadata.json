@@ -16,5 +16,21 @@
   "profilingDurations": "/examples/weibel-instability-durations.json",
   "profilingGantt": "/examples/weibel-instability-gantt.json",
   "profilingFlame": "/examples/weibel-instability-flame.json",
-  "profilingRegionStats": "/examples/weibel-instability-region-stats.json"
+  "profilingRegionStats": "/examples/weibel-instability-region-stats.json",
+  "figures": [
+    {
+      "key": "space-time",
+      "interactive": "/examples/weibel-instability-space-time.html",
+      "thumbnail": "/images/examples/weibel-instability-space-time.png",
+      "alt": "Space-time map of the magnetic field of the Weibel instability",
+      "caption": "The magnetic field B₃(x, t). The seeded cosine mode, one wavelength across the box, grows in place around fixed nodes. It remains small until t ≈ 100 and reaches |B₃| ≈ 0.1 by the end of the run."
+    },
+    {
+      "key": "anisotropy",
+      "interactive": "/examples/weibel-instability-anisotropy.html",
+      "thumbnail": "/images/examples/weibel-instability-anisotropy.png",
+      "alt": "Temperature anisotropy as a function of time",
+      "caption": "The temperature anisotropy: the ratio of the velocity variances along v₂ and v₁, computed from the binned (v₁, v₂) distribution with velocity_moments. It starts near 12, the ratio set by the initial temperatures, stays there while the field is small, and falls to about 3 by t = 200 as the magnetic field grows."
+    }
+  ]
 }

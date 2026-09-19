@@ -6,6 +6,7 @@ import { codeToHtml } from 'shiki';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { toSlug } from '../../../lib/catalogue';
+import ExtraFigures from '../../../components/ExtraFigures.astro';
 
 function pdeMarkdownToHtml(markdown: string): string {
   return markdown
@@ -53,6 +54,8 @@ const highlightedSource = await codeToHtml(shearAlfvenWave, {
       <noscript><img src="/images/examples/shear-alfven-wave.png" alt="Power spectrum of a simulated Struphy shear-Alfvén wave, with the fitted numerical branch closely following the exact dispersion line" width="2200" height="1300" /></noscript>
       <figcaption>Actual output from the script below. The fitted numerical branch gives v_A = {data.measuredAlfvenSpeed}, compared with the normalized exact value v_A = {data.exactAlfvenSpeed}.</figcaption>
     </figure>
+
+    {data.figures && <ExtraFigures figures={data.figures} />}
 
     <section class="explanation" aria-labelledby="setup-title">
       <div>

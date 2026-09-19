@@ -10,9 +10,6 @@ Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/two_s
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
-from pathlib import Path
-
-import numpy as np
 import plotly.graph_objects as go
 
 from struphy import (
@@ -60,7 +57,9 @@ model.initial_poisson.options = model.initial_poisson.Options(stab_mat="M0")
 # Two counter-streaming Maxwellians (u1 = +/-3), each seeded with the same cosine mode.
 perturbation_amplitude = 0.001
 perturbation = perturbations.ModesCos(amps=(perturbation_amplitude,), ls=(1,))
-background = maxwellians.Maxwellian3D(n=(0.5, None), u1=(3.0, None)) + maxwellians.Maxwellian3D(n=(0.5, None), u1=(-3.0, None))
+background = maxwellians.Maxwellian3D(n=(0.5, None), u1=(3.0, None)) + maxwellians.Maxwellian3D(
+    n=(0.5, None), u1=(-3.0, None)
+)
 model.kinetic_ions.var.add_background(background)
 init = maxwellians.Maxwellian3D(n=(0.5, perturbation), u1=(3.0, None)) + maxwellians.Maxwellian3D(
     n=(0.5, perturbation),
@@ -88,25 +87,35 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, save_figure
+    from _gallery import (
+        export_profiling,
+        heatmap_figure,
+        heatmap_movie,
+        merge_metadata,
+        save_extra_figure,
+        save_figure,
+    )
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
-    sim.run(profiling_activated=True)
+    output = sim.run(profiling_activated=True)
 
-    output = sim.output
-    time = np.asarray(output.time)
-    field_energy = np.asarray(output.scalars["electric_energy"])
+    field_energy = output.evaluate("electric_energy")
 
     # Fit the exponential growth rate over the clean linear-growth window
     # (before trapping saturates it, roughly t in [5, 25] for this setup).
-    linear = (time > 5.0) & (time < 25.0)
-    growth_rate = float(np.polyfit(time[linear], np.log(field_energy[linear]), 1)[0] / 2)
+    growth_rate = field_energy.struphy.analysis.growth_rate(window=(5.0, 25.0), amplitude=True).rate
     print(f"Measured growth rate: {growth_rate:.4f} (expected: ~0.2845, from the linear dispersion relation)")
 
     figure = go.Figure(
         data=[
-            go.Scatter(x=time, y=field_energy, mode="lines", name="Struphy (PIC)", line={"color": "#168aad", "width": 3}),
+            go.Scatter(
+                x=field_energy.t.values,
+                y=field_energy.values,
+                mode="lines",
+                name="Struphy (PIC)",
+                line={"color": "#168aad", "width": 3},
+            ),
         ],
     )
     figure.update_layout(
@@ -121,102 +130,56 @@ if __name__ == "__main__":
 
     save_figure(figure, "two-stream-instability")
 
+    output.pproc()
+    f = output.evaluate("kinetic_ions/e1_v1_density/f")  # (t, e1, v1)
+
     # The classic two-stream "movie": phase-space (x, v) density, showing the
     # two beams' initially flat bands roll up into the characteristic vortex
     # ("cat's eye") pattern as the instability traps particles.
-    output.process(create_vtk=False)
-    phase_space = output.distributions.kinetic_ions.e1_v1_density.f
-    position = np.asarray(phase_space.e1) * domain.params["r1"]
-    velocity = np.asarray(phase_space.v1)
-    phase_frames_data = np.asarray(phase_space)  # (time, position, velocity)
-    phase_times = np.asarray(phase_space.t)
-
-    # Each frame auto-scales its own color range -- the interesting signal is
-    # the *shape* (flat bands vs. trapped vortex), not the absolute density,
-    # which grows sharply once particles bunch up.
-    # Every saved timestep is a full-resolution heatmap; embedding all of them
-    # (one per simulation step) bloats the exported page to tens of megabytes
-    # and makes it stutter. Subsample to a fixed cap of animation frames --
-    # plenty for a smooth-looking movie, and lets the browser actually keep up.
-    n_phase_frames = min(150, len(phase_frames_data))
-    phase_frame_indices = np.linspace(0, len(phase_frames_data) - 1, n_phase_frames, dtype=int)
-    phase_frames = [
-        go.Frame(
-            name=f"{phase_times[idx]:.1f}",
-            data=[go.Heatmap(z=phase_frames_data[idx].T, x=position, y=velocity, zmin=0, colorscale="Viridis")],
-        )
-        for idx in phase_frame_indices
-    ]
-    phase_figure = go.Figure(
-        data=[
-            go.Heatmap(
-                z=phase_frames_data[0].T,
-                x=position,
-                y=velocity,
-                zmin=0,
-                colorscale="Viridis",
-                colorbar={"title": "f(x, v)"},
-            ),
-        ],
-        frames=phase_frames,
-    )
-    phase_figure.update_layout(
+    phase_space, phase_static = heatmap_movie(
+        f,
+        x="e1",
+        y="v1",
+        x_values=f.e1.values * domain.params["r1"],
         title="Two-stream instability: phase-space density f(x, v)",
         xaxis_title="x [a.u.]",
         yaxis_title="v [a.u.]",
-        template="plotly_white",
-        autosize=True,
-        margin={"l": 70, "r": 30, "t": 80, "b": 130},
-        updatemenus=[
-            {
-                "type": "buttons",
-                "showactive": False,
-                "x": 0.0,
-                "xanchor": "left",
-                "y": -0.28,
-                "yanchor": "top",
-                "buttons": [
-                    {
-                        "label": "Play",
-                        "method": "animate",
-                        "args": [None, {"frame": {"duration": 30, "redraw": True}, "fromcurrent": True}],
-                    },
-                ],
-            },
-        ],
-        sliders=[
-            {
-                "steps": [
-                    {
-                        "args": [[frame.name], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate"}],
-                        "label": frame.name,
-                        "method": "animate",
-                    }
-                    for frame in phase_frames
-                ],
-                "x": 0.12,
-                "len": 0.88,
-                "y": -0.18,
-                "currentvalue": {"prefix": "t = "},
-            },
-        ],
+        colorbar_title="f(x, v)",
     )
 
-    phase_png_path = Path("two-stream-instability-phasespace.png")
-    phase_html_path = Path("two-stream-instability-phasespace.html")
-    # A well-developed frame (not t=0) makes for a more informative static export.
-    phase_figure.data[0].z = phase_frames_data[len(phase_frames_data) // 2].T
-    phase_figure.write_image(phase_png_path, width=1100, height=650, scale=2)
-    phase_figure.data[0].z = phase_frames_data[0].T
-    phase_figure.write_html(
-        phase_html_path,
-        include_plotlyjs="cdn",
-        default_width="100%",
-        default_height="100%",
-        config={"responsive": True, "displaylogo": False},
+    # The same distribution averaged over space: f(v, t).
+    velocity_time = heatmap_figure(
+        f.struphy.analysis.spatial_average(),
+        x="t",
+        y="v1",
+        title="Two-stream instability: space-averaged distribution f(v, t)",
+        xaxis_title="t [a.u.]",
+        yaxis_title="v [a.u.]",
+        colorbar_title="f(v)",
+        zmin=0.0,
     )
-    print(f"Saved {phase_png_path.resolve()}")
-    print(f"Saved {phase_html_path.resolve()}")
+
+    figures = [
+        save_extra_figure(
+            phase_space,
+            "two-stream-instability",
+            "phasespace",
+            static_z=phase_static,
+            alt="Phase-space density rolled up into the classic two-stream 'cat's eye' vortex pattern",
+            caption=(
+                "The classic two-stream picture: the phase-space density f(x, v); drag the slider or press Play. The two beams, initially flat bands at v = ±3, are bent by the growing wave and roll up into a trapped-particle “cat’s eye” hole. The frame shown is from the middle of the run (t = 25)."
+            ),
+        ),
+        save_extra_figure(
+            velocity_time,
+            "two-stream-instability",
+            "velocity-time",
+            alt="Space-averaged velocity distribution as a function of time",
+            caption=(
+                "The distribution averaged over space, f(v, t). The two beams stay narrow and separate until about t = 20, when the instability saturates; over the following ten time units they merge into a single broad distribution that fills the gap between them."
+            ),
+        ),
+    ]
 
     profiling = export_profiling(sim, "two-stream-instability")
 
@@ -224,7 +187,6 @@ if __name__ == "__main__":
         "two-stream-instability",
         measuredGrowthRate=growth_rate,
         expectedGrowthRate=0.2845,
-        phaseSpaceThumbnail="/images/examples/two-stream-instability-phasespace.png",
-        phaseSpaceInteractive="/examples/two-stream-instability-phasespace.html",
+        figures=figures,
         **profiling,
     )

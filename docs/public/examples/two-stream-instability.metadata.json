@@ -1,5 +1,5 @@
 {
-  "measuredGrowthRate": 0.3126607655857979,
+  "measuredGrowthRate": 0.31349903926233696,
   "expectedGrowthRate": 0.2845,
   "name": "Two-stream instability",
   "description": "Two counter-streaming Maxwellian beams are kinetically unstable — a tiny perturbation grows exponentially, drawing energy from the beams, until particle trapping saturates the growth.",
@@ -12,11 +12,25 @@
   "visualization": "Plotly",
   "thumbnail": "/images/examples/two-stream-instability.png",
   "interactive": "/examples/two-stream-instability.html",
-  "phaseSpaceThumbnail": "/images/examples/two-stream-instability-phasespace.png",
-  "phaseSpaceInteractive": "/examples/two-stream-instability-phasespace.html",
   "profilingData": "/examples/two-stream-instability-profile.h5",
   "profilingDurations": "/examples/two-stream-instability-durations.json",
   "profilingGantt": "/examples/two-stream-instability-gantt.json",
   "profilingFlame": "/examples/two-stream-instability-flame.json",
-  "profilingRegionStats": "/examples/two-stream-instability-region-stats.json"
+  "profilingRegionStats": "/examples/two-stream-instability-region-stats.json",
+  "figures": [
+    {
+      "key": "phasespace",
+      "interactive": "/examples/two-stream-instability-phasespace.html",
+      "thumbnail": "/images/examples/two-stream-instability-phasespace.png",
+      "alt": "Phase-space density rolled up into the classic two-stream 'cat's eye' vortex pattern",
+      "caption": "The classic two-stream picture: the phase-space density f(x, v); drag the slider or press Play. The two beams, initially flat bands at v = ±3, are bent by the growing wave and roll up into a trapped-particle “cat’s eye” hole. The frame shown is from the middle of the run (t = 25)."
+    },
+    {
+      "key": "velocity-time",
+      "interactive": "/examples/two-stream-instability-velocity-time.html",
+      "thumbnail": "/images/examples/two-stream-instability-velocity-time.png",
+      "alt": "Space-averaged velocity distribution as a function of time",
+      "caption": "The distribution averaged over space, f(v, t). The two beams stay narrow and separate until about t = 20, when the instability saturates; over the following ten time units they merge into a single broad distribution that fills the gap between them."
+    }
+  ]
 }

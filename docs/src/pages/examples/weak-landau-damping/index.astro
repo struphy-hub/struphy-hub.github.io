@@ -6,6 +6,7 @@ import { codeToHtml } from 'shiki';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { toSlug } from '../../../lib/catalogue';
+import ExtraFigures from '../../../components/ExtraFigures.astro';
 
 function pdeMarkdownToHtml(markdown: string): string {
   return markdown
@@ -59,6 +60,8 @@ const highlightedSource = await codeToHtml(weakLandauDamping, {
       <noscript><img src="/images/examples/weak-landau-damping.png" alt="Electric field energy decaying exponentially over time, closely tracking the exact Landau damping envelope before hitting the PIC particle-noise floor" width="2200" height="1300" /></noscript>
       <figcaption>Actual output from the script below. The fitted damping rate over the clean exponential region gives γ = {data.measuredDampingRate.toFixed(4)}, compared with the exact linear value γ = {data.exactDampingRate}. The field energy flattens out after t ≈ 8–10 once it drops below the discrete-particle noise floor — expected PIC behavior, not a numerical error.</figcaption>
     </figure>
+
+    {data.figures && <ExtraFigures figures={data.figures} />}
 
     <section class="explanation" aria-labelledby="setup-title">
       <div>

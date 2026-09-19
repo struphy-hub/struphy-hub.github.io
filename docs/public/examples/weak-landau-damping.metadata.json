@@ -8,7 +8,7 @@
   "degree": "3 × 1 × 1",
   "steps": 400,
   "visualization": "Plotly",
-  "measuredDampingRate": -0.16013941045433536,
+  "measuredDampingRate": -0.15083511441096378,
   "exactDampingRate": -0.1533,
   "thumbnail": "/images/examples/weak-landau-damping.png",
   "interactive": "/examples/weak-landau-damping.html",
@@ -16,5 +16,14 @@
   "profilingDurations": "/examples/weak-landau-damping-durations.json",
   "profilingGantt": "/examples/weak-landau-damping-gantt.json",
   "profilingFlame": "/examples/weak-landau-damping-flame.json",
-  "profilingRegionStats": "/examples/weak-landau-damping-region-stats.json"
+  "profilingRegionStats": "/examples/weak-landau-damping-region-stats.json",
+  "figures": [
+    {
+      "key": "space-time",
+      "interactive": "/examples/weak-landau-damping-space-time.html",
+      "thumbnail": "/images/examples/weak-landau-damping-space-time.png",
+      "alt": "Space-time map of the electric field of the damped Langmuir wave",
+      "caption": "The electric field E(x, t) of the run above. The single cosine mode is a standing wave: its sign alternates in time with a period of about 4.4 (ω ≈ 1.42) around nodes that stay in place, while its amplitude decays."
+    }
+  ]
 }
