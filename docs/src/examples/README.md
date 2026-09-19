@@ -14,6 +14,18 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `orszag-tang-vortex.py` — early nonlinear MHD to t = 0.5, density with magnetic field lines, energy/divergence diagnostics and a pressure cut
 - `strong-landau-damping.py`, `two-stream-instability.py`, `bump-on-tail.py`, `weibel-instability.py` — other Vlasov-Ampère/Maxwell instability benchmarks, all sharing the same field-energy-vs-time diagnostic pattern
 
+To build the assets of existing examples, use the CLI at the repository root (standard library only):
+
+```sh
+python cli.py list                    # examples, and which have generated figures
+python cli.py run orszag-tang-vortex  # metadata + run + thumbnails + clean-up, then prints every generated file
+python cli.py show orszag             # paths of an earlier run (unique prefixes work; --open shows the figures)
+python cli.py clean --all             # remove generated figures, profiling data and scratch output
+```
+
+`run` does what steps 2 and 3 below do by hand, and what CI does per example. Use `python cli.py run --help` for
+`--open`, `--quiet`, `--keep-scratch` and `--keep-going`.
+
 This walks through adding a new one, using `poisson-source.py` as the worked reference.
 
 The one rule that ties everything together: **an example's page lives at
