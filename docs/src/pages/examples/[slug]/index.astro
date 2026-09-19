@@ -28,6 +28,10 @@ const sourceEntry = Object.entries(sourceModules).find(([key]) => key.endsWith(`
 const source = String(sourceEntry?.[1] ?? '');
 const highlightedSource = await codeToHtml(source, { lang: 'python', themes: { light: 'github-light', dark: 'github-dark' }, defaultColor: false });
 const equationsHtml = pdeMarkdownToHtml(data.equationsMarkdown);
+const exampleIndex = examples.findIndex((example) => example.slug === slug);
+// Keep example pages browsable in the same order as the gallery, wrapping from
+// the final entry back to the first one.
+const nextExample = exampleIndex >= 0 ? examples[(exampleIndex + 1) % examples.length] : undefined;
 ---
 
-<ExamplePage {slug} {data} {config} {highlightedSource} {equationsHtml} />
+<ExamplePage {slug} {data} {config} {highlightedSource} {equationsHtml} {nextExample} />
