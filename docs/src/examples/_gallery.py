@@ -33,15 +33,13 @@ def save_figure(
 
     An animation that starts at t = 0 can still have an informative static image: `static_z`
     replaces the heatmap in the first trace for the PNG only, and `static_data` (a list of traces,
-    e.g. one frame's `data`) replaces all of the figure's traces.
+    e.g. one frame's `data`) gives the traces of the PNG (with the figure's layout).
     """
     png_path = Path(f"{stem}{suffix}.png")
     html_path = Path(f"{stem}{suffix}.html")
     if static_data is not None:
-        initial_data = figure.data
-        figure.data = static_data
-        figure.write_image(png_path, width=width, height=height, scale=2)
-        figure.data = initial_data
+        still = go.Figure(data=static_data, layout=figure.layout)
+        still.write_image(png_path, width=width, height=height, scale=2)
     elif static_z is not None:
         initial_z = figure.data[0].z
         figure.data[0].z = static_z

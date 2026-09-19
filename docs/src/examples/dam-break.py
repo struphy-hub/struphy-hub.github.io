@@ -132,6 +132,8 @@ if __name__ == "__main__":
                 mode="markers",
                 marker={"size": 6, "color": shade, "colorscale": "Sunset", "cmin": 0.0, "cmax": 1.0, "opacity": 0.9},
                 showlegend=False,
+                xaxis="x",
+                yaxis="y",
             ),
             go.Heatmap(
                 z=density.isel(t=index).transpose("e2", "e1").values,
@@ -141,6 +143,8 @@ if __name__ == "__main__":
                 zmax=density_limit,
                 colorscale="Blues",
                 colorbar={"title": "density", "x": 1.0},
+                xaxis="x2",
+                yaxis="y2",
             ),
         ]
 

@@ -6,5 +6,22 @@
   "domain": "Cuboid",
   "steps": 150,
   "integrator": "Forward_euler",
-  "visualization": "Plotly"
+  "visualization": "Plotly",
+  "arrivalTime": 0.76,
+  "markers": 512,
+  "markersInBox": true,
+  "kernel": "Gaussian, 2D",
+  "figures": [
+    {
+      "key": "front",
+      "interactive": "/examples/dam-break-front.html",
+      "thumbnail": "/images/examples/dam-break-front.png",
+      "alt": "Position of the fluid front and height of the centre of mass over time",
+      "caption": "DRAFT"
+    }
+  ],
+  "profilingData": "/examples/dam-break-profile.h5",
+  "profilingDurations": "/examples/dam-break-durations.json",
+  "profilingGantt": "/examples/dam-break-gantt.json",
+  "profilingRegionStats": "/examples/dam-break-region-stats.json"
 }
