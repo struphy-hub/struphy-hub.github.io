@@ -88,11 +88,13 @@ def build_metadata(sim, namespace: dict) -> dict:
     return metadata
 
 
-def main() -> None:
+def main(stems: list[str] | None = None) -> None:
+    """Write the metadata of every example script, or only of the scripts named by `stems`."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    for script in sorted(
-        path for path in EXAMPLES_DIR.glob("*.py") if not path.name.startswith("_")
-    ):
+    scripts = sorted(path for path in EXAMPLES_DIR.glob("*.py") if not path.name.startswith("_"))
+    if stems:
+        scripts = [path for path in scripts if path.stem in stems]
+    for script in scripts:
         # `run_name` deliberately isn't "__main__", so each script's own
         # `if __name__ == "__main__":` block (the run + plotting) stays skipped.
         namespace = runpy.run_path(str(script), run_name=script.stem)
@@ -111,4 +113,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    main(sys.argv[1:])

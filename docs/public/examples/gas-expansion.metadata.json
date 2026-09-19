@@ -1,0 +1,43 @@
+{
+  "name": "Gas expansion into vacuum",
+  "description": "An isothermal gas fills half of a one-dimensional box and is released into the empty half. Smoothed particle hydrodynamics follows the rarefaction wave and the gas streaming into the vacuum, and the result is compared with the exact self-similar solution.",
+  "model": "ViscousEulerSPH",
+  "equationsMarkdown": "**PDEs solved by model:**\n\nContinuity:\n\n$$\n\\partial_t \\rho + \\nabla \\cdot (\\rho \\mathbf{u}) = 0\n$$\n\nMomentum:\n\n$$\n\\rho (\\partial_t \\mathbf{u} + \\mathbf{u} \\cdot \\nabla \\mathbf{u}) = -\\nabla \\left( \\rho^2 \\frac{\\partial \\mathcal{U}(\\rho, S)}{\\partial \\rho} \\right) - \\nabla \\cdot \\boldsymbol{\\pi}\n$$\n\nEntropy:\n\n$$\n\\partial_t S + \\mathbf{u} \\cdot \\nabla S = 0\n$$\n\nwhere :math:`S` denotes the entropy per unit mass and :math:`\\boldsymbol{\\pi}` is the viscous stress tensor.\n\nThe viscous stress tensor for a Newtonian fluid is given by:\n\n$$\n\\boldsymbol{\\sigma} = -\\mu \\left( \\nabla \\mathbf{u} + (\\nabla \\mathbf{u})^T - \\frac{2}{3} (\\nabla \\cdot \\mathbf{u}) \\mathbf{I} \\right)\n$$\n\nwhere :math:`\\mu` is the dynamic (shear) viscosity and :math:`\\mathbf{I}` is the identity tensor.\n\nThe internal energy per unit mass can be defined in two ways:\n\n$$\n\\mathrm{isothermal:} \\qquad \\mathcal{U}(\\rho, S) = \\kappa(S) \\log \\rho\n$$\n\n$$\n\\mathrm{polytropic:} \\qquad \\mathcal{U}(\\rho, S) = \\kappa(S) \\frac{\\rho^{\\gamma - 1}}{\\gamma - 1}\n$$\n",
+  "domain": "Cuboid (r1=8)",
+  "steps": 120,
+  "integrator": "Forward euler",
+  "visualization": "Plotly",
+  "soundSpeed": 1.0,
+  "releasePoint": 1.5,
+  "boxLength": 8.0,
+  "markers": 768,
+  "kernel": "Gaussian, 1D",
+  "densityErrorMean": 0.019121696377683496,
+  "densityErrorFinal": 0.024665969433213357,
+  "velocityErrorMean": 0.05243922253153172,
+  "velocityErrorFinal": 0.07674677794636531,
+  "massError": 2.2520093008737696e-05,
+  "figures": [
+    {
+      "key": "similarity",
+      "interactive": "/examples/gas-expansion-similarity.html",
+      "thumbnail": "/images/examples/gas-expansion-similarity.png",
+      "alt": "Density and velocity against the similarity variable at four times, on the exact curve",
+      "caption": "The density (top) and the marker velocities (bottom) at four times against the similarity variable (x − x₀) / t, with the exact solution dashed. From ξ = −1, where the rarefaction starts, up to ξ ≈ 2 the four times fall on one curve. The earliest time is smoothed around ξ = −1 because the release is smoothed over the kernel width. Beyond ξ ≈ 2, where the density is below about 0.05, only a few markers are left: they move more slowly than the exact solution and their density estimate is noisy."
+    },
+    {
+      "key": "error",
+      "interactive": "/examples/gas-expansion-error.html",
+      "thumbnail": "/images/examples/gas-expansion-error.png",
+      "alt": "Density and velocity error of the SPH result against time",
+      "caption": "The error of the SPH result against the exact solution for t ≥ 0.1. The density error, the L1 difference relative to the exact density, stays between 1.3% and 2.5%. The rms error of the marker velocity grows to 7.7% of the sound speed, but the median marker is off by only 0.9% at the end: the rms is dominated by the few fast markers in the low-density tail."
+    }
+  ],
+  "thumbnail": "/images/examples/gas-expansion.png",
+  "interactive": "/examples/gas-expansion.html",
+  "profilingData": "/examples/gas-expansion-profile.h5",
+  "profilingDurations": "/examples/gas-expansion-durations.json",
+  "profilingGantt": "/examples/gas-expansion-gantt.json",
+  "profilingRegionStats": "/examples/gas-expansion-region-stats.json",
+  "velocityMedianErrorFinal": 0.008826430557499772
+}
