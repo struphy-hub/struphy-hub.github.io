@@ -11,11 +11,13 @@ below take care of that, so a script needs no rank checks of its own.
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 from pathlib import Path
 
 import numpy as np
 import plotly.graph_objects as go
+from struphy import set_logging_level
 
 try:
     from mpi4py import MPI
@@ -28,6 +30,10 @@ except ImportError:  # a serial install without MPI
 # thousands of near-identical bars -- heavy enough to hang the tab. Keeping the first
 # GANTT_MAX_INTERVALS in time order leaves the setup phase plus several complete step-loop iterations.
 GANTT_MAX_INTERVALS = 5000
+
+# Every script imports this module before it runs its simulation. INFO makes Struphy print one block per
+# time step (step number, times, wall clock, scalar quantities), which is what one wants to see in a CI log.
+set_logging_level(logging.INFO)
 
 
 def is_root() -> bool:

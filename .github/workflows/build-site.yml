@@ -201,6 +201,8 @@ jobs:
           # Count the CPUs first: nproc honours OMP_NUM_THREADS and would report 1 after the export.
           cpus=$(nproc)
           export OMP_NUM_THREADS=1
+          # Output that goes through mpirun's pipe is block-buffered otherwise, and would only show at the end.
+          export PYTHONUNBUFFERED=1
           ranks=$(( MPI_RANKS < cpus ? MPI_RANKS : cpus ))
           case "${{ matrix.example }}" in
             dam-break|gas-expansion) ranks=1 ;;
