@@ -124,9 +124,12 @@ if __name__ == "__main__":
     heights = density.e2.values
     density_limit = float(density.max())
 
-    def frame_traces(index):
+    def frame_traces(index, webgl=True):
+        # In an animation, plotly.js 3.7 stops drawing a heatmap that shares the figure with SVG scatter
+        # frames, so the markers of the interactive figure are drawn with WebGL.
+        markers = go.Scattergl if webgl else go.Scatter
         return [
-            go.Scatter(
+            markers(
                 x=x.isel(t=index).values,
                 y=y.isel(t=index).values,
                 mode="markers",
@@ -197,6 +200,7 @@ if __name__ == "__main__":
                     }
                     for frame in frames
                 ],
+                "active": 0,
                 "x": 0.12,
                 "len": 0.88,
                 "y": -0.1,
@@ -207,7 +211,9 @@ if __name__ == "__main__":
 
     # The still image shows the collapse under way (t = 0.5) rather than the initial column.
     still_index = int(np.argmin(abs(times - 0.5)))
-    save_figure(figure, "dam-break", height=750, static_data=frame_traces(still_index))
+    save_figure(
+        figure, "dam-break", height=750, static_data=frame_traces(still_index, webgl=False), static_active=still_index
+    )
 
     trajectory = go.Figure()
     trajectory.add_scatter(

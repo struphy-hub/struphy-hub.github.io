@@ -6,6 +6,7 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `poisson-source.py` / `weak-landau-damping.py` — a field-vs-exact-solution comparison (1D line plot / log-scale energy plot)
 - `vlasov-tokamak.py` — kinetic/PIC 3D particle trajectories (`Scatter3d`)
 - `diocotron-instability.py` — a 2D binned density animated over time (`Heatmap` + frames)
+- `dam-break.py` — SPH markers (no grid): a two-panel animation of the markers and their kernel density estimate, built with `make_subplots` and a frame per saved step
 - `strong-landau-damping.py`, `two-stream-instability.py`, `bump-on-tail.py`, `weibel-instability.py` — other Vlasov-Ampère/Maxwell instability benchmarks, all sharing the same field-energy-vs-time diagnostic pattern
 
 This walks through adding a new one, using `poisson-source.py` as the worked reference.

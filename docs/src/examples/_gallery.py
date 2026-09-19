@@ -28,17 +28,20 @@ def save_figure(
     suffix: str = "",
     static_z=None,
     static_data=None,
+    static_active=None,
 ) -> None:
     """Write `<stem><suffix>.png` (static fallback) and `<stem><suffix>.html` (interactive).
 
     An animation that starts at t = 0 can still have an informative static image: `static_z`
     replaces the heatmap in the first trace for the PNG only, and `static_data` (a list of traces,
-    e.g. one frame's `data`) gives the traces of the PNG (with the figure's layout).
+    e.g. one frame's `data`) gives the traces of the PNG (with the figure's layout, its slider set to `static_active`).
     """
     png_path = Path(f"{stem}{suffix}.png")
     html_path = Path(f"{stem}{suffix}.html")
     if static_data is not None:
         still = go.Figure(data=static_data, layout=figure.layout)
+        if static_active is not None and still.layout.sliders:
+            still.layout.sliders[0].active = static_active  # the slider shows the still's frame
         still.write_image(png_path, width=width, height=height, scale=2)
     elif static_z is not None:
         initial_z = figure.data[0].z
