@@ -8,8 +8,7 @@ the Kelvin-Helmholtz instability, which given enough time rolls those
 ripples up into a rotating pattern of discrete vortices.
 
 Adapted from Struphy's maintained example
-(examples/ToyGyrokinetic/diocotron_instability), at reduced resolution and
-run length to keep it a quick gallery run. Parameters follow Crouseilles,
+(examples/ToyGyrokinetic/diocotron_instability). Parameters follow Crouseilles,
 Mehrenberger & Vecil (2014), https://doi.org/10.1140/epjd/e2014-50180-9.
 
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
@@ -43,17 +42,18 @@ model = ToyDrift(epsilon=1.0, alpha=1.0, base_units=BaseUnits(kBT=1.0))
 # An annular ring, r in [1, 10], with a uniform background field.
 domain = domains.HollowCylinder(a1=1.0, a2=10.0, Lz=10.0)
 equil = equils.HomogenSlab()
-grid = grids.TensorProductGrid(num_elements=(32, 64, 1), mpi_dims_mask=(False, True, False))
+grid = grids.TensorProductGrid(num_elements=(64, 128, 1), mpi_dims_mask=(False, True, False))
 derham_opts = DerhamOptions(degree=(3, 3, 1), bcs=(("dirichlet", "dirichlet"), None, None))
 time_opts = Time(dt=0.02, Tend=25.0, split_algo="LieTrotter")
 
-# A binned e1-e2 (radial-angular) density snapshot at every step, for the animation.
-density_bins = BinningPlot(slice="e1_e2", n_bins=(128, 128), ranges=((0.0, 1.0), (0.0, 1.0)))
+# A high-resolution radial-angular density snapshot at every step.  The extra
+# angular samples make the m = 4 ripples legible in the interactive movie.
+density_bins = BinningPlot(slice="e1_e2", n_bins=(192, 256), ranges=((0.0, 1.0), (0.0, 1.0)))
 model.kinetic_ions.set_markers(
-    loading_params=LoadingParameters(ppc=20, loading="sobol_standard", spatial="disc"),
+    loading_params=LoadingParameters(ppc=40, loading="sobol_standard", spatial="disc"),
     weights_params=WeightsParameters(control_variate=True, reject_weights=True, threshold=0.0001),
     boundary_params=BoundaryParameters(),
-    sorting_params=SortingParameters(boxes_per_dim=(8, 8, 1), do_sort=True, sorting_frequency=5),
+    sorting_params=SortingParameters(boxes_per_dim=(16, 16, 1), do_sort=True, sorting_frequency=5),
     saving_params=SavingParameters(binning_plots=(density_bins,)),
     bufsize=2.0,
 )
@@ -100,7 +100,7 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, save_figure
+    from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
@@ -113,19 +113,24 @@ if __name__ == "__main__":
     frames_data = np.asarray(density)  # (time, radius, angle)
     times = np.asarray(density.t)
 
-    # A simple measure of how far the ring has departed from its initial,
-    # axisymmetric shape: the standard deviation of density around each
-    # radius, averaged over the ring -- ~0 initially, growing as vortices form.
-    asymmetry = np.array([float(np.mean(np.std(frame, axis=1))) for frame in frames_data])
+    # Resolve the azimuthal spectrum inside the initial ring.  This makes the
+    # seeded m = 4 mode visible as a measurement rather than just a feature in
+    # the animation.
+    theta = np.deg2rad(angle_deg)
+    ring = frames_data[:, (radius >= r_minus) & (radius <= r_plus), :]
+    mean_density = np.mean(ring, axis=(1, 2))
+    mode_amplitudes = {
+        m: np.abs(np.mean(ring * np.exp(-1j * m * theta)[None, None, :], axis=(1, 2))) / mean_density
+        for m in range(1, 9)
+    }
     growth_window = (times > 5.0) & (times < 15.0)
-    growth_rate = float(np.polyfit(times[growth_window], np.log(asymmetry[growth_window] + 1e-12), 1)[0])
-    print(f"Measured asymmetry growth rate: {growth_rate:.4f}")
+    growth_fit = np.polyfit(times[growth_window], np.log(mode_amplitudes[mode_number][growth_window] + 1e-12), 1)
+    growth_rate = float(growth_fit[0])
+    print(f"Measured m = {mode_number} growth rate: {growth_rate:.4f}")
 
-    # Every saved timestep is a full 64x64 heatmap; embedding all of them (one
-    # per simulation step) bloats the exported page to tens of megabytes and
-    # makes it stutter. Subsample to a fixed cap of animation frames -- plenty
-    # for a smooth-looking movie, and lets the browser actually keep up.
-    n_frames = min(150, len(frames_data))
+    # Keep the high-resolution movie responsive by using evenly spaced frames
+    # instead of embedding all 1,250 saved timesteps.
+    n_frames = min(120, len(frames_data))
     frame_indices = np.linspace(0, len(frames_data) - 1, n_frames, dtype=int)
     frames = [
         go.Frame(name=f"{times[idx]:.1f}", data=[go.Heatmap(z=frames_data[idx], x=angle_deg, y=radius, zmin=0, zmax=1.2, colorscale="Viridis")])
@@ -135,11 +140,11 @@ if __name__ == "__main__":
     # interactive page's initial view and for the static PNG export, which
     # can only ever capture the base `data`, not the animation frames.
     figure = go.Figure(
-        data=[go.Heatmap(z=frames_data[-1], x=angle_deg, y=radius, zmin=0, zmax=1.2, colorscale="Viridis", colorbar={"title": "density"})],
+        data=[go.Heatmap(z=frames_data[-1], x=angle_deg, y=radius, zmin=0, zmax=1.2, colorscale="Viridis", colorbar={"title": "charge density"})],
         frames=frames,
     )
     figure.update_layout(
-        title="Diocotron instability: ring density n(r, θ)",
+        title="Diocotron instability: resolved ring density n(r, θ)",
         xaxis_title="θ [deg]",
         yaxis_title="r [a.u.]",
         template="plotly_white",
@@ -177,7 +182,91 @@ if __name__ == "__main__":
         ],
     )
 
-    save_figure(figure, "diocotron-instability", height=750)
+    save_figure(figure, "diocotron-instability", height=800)
+
+    mode_figure = go.Figure()
+    for m, amplitude in mode_amplitudes.items():
+        mode_figure.add_trace(go.Scatter(
+            x=times,
+            y=amplitude + 1e-12,
+            mode="lines",
+            name=f"m = {m}",
+            line={"width": 3 if m == mode_number else 1.2, "color": "#168aad" if m == mode_number else None},
+            opacity=1.0 if m == mode_number else 0.55,
+        ))
+    mode_figure.add_trace(go.Scatter(
+        x=times[growth_window],
+        y=np.exp(growth_fit[1] + growth_rate * times[growth_window]),
+        mode="lines",
+        name=f"m = {mode_number} exponential fit",
+        line={"dash": "dash", "color": "#f08a4b", "width": 2},
+    ))
+    mode_figure.update_layout(
+        title="Diocotron instability: azimuthal mode growth",
+        xaxis_title="t [a.u.]",
+        yaxis_title="relative mode amplitude",
+        yaxis={"type": "log"},
+        template="plotly_white",
+        margin={"l": 70, "r": 30, "t": 80, "b": 60},
+        legend={"title": "azimuthal mode"},
+    )
+
+    # The same density data viewed in physical x-y coordinates.  Plotting the
+    # inner and outer density interfaces makes the rotating four-lobed shape
+    # immediately recognizable, unlike a rectangular r-theta heatmap.
+    interface_level = 0.2
+
+    def interface_traces(frame):
+        occupied = frame >= interface_level
+        inner, outer = [], []
+        for column in occupied.T:
+            indices = np.flatnonzero(column)
+            inner.append(radius[indices[0]] if len(indices) else np.nan)
+            outer.append(radius[indices[-1]] if len(indices) else np.nan)
+
+        def curve(values, name, color):
+            values = np.asarray(values)
+            closed_r = np.append(values, values[0])
+            closed_theta = np.append(theta, theta[0])
+            return go.Scatter(
+                x=closed_r * np.cos(closed_theta),
+                y=closed_r * np.sin(closed_theta),
+                mode="lines",
+                name=name,
+                line={"color": color, "width": 3},
+                connectgaps=False,
+            )
+
+        return [curve(inner, "inner interface", "#168aad"), curve(outer, "outer interface", "#f08a4b")]
+
+    interface_frames = [go.Frame(name=f"{times[idx]:.1f}", data=interface_traces(frames_data[idx])) for idx in frame_indices]
+    interface_figure = go.Figure(data=interface_traces(frames_data[-1]), frames=interface_frames)
+    interface_figure.update_layout(
+        title="Diocotron instability: ring interfaces in physical space",
+        xaxis={"title": "x [a.u.]", "range": [-7, 7], "scaleanchor": "y", "scaleratio": 1},
+        yaxis={"title": "y [a.u.]", "range": [-7, 7]},
+        template="plotly_white",
+        margin={"l": 70, "r": 30, "t": 80, "b": 130},
+        updatemenus=[{"type": "buttons", "showactive": False, "x": 0.0, "xanchor": "left", "y": -0.28, "yanchor": "top", "buttons": [{"label": "Play", "method": "animate", "args": [None, {"frame": {"duration": 45, "redraw": True}, "fromcurrent": True}]}]}],
+        sliders=[{"steps": [{"args": [[frame.name], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate"}], "label": frame.name, "method": "animate"} for frame in interface_frames], "active": len(interface_frames) - 1, "x": 0.12, "len": 0.88, "y": -0.18, "currentvalue": {"prefix": "t = "}}],
+    )
+
+    figures = [
+        save_extra_figure(
+            mode_figure,
+            "diocotron-instability",
+            "mode-growth",
+            alt="Growth of the diocotron instability's azimuthal modes",
+            caption="The seeded m = 4 perturbation grows above the other azimuthal modes. The dashed line is an exponential fit over the linear-growth interval, providing a quantitative companion to the animated density.",
+        ),
+        save_extra_figure(
+            interface_figure,
+            "diocotron-instability",
+            "ring-interfaces",
+            alt="Inner and outer diocotron ring interfaces evolving in physical space",
+            caption="The inner and outer density interfaces plotted in physical x-y space. Their four-lobed distortion reveals the seeded diocotron mode more directly than the radial-angular density map; drag the slider or press Play to follow the rotation.",
+        ),
+    ]
 
     profiling = export_profiling(sim, "diocotron-instability")
 
@@ -185,5 +274,6 @@ if __name__ == "__main__":
         "diocotron-instability",
         measuredGrowthRate=growth_rate,
         modeNumber=mode_number,
+        figures=figures,
         **profiling,
     )

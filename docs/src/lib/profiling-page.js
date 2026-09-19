@@ -64,9 +64,10 @@ async function mountTable(url, tbody, filterInput) {
           <td>${fmt(s.total_duration_seconds)}</td>
         </tr>
       `;
-    })
+  })
     .join('');
   if (!tbody.innerHTML) tbody.innerHTML = '<tr><td colspan="6">No region statistics available.</td></tr>';
+  applyTableFilter(filterInput, tbody);
 
   let timer = null;
   filterInput.addEventListener('input', () => {
@@ -138,6 +139,7 @@ export function mountProfilingSection(root) {
 
   const tableBody = root.querySelector('#pf-region-body');
   const tableFilter = root.querySelector('#pf-filter-table');
+  if (tableFilter && !tableFilter.value) tableFilter.value = DEFAULT_REGION_FILTER;
   if (stats && tableBody && tableFilter) {
     mountTable(stats, tableBody, tableFilter).catch((error) => {
       tableBody.innerHTML = `<tr><td colspan="6">Could not load region statistics: ${esc(error)}</td></tr>`;
