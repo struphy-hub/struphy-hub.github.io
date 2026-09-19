@@ -35,23 +35,37 @@ def _reject_constant(name: str):
 def check_metadata(stem: str) -> list[str]:
     path = OUTPUT_DIR / f"{stem}.metadata.json"
     if not path.is_file():
-        return [f"{stem}: no {path.relative_to(ROOT)} (run `python generate_examples.py`)"]
+        return [
+            f"{stem}: no {path.relative_to(ROOT)} (run `python generate_examples.py`)"
+        ]
     try:
         data = json.loads(path.read_text(), parse_constant=_reject_constant)
     except ValueError as error:
         return [f"{stem}: {path.name} is not valid JSON: {error}"]
-    problems = [f"{stem}: {path.name} lacks `{key}`" for key in REQUIRED if data.get(key) in (None, "")]
+    problems = [
+        f"{stem}: {path.name} lacks `{key}`"
+        for key in REQUIRED
+        if data.get(key) in (None, "")
+    ]
     if not isinstance(data.get("steps"), int) or data.get("steps", 0) <= 0:
-        problems.append(f"{stem}: `steps` in {path.name} is not a positive integer: {data.get('steps')!r}")
+        problems.append(
+            f"{stem}: `steps` in {path.name} is not a positive integer: {data.get('steps')!r}"
+        )
     return problems
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--require-figures", action="store_true", help="also require <stem>.html of every example")
+    parser.add_argument(
+        "--require-figures",
+        action="store_true",
+        help="also require <stem>.html of every example",
+    )
     args = parser.parse_args()
 
-    stems = sorted(p.stem for p in SCRIPTS_DIR.glob("*.py") if not p.name.startswith("_"))
+    stems = sorted(
+        p.stem for p in SCRIPTS_DIR.glob("*.py") if not p.name.startswith("_")
+    )
     problems: list[str] = []
     if not stems:
         problems.append(f"no example scripts found in {SCRIPTS_DIR.relative_to(ROOT)}")
@@ -59,20 +73,29 @@ def main() -> int:
         problems += check_metadata(stem)
         route = ROUTES_DIR / f"{stem}.py.ts"
         if not route.is_file():
-            problems.append(f"{stem}: no download route {route.relative_to(ROOT)} (its 'Download .py' link would be a 404)")
+            problems.append(
+                f"{stem}: no download route {route.relative_to(ROOT)} (its 'Download .py' link would be a 404)"
+            )
         if args.require_figures and not (OUTPUT_DIR / f"{stem}.html").is_file():
-            problems.append(f"{stem}: no {stem}.html in {OUTPUT_DIR.relative_to(ROOT)}; the example did not produce its figure")
+            problems.append(
+                f"{stem}: no {stem}.html in {OUTPUT_DIR.relative_to(ROOT)}; the example did not produce its figure"
+            )
     # Metadata of a script that no longer exists would still get a page.
     for path in sorted(OUTPUT_DIR.glob("*.metadata.json")):
         if path.name.removesuffix(".metadata.json") not in stems:
-            problems.append(f"{path.name}: no example script docs/src/examples/{path.name.removesuffix('.metadata.json')}.py")
+            problems.append(
+                f"{path.name}: no example script docs/src/examples/{path.name.removesuffix('.metadata.json')}.py"
+            )
 
     if problems:
         print(f"{len(problems)} problem(s) in the example files:", file=sys.stderr)
         for problem in problems:
             print(f"  - {problem}", file=sys.stderr)
         return 1
-    print(f"OK: {len(stems)} examples" + (", with figures" if args.require_figures else ""))
+    print(
+        f"OK: {len(stems)} examples"
+        + (", with figures" if args.require_figures else "")
+    )
     return 0
 
 
