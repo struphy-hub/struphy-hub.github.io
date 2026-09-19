@@ -66,7 +66,7 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, publish_thumbnail, save_extra_figure, save_figure
+    from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.run(profiling_activated=True)
     output.pproc(physical=True)
@@ -312,6 +312,5 @@ if __name__ == "__main__":
         energyDrift=energy_drift,
         modeNumber=mode_number,
         figures=figures,
-        **publish_thumbnail("coaxial-waveguide"),
         **profiling,
     )

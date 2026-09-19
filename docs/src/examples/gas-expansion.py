@@ -105,7 +105,7 @@ def exact_solution(positions, time):
 if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
-    from _gallery import export_profiling, merge_metadata, publish_thumbnail, save_extra_figure, save_figure
+    from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.run(profiling_activated=True)
     output.pproc()
@@ -460,6 +460,5 @@ if __name__ == "__main__":
         velocityMedianErrorFinal=velocity_median_final,
         massError=mass_error,
         figures=figures,
-        **publish_thumbnail("gas-expansion"),
         **profiling,
     )

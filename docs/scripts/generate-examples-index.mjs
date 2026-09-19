@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { access, readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,6 +11,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const examplesDir = join(root, 'public', 'examples');
+const imagesDir = join(root, 'public', 'images', 'examples');
+const scriptsDir = join(root, 'src', 'examples');
 const outFile = join(root, 'src', 'data', 'examples-index.json');
 
 function toSlug(value) {
@@ -20,6 +22,29 @@ function toSlug(value) {
     .replace(/[^a-zA-Z0-9-]/g, '')
     .replace(/-+/g, '-')
     .toLowerCase();
+}
+
+const exists = (path) => access(path).then(() => true, () => false);
+
+// Everything in public/examples and public/images/examples is generated (and gitignored), so a fresh
+// clone has none of it. Each example page imports its metadata JSON, so stop here with a clear
+// instruction rather than letting the build fail on a missing import.
+const scripts = (await readdir(scriptsDir))
+  .filter((name) => name.endsWith('.py') && !name.startsWith('_'))
+  .map((name) => name.replace(/\.py$/, ''));
+const missing = [];
+for (const slug of scripts) {
+  if (!(await exists(join(examplesDir, `${slug}.metadata.json`)))) missing.push(slug);
+}
+if (missing.length > 0) {
+  console.error(
+    `\nMissing example metadata for: ${missing.join(', ')}\n\n` +
+      'These files are generated, not committed. From the repository root run\n' +
+      '  python cli.py metadata --all      # metadata only; needs Struphy, not its compiled kernels\n' +
+      '  python cli.py run <example>       # metadata, figures and thumbnails of one example\n' +
+      'or, for the pages to show their figures, python cli.py run --all (slow).\n',
+  );
+  process.exit(1);
 }
 
 const files = (await readdir(examplesDir)).filter((name) => name.endsWith('.metadata.json')).sort();
@@ -34,7 +59,8 @@ for (const filename of files) {
     description: data.description,
     model: data.model,
     modelSlug: data.model ? toSlug(data.model) : null,
-    thumbnail: data.thumbnail ?? null,
+    // Named after the script, like every generated file; absent until the example has been run.
+    thumbnail: (await exists(join(imagesDir, `${slug}.png`))) ? `/images/examples/${slug}.png` : null,
   });
 }
 
