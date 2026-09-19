@@ -27,6 +27,7 @@ __pycache__/
 /docs/public/examples/*-flame.json
 /docs/public/examples/*-region-stats.json
 docs/src/examples/EXAMPLE_IDEAS.md
+docs/public/examples/struphy.log.*
 
 # Editors and operating systems
 .idea/
