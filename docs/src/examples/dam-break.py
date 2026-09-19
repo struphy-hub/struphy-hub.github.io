@@ -87,8 +87,8 @@ sim = Simulation(
     name="Dam break",
     description=(
         "A dense fluid column collapses under gravity in a closed box. Smoothed "
-        "particle hydrodynamics follows the splash, the run-up on the far wall "
-        "and the sloshing that follows, using markers alone."
+        "particle hydrodynamics follows the collapse, the wave across the box and "
+        "the settling of the fluid, using markers alone."
     ),
     env=env,
     time_opts=Time(dt=0.02, Tend=3.0, split_algo="Strang"),
@@ -98,7 +98,7 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from _gallery import export_profiling, merge_metadata, publish_thumbnail, save_extra_figure, save_figure
 
     output = sim.run(profiling_activated=True)
     output.pproc()
@@ -205,8 +205,8 @@ if __name__ == "__main__":
         ],
     )
 
-    # The still image shows the splash on the far wall rather than the initial column.
-    still_index = min(arrival_index + 10, len(times) - 1)
+    # The still image shows the collapse under way (t = 0.5) rather than the initial column.
+    still_index = int(np.argmin(abs(times - 0.5)))
     save_figure(figure, "dam-break", height=750, static_data=frame_traces(still_index))
 
     trajectory = go.Figure()
@@ -239,7 +239,12 @@ if __name__ == "__main__":
             "dam-break",
             "front",
             alt="Position of the fluid front and height of the centre of mass over time",
-            caption="DRAFT",
+            caption=(
+                f"The front of the fluid (the largest marker x) and the height of its centre of mass. The front "
+                f"reaches the far wall at t ≈ {arrival_time:.2f} and stays there. The centre of mass falls from 0.5 "
+                "to about 0.15 by t ≈ 0.4, close to the free-fall time of 0.32, rises slightly as the fluid rebounds, "
+                "and then settles slowly towards a layer at the bottom."
+            ),
         ),
     ]
 
@@ -252,5 +257,6 @@ if __name__ == "__main__":
         markersInBox=in_box,
         kernel="Gaussian, 2D",
         figures=figures,
+        **publish_thumbnail("dam-break"),
         **profiling,
     )

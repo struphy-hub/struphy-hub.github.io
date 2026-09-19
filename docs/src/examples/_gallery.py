@@ -58,6 +58,18 @@ def save_figure(
     print(f"Saved {html_path.resolve()}")
 
 
+def publish_thumbnail(stem: str) -> dict:
+    """Copy the main figure's PNG to `../images/examples/` and return the metadata fields that point to it.
+
+    The gallery page and the `<noscript>` fallback use the committed copy, the example page the
+    interactive HTML. Pass the result to `merge_metadata(stem, **fields)`.
+    """
+    images = Path("../images/examples")
+    if images.is_dir():
+        shutil.copyfile(f"{stem}.png", images / f"{stem}.png")
+    return {"thumbnail": f"/images/examples/{stem}.png", "interactive": f"/examples/{stem}.html"}
+
+
 def save_extra_figure(figure, stem: str, key: str, *, alt: str, caption: str, static_z=None) -> dict:
     """Save an additional figure of an example and return its entry for the `figures` metadata list.
 
