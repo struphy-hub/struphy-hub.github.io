@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const examplesDir = join(root, 'public', 'examples');
 const imagesDir = join(root, 'public', 'images', 'examples');
+const exampleDomainsDir = join(root, 'public', 'example-domains');
 const scriptsDir = join(root, 'src', 'examples');
 const outFile = join(root, 'src', 'data', 'examples-index.json');
 
@@ -65,6 +66,9 @@ for (const filename of files) {
     data,
     // Named after the script, like every generated file; absent until the example has been run.
     thumbnail: (await exists(join(imagesDir, `${slug}.png`))) ? `/images/examples/${slug}.png` : null,
+    domainViewer: (await exists(join(exampleDomainsDir, `${slug}.json`)))
+      ? JSON.parse(await readFile(join(exampleDomainsDir, `${slug}.json`), 'utf8'))
+      : null,
   });
 }
 

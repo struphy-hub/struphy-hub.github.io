@@ -138,7 +138,8 @@ jobs:
           path: |
             docs/public/examples/${{ matrix.example }}*
             docs/public/images/examples/${{ matrix.example }}*
-          key: struphy-example-mpi${{ env.MPI_RANKS }}-${{ matrix.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', matrix.example), 'docs/src/examples/_*.py', 'submodules/struphy/src/struphy/**/*.py') }}
+            docs/public/example-domains/${{ matrix.example }}*
+          key: struphy-example-domain-v1-mpi${{ env.MPI_RANKS }}-${{ matrix.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', matrix.example), 'docs/src/examples/_*.py', 'submodules/struphy/src/struphy/**/*.py') }}
 
       - name: Install Struphy from this repo's pinned submodule commit
         # Same approach as struphy's own CI
@@ -280,6 +281,15 @@ jobs:
             fi
           done
 
+      - name: Export the domain used by this example
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
+          python generate_example_domain.py "${{ matrix.example }}" \
+            --metadata-root docs/public/examples/struphy_gallery_runs \
+            --output-dir docs/public/example-domains
+
       - name: Clean up simulation scratch output
         if: steps.cache-example.outputs.cache-hit != 'true'
         run: rm -rf docs/public/examples/struphy_gallery_runs docs/public/examples/struphy.log
@@ -294,6 +304,7 @@ jobs:
           path: |
             docs/public/examples/${{ matrix.example }}*
             docs/public/images/examples/${{ matrix.example }}*
+            docs/public/example-domains/${{ matrix.example }}*
           retention-days: 1
 
   build:
@@ -344,7 +355,9 @@ jobs:
           merge-multiple: true
 
       - name: Verify generated examples
-        run: test -n "$(find docs/public/examples -maxdepth 1 -name '*.html' -print -quit)"
+        run: |
+          test -n "$(find docs/public/examples -maxdepth 1 -name '*.html' -print -quit)"
+          test -n "$(find docs/public/example-domains -maxdepth 1 -name '*.vtp' -print -quit)"
 
       - name: Check example metadata, figures and download routes
         run: python scripts/check_examples.py --require-figures

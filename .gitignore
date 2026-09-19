@@ -6,6 +6,7 @@ __pycache__/
 # Generated data and logs
 /*.vtp
 /docs/public/domains/
+/docs/public/example-domains/
 /docs/src/data/equilibria/*.json
 /docs/src/data/perturbations/*.json
 *.log

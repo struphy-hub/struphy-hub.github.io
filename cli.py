@@ -343,6 +343,28 @@ def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts
             f"script exited with code {code}{tail}",
         )
 
+    # Preserve the actual domain used by this run before clearing the scratch
+    # folder that contains Struphy's run_metadata.json.
+    domain_code = subprocess.call(
+        [
+            sys.executable,
+            str(ROOT / "generate_example_domain.py"),
+            stem,
+            "--metadata-root",
+            str(OUTPUT_DIR / "struphy_gallery_runs"),
+            "--output-dir",
+            str(ROOT / "docs" / "public" / "example-domains"),
+        ],
+        cwd=ROOT,
+    )
+    if domain_code:
+        return (
+            False,
+            time.time() - started,
+            collect(stem, run_started),
+            "domain export from run metadata failed",
+        )
+
     if not args.keep_scratch:
         clean_scratch()
 
