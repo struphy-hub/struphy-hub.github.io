@@ -32,6 +32,57 @@ jobs:
           examples=$(cd docs/src/examples && find . -maxdepth 1 -type f -name '*.py' ! -name '_*.py' -printf '%f\n' | sed 's/\.py$//' | jq -R -s -c 'split("\n")[:-1]')
           echo "examples=$examples" >> "$GITHUB_OUTPUT"
 
+  # A fast test of the site itself, before the examples are run. The Astro build needs the metadata of
+  # every example but none of their results, and `generate_examples.py` writes that metadata by importing
+  # the scripts without running them (no compiled kernels needed). So this builds the whole site, with
+  # every page, in a few minutes, and a broken page, route or metadata file fails here instead of after the
+  # slow example runs. The example jobs wait for it. Its generation steps mirror the `build` job below.
+  check-site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Struphy
+        run: python -m pip install --upgrade pip && python -m pip install ./submodules/struphy
+
+      - name: Generate equilibrium slices
+        run: python generate_equilibrium_slices.py
+
+      - name: Generate perturbation plots
+        run: python generate_perturbations.py
+
+      - name: Generate domain geometries
+        run: python generate_domains.py docs/public/domains
+
+      - name: Generate example metadata (no simulation is run)
+        run: python generate_examples.py
+
+      - name: Check example metadata and download routes
+        run: python scripts/check_examples.py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install dependencies
+        working-directory: docs
+        run: npm ci
+
+      - name: Build site (without the example results)
+        working-directory: docs
+        run: npm run build
+
   # Their outputs are gitignored (see .gitignore), so every deploy regenerates them here
   # instead of pushing multi-MB HTML/HDF5 files to the repo. Runs in struphy's own
   # precompiled image (see submodules/struphy/docker/ubuntu-latest-with-struphy.dockerfile
@@ -46,7 +97,7 @@ jobs:
   # way to share compiled kernels across separate container instances -- worth it since
   # that's small next to the simulation run times this is meant to parallelize away.
   run-example:
-    needs: list-examples
+    needs: [list-examples, check-site]
     strategy:
       fail-fast: false
       matrix:
@@ -294,6 +345,9 @@ jobs:
 
       - name: Verify generated examples
         run: test -n "$(find docs/public/examples -maxdepth 1 -name '*.html' -print -quit)"
+
+      - name: Check example metadata, figures and download routes
+        run: python scripts/check_examples.py --require-figures
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
