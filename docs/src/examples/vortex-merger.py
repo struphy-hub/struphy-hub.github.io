@@ -45,7 +45,7 @@ time_opts = Time(dt=0.02, Tend=20.0, split_algo="LieTrotter")
 # A binned radial-angular density snapshot at every step.
 density_bins = BinningPlot(slice="e1_e2", n_bins=(48, 96), ranges=((0.0, 1.0), (0.0, 1.0)))
 model.kinetic_ions.set_markers(
-    loading_params=LoadingParameters(ppc=60, loading="sobol_standard", spatial="disc"),
+    loading_params=LoadingParameters(ppc=30, loading="sobol_standard", spatial="disc"),
     # The markers are loaded over the whole annulus; those outside the blobs carry no weight and are removed.
     weights_params=WeightsParameters(control_variate=True, reject_weights=True, threshold=0.0001),
     boundary_params=BoundaryParameters(),
@@ -58,6 +58,9 @@ model.propagators.gc_poisson.options = model.propagators.gc_poisson.Options()
 model.propagators.push_gc_bxe.options = model.propagators.push_gc_bxe.Options(
     algo="discrete_gradient_1st_order_newton",
     evaluate_e_field=True,
+    # The Newton iteration of the discrete-gradient push, which needs about ten iterations per step at the
+    # default 1e-7, is the main cost of the run. 1e-5 is far below the error of the time step.
+    tol=1e-5,
 )
 
 # Two Gaussian blobs of peak density `peak` and width `width`, on the circle of radius `ring_radius`,
