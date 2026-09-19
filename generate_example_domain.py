@@ -18,13 +18,20 @@ from generate_domains import export_grid, json_safe
 
 def export_example_domain(slug: str, metadata_root: Path, output_dir: Path) -> Path:
     matches = sorted(metadata_root.glob("**/run_metadata.json"))
-    if len(matches) != 1:
-        raise RuntimeError(
-            f"Expected one run_metadata.json below {metadata_root}, found {len(matches)}."
-        )
+    if not matches:
+        raise RuntimeError(f"No run_metadata.json found below {metadata_root}.")
 
-    metadata_path = matches[0]
-    results = json.loads(metadata_path.read_text(encoding="utf-8"))
+    # Comparison examples can run more than one simulation. The primary
+    # gallery simulation has a name; use that domain for the page while
+    # preserving every run's domain record in the generated manifest.
+    records = [
+        (path, json.loads(path.read_text(encoding="utf-8")))
+        for path in matches
+    ]
+    metadata_path, results = next(
+        ((path, record) for path, record in records if record.get("name")),
+        records[0],
+    )
     domain = Domain.from_dict(results["domain"])
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -38,6 +45,14 @@ def export_example_domain(slug: str, metadata_root: Path, output_dir: Path) -> P
                 "name": results["domain"]["type"],
                 "parameters": json_safe(results["domain"].get("params", {})),
                 "run_metadata": str(metadata_path),
+                "runs": [
+                    {
+                        "name": record.get("name", ""),
+                        "domain": json_safe(record["domain"]),
+                        "run_metadata": str(path),
+                    }
+                    for path, record in records
+                ],
             },
             separators=(",", ":"),
         )
