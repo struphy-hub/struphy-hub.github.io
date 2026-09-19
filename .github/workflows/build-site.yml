@@ -52,6 +52,9 @@ jobs:
       matrix:
         example: ${{ fromJson(needs.list-examples.outputs.examples) }}
     runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      MPI_RANKS: 4
     container:
       image: ghcr.io/struphy-hub/struphy/ubuntu-with-struphy:latest
       credentials:
@@ -72,45 +75,19 @@ jobs:
         # editable install below shells out to git (setuptools-scm) and would hit this.
         run: git config --global --add safe.directory '*'
 
-      # Most examples name their figure output after their own script stem, but that's a
-      # convention, not a rule -- maxwell-wave.py writes maxwell-dispersion.png/.html, for
-      # instance. The committed metadata JSON's "interactive" field always has the real
-      # name (set by hand once when the example was added), so read it instead of assuming
-      # -- covers this and any future example that does the same thing.
-      - name: Discover this example's output filename
-        id: discover
-        run: |
-          STEM="${{ matrix.example }}"
-          METADATA="docs/public/examples/$STEM.metadata.json"
-          OUTPUT_STEM=$(STEM="$STEM" METADATA="$METADATA" python3 -c "
-          import json, os
-          stem = os.environ['STEM']
-          try:
-              data = json.load(open(os.environ['METADATA']))
-          except FileNotFoundError:
-              data = {}
-          name = data.get('interactive', '').rsplit('/', 1)[-1]
-          if name.endswith('.html'):
-              name = name[:-5]
-          print(name or stem)
-          ")
-          echo "output_stem=$OUTPUT_STEM" >> "$GITHUB_OUTPUT"
-
       # Each run is deterministic (fixed seeds), so cache on this example script's and
-      # Struphy's own source, and skip the expensive rebuild when neither changed. Both
-      # globs are needed since an example's own stem and its output filename can differ
-      # (see the discovery step above); no example's stem is a prefix of another's, and
-      # this also covers two-stream-instability's extra "-phasespace" pair.
+      # Struphy's own source, and skip the expensive rebuild when neither changed. Every
+      # file an example writes is named after its script stem (the metadata JSON, the
+      # figures, their thumbnails); no example's stem is a prefix of another's, and the
+      # glob also covers two-stream-instability's extra "-phasespace" pair.
       - name: Cache generated example
         id: cache-example
         uses: actions/cache@v4
         with:
           path: |
             docs/public/examples/${{ matrix.example }}*
-            docs/public/examples/${{ steps.discover.outputs.output_stem }}*
             docs/public/images/examples/${{ matrix.example }}*
-            docs/public/images/examples/${{ steps.discover.outputs.output_stem }}*
-          key: struphy-example-${{ matrix.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', matrix.example), 'submodules/struphy/src/struphy/**/*.py') }}
+          key: struphy-example-mpi${{ env.MPI_RANKS }}-${{ matrix.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', matrix.example), 'docs/src/examples/_*.py', 'submodules/struphy/src/struphy/**/*.py') }}
 
       - name: Install Struphy from this repo's pinned submodule commit
         # Same approach as struphy's own CI
@@ -213,12 +190,29 @@ jobs:
         shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
-          python "../../src/examples/${{ matrix.example }}.py"
+          # The scripts run on up to four MPI ranks (they write their files on rank 0 only; see
+          # docs/src/examples/_gallery.py), one per visible CPU, hence a single OpenMP thread each.
+          # OpenMPI counts physical cores as slots and refuses to start on more ranks than that, but
+          # a hosted runner's vCPUs are hyperthreads (4 vCPUs = 2 cores), hence --use-hwthread-cpus;
+          # --oversubscribe keeps a smaller runner from failing and --bind-to none from pinning ranks.
+          # The SPH examples hang under MPI in Struphy (ranks disagree on the box communication in
+          # `update_distr_functions`), so they run serially until that is fixed. `timeout` keeps any
+          # other hang from holding the runner.
+          # Count the CPUs first: nproc honours OMP_NUM_THREADS and would report 1 after the export.
+          cpus=$(nproc)
+          export OMP_NUM_THREADS=1
+          ranks=$(( MPI_RANKS < cpus ? MPI_RANKS : cpus ))
+          case "${{ matrix.example }}" in
+            dam-break|gas-expansion) ranks=1 ;;
+          esac
+          echo "Running ${{ matrix.example }} on $ranks MPI rank(s); $cpus CPU(s) visible"
+          timeout 90m mpirun --use-hwthread-cpus --oversubscribe --bind-to none -n "$ranks" \
+            python "../../src/examples/${{ matrix.example }}.py"
 
       - name: Copy example thumbnails
         if: steps.cache-example.outputs.cache-hit != 'true'
         run: |
-          for f in docs/public/examples/${{ matrix.example }}*.png docs/public/examples/${{ steps.discover.outputs.output_stem }}*.png; do
+          for f in docs/public/examples/${{ matrix.example }}*.png; do
             if [ -e "$f" ]; then
               cp "$f" docs/public/images/examples/
             fi
@@ -229,7 +223,7 @@ jobs:
         run: rm -rf docs/public/examples/struphy_gallery_runs docs/public/examples/struphy.log
 
       - name: Verify generated example
-        run: test -f "docs/public/examples/${{ steps.discover.outputs.output_stem }}.html"
+        run: test -f "docs/public/examples/${{ matrix.example }}.html"
 
       - name: Upload generated example
         uses: actions/upload-artifact@v4
@@ -237,9 +231,7 @@ jobs:
           name: generated-example-${{ matrix.example }}
           path: |
             docs/public/examples/${{ matrix.example }}*
-            docs/public/examples/${{ steps.discover.outputs.output_stem }}*
             docs/public/images/examples/${{ matrix.example }}*
-            docs/public/images/examples/${{ steps.discover.outputs.output_stem }}*
           retention-days: 1
 
   build:
