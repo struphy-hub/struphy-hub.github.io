@@ -66,9 +66,9 @@ const highlightedSource = await codeToHtml(exampleSource, {
     <section class="explanation" aria-labelledby="setup-title">
       <div>
         <p class="eyebrow">Physical problem</p>
-        <h2 id="setup-title">Early nonlinear evolution of crossed vortices</h2>
+        <h2 id="setup-title">Nonlinear evolution of crossed vortices</h2>
         <p>On the periodic square [0, 2π]², the initial velocity is u = (−sin y, sin x, 0) and the magnetic field is B = (−sin y, sin 2x, 0). Uniform density and entropy complete the initial condition. The ideal version of ViscoResistiveMHD evolves density, velocity, entropy and magnetic flux without the optional viscous and resistive propagators.</p>
-        <p>This compact calculation follows the early nonlinear interaction to t = 0.5. It illustrates compression and magnetic-field deformation on a coarse grid; it is not a resolved calculation of late-time shocks or turbulence. The pressure is reconstructed from the model’s internal-energy density, p = (γ − 1) ρᵞ exp(s/ρ), with γ = 5/3. The plotted fields are transformed to physical coordinates before the diagnostics are calculated. The gas pressure is used for the midplane cut below the main figure.</p>
+        <p>This calculation follows the nonlinear interaction to t = 1 on a grid of 48 × 48 cells. It illustrates compression and magnetic-field deformation; it is not a resolved calculation of late-time shocks or turbulence. The pressure is reconstructed from the model’s internal-energy density, p = (γ − 1) ρᵞ exp(s/ρ), with γ = 5/3. The plotted fields are transformed to physical coordinates before the diagnostics are calculated. The gas pressure is used for the midplane cut below the main figure.</p>
         <div class="equations prose" aria-label="Governing equations" set:html={equationsHtml}></div>
       </div>
       <dl>

@@ -11,7 +11,7 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `coaxial-waveguide.py` — rotating Maxwell eigenmode, physical-plane field/error animation, probe frequency and energy
 - `guiding-center-orbits.py` — passing and trapped orbits, parallel velocity and per-particle invariants
 - `vortex-merger.py` — physical-plane density animation of two charge blobs and electrostatic-energy drift
-- `orszag-tang-vortex.py` — early nonlinear MHD to t = 0.5, density with magnetic field lines, energy/divergence diagnostics and a pressure cut
+- `orszag-tang-vortex.py` — nonlinear MHD to t = 1, density with magnetic field lines, energy/divergence diagnostics and a pressure cut
 - `mhd-slab-waves.py` — the shear Alfvén and the slow and fast magnetosonic waves of `LinearMHD`, from the (k, ω) spectra of the velocity and the pressure, with fitted against exact speeds
 - `zeldovich-caustic.py` — pressureless SPH collapse to a caustic and multi-stream flow, with the exact density from the Lagrangian map (animated density and phase space)
 - `diffusion-methods.py` — the random-walk and the deterministic particle methods for the diffusion equation, compared with the exact decay (two simulations in one script)

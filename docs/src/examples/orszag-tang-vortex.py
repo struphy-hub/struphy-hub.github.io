@@ -1,7 +1,7 @@
 """The Orszag--Tang vortex: a nonlinear 2D MHD turbulence benchmark.
 
-Two periodic velocity and magnetic-field vortices are evolved to t = 0.5.
-The example shows early nonlinear compression and field deformation, with
+Two periodic velocity and magnetic-field vortices are evolved to t = 1.
+The example shows nonlinear compression and field deformation, with
 energy and discrete magnetic-divergence diagnostics.
 
 Requires Struphy 3.3 with compiled kernels (``struphy compile``).
@@ -18,10 +18,10 @@ model = ViscoResistiveMHD(with_viscosity=False, with_resistivity=False)
 model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="full")
 
 domain = domains.Cuboid(r1=2 * np.pi, r2=2 * np.pi, r3=1.0)
-# 32 x 32 cells, run on four MPI ranks in CI: each rank owns a 16 x 16 block, well above the spline degree.
-grid = grids.TensorProductGrid(num_elements=(32, 32, 1))
+# 48 x 48 cells, run on four MPI ranks in CI: each rank owns a 24 x 24 block, well above the spline degree.
+grid = grids.TensorProductGrid(num_elements=(48, 48, 1))
 derham_opts = DerhamOptions(degree=(2, 2, 1))
-time_opts = Time(dt=0.0025, Tend=0.5, split_algo="LieTrotter")
+time_opts = Time(dt=0.0025, Tend=1.0, split_algo="LieTrotter")
 # The equilibrium supplies normalization; the evolved magnetic field has no guide component.
 equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=0.1)
 
@@ -42,7 +42,7 @@ env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="orszag_
 sim = Simulation(
     model=model,
     name="Orszag–Tang vortex",
-    description="Early nonlinear evolution of crossed velocity and magnetic vortices in ideal MHD, with density, magnetic field lines, pressure and conservation diagnostics.",
+    description="Nonlinear evolution of crossed velocity and magnetic vortices in ideal MHD, with density, magnetic field lines, pressure and conservation diagnostics.",
     env=env,
     time_opts=time_opts,
     domain=domain,
@@ -139,7 +139,7 @@ if __name__ == "__main__":
             caption="Kinetic, magnetic, internal and total energy, followed by the relative total-energy change and the L2 norm of the discrete magnetic divergence. The latter is the square root of tot_div_B, which stores the squared norm. Values below 1e-16 are clipped for display. Finite solver tolerances and time splitting affect energy conservation."),
         save_extra_figure(cut, "orszag-tang-vortex", "pressure-cut",
             alt="Initial and final gas pressure along the midplane",
-            caption="Gas pressure along y = π at the beginning and end of this run. This is a diagnostic of the coarse-grid evolution, not a comparison with reference data or a convergence result."),
+            caption="Gas pressure along y = π at the beginning and end of this run. This is a diagnostic of this finite-resolution evolution, not a comparison with reference data or a convergence result."),
     ]
     merge_metadata("orszag-tang-vortex", finalTime=float(times[-1]), maxEnergyDrift=float(drift.max()),
                    maxDivB=float(divergence.max()), minDensity=float(rho.min()), figures=figures,
