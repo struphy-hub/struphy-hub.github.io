@@ -91,9 +91,7 @@ def build_metadata(sim, namespace: dict) -> dict:
 def main(stems: list[str] | None = None) -> None:
     """Write the metadata of every example script, or only of the scripts named by `stems`."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    scripts = sorted(
-        path for path in EXAMPLES_DIR.glob("*.py") if not path.name.startswith("_")
-    )
+    scripts = sorted(path for path in EXAMPLES_DIR.glob("*.py") if not path.name.startswith("_"))
     if stems:
         scripts = [path for path in scripts if path.stem in stems]
     for script in scripts:

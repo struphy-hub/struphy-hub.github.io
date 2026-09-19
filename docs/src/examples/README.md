@@ -143,28 +143,15 @@ export function GET() {
 }
 ```
 
-## 5. Add the detail page: `docs/src/pages/examples/<script-stem>/index.astro`
+## 5. Register the page presentation
 
-Copy `docs/src/pages/examples/poisson-source/index.astro` (or `maxwell-wave/index.astro`)
-to `docs/src/pages/examples/<script-stem>/index.astro` and adapt:
-
-- The three imports at the top (`<script-stem>.py?raw`, the metadata JSON, and anything
-  else) to point at your new files.
-- The `<iframe src="/examples/<script-stem>.html">` and `<noscript><img
-  src="/images/examples/<script-stem>.png">` in the `.result` figure.
-- The hand-written "Physical problem" paragraph and the `<figcaption>` (the only prose that
-  isn't pulled from metadata — everything else in that section, including the equations and
-  the `<dl>` config summary, renders from `data.*` automatically).
-- The `<dl>` rows: only include `{data.integrator && ...}` if your model's propagators
-  actually expose one (check the generated metadata JSON — `generate_examples.py` omits
-  fields it can't derive).
-- The provenance link at the bottom, if adapted from a specific Struphy test.
-
-The `<p class="eyebrow">` model link, the `<dl>` "Model" row link (both
-`/models/${toSlug(data.model)}/`), the `<dl>` "Domain" row link
-(`/domains/#${data.domain.split(' ')[0]}` — the domain viewer deep-links by class name via a
-URL hash), and the shiki/KaTeX rendering can be copied as-is — don't hardcode the model or
-domain name as plain text anywhere; always link them via `data.model` / `data.domain`.
+All example detail pages use the shared dynamic route
+`docs/src/pages/examples/[slug]/index.astro` and renderer
+`docs/src/components/ExamplePage.astro`. Add the example's short presentation details
+(category, setup heading, plot title and alt text) to
+`docs/src/data/example-config.ts`. The metadata, source code, equations, figures and
+profiling data are discovered automatically from the script stem; no copied page or
+repeated CSS is needed.
 
 ## 6. Rebuild
 
@@ -187,7 +174,7 @@ in its metadata. No list to edit by hand.
       (and `<script-stem>-<key>.*` for extra figures). The metadata JSON, figures and thumbnails are
       generated and gitignored; check them locally with `python cli.py run <script-stem>`
 - [ ] `docs/src/pages/examples/<script-stem>.py.ts` — download route
-- [ ] `docs/src/pages/examples/<script-stem>/index.astro` — detail page
+- [ ] Add the `<script-stem>` presentation entry to `docs/src/data/example-config.ts`
 - [ ] `npm run build` (or `dev`) — regenerates `examples-index.json` and confirms it builds
 
 ## Reproducing the completed examples

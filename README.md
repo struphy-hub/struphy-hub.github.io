@@ -79,8 +79,9 @@ required to build the site. `generate_examples.py` (repo root) generates their p
 simulation — see `docs/src/examples/README.md` for the full step-by-step guide to adding a
 new example.
 
-Each example's page lives at `docs/src/pages/examples/<script-stem>/`, matching its
-`<script-stem>.metadata.json`. `docs/scripts/generate-examples-index.mjs` (run automatically by
+All example detail pages are rendered by the shared dynamic route
+`docs/src/pages/examples/[slug]/index.astro`; presentation-specific labels and captions live in
+`docs/src/data/example-config.ts`. `docs/scripts/generate-examples-index.mjs` (run automatically by
 the `pre*` npm hooks above) collects every example's metadata — including the `model` field
 `generate_examples.py` fills in — into `docs/src/data/examples-index.json`, which both
 `/examples/` and each model's `/models/<slug>/` page read to link examples to their model
