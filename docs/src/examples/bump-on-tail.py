@@ -46,7 +46,7 @@ model.kinetic_ions.set_markers(
     boundary_params=BoundaryParameters(),
     sorting_params=SortingParameters(boxes_per_dim=(16, 1, 1), do_sort=True),
     saving_params=SavingParameters(binning_plots=(phase_space_bins,)),
-    bufsize=0.4,
+    bufsize=2.0,
 )
 
 model.propagators.push_eta.options = model.propagators.push_eta.Options()
