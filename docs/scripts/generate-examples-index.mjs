@@ -59,6 +59,10 @@ for (const filename of files) {
     description: data.description,
     model: data.model,
     modelSlug: data.model ? toSlug(data.model) : null,
+    // Keep the complete record here as well: prerendered detail pages consume
+    // this generated index, which avoids resolving generated public files from
+    // Astro's emitted server modules.
+    data,
     // Named after the script, like every generated file; absent until the example has been run.
     thumbnail: (await exists(join(imagesDir, `${slug}.png`))) ? `/images/examples/${slug}.png` : null,
   });
