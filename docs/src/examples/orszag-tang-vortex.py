@@ -54,7 +54,7 @@ sim = Simulation(
 
 if __name__ == "__main__":
     from plotly.subplots import make_subplots
-    from _gallery import export_profiling, merge_metadata, publish_thumbnail, save_extra_figure, save_figure
+    from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.run(profiling_activated=True)
     output.pproc(physical=True, celldivide=2)
@@ -143,4 +143,4 @@ if __name__ == "__main__":
     ]
     merge_metadata("orszag-tang-vortex", finalTime=float(times[-1]), maxEnergyDrift=float(drift.max()),
                    maxDivB=float(divergence.max()), minDensity=float(rho.min()), figures=figures,
-                   **publish_thumbnail("orszag-tang-vortex"), **export_profiling(sim, "orszag-tang-vortex"))
+                   **export_profiling(sim, "orszag-tang-vortex"))

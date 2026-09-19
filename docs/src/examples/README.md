@@ -18,7 +18,7 @@ To build the assets of existing examples, use the CLI at the repository root (st
 
 ```sh
 python cli.py list                    # examples, and which have generated figures
-python cli.py run orszag-tang-vortex  # metadata + run + thumbnails + clean-up, then prints every generated file
+python cli.py run orszag-tang-vortex  # metadata + run + clean-up, then prints every generated file
 python cli.py show orszag             # paths of an earlier run (unique prefixes work; --open shows the figures)
 python cli.py clean --all             # remove generated figures, profiling data and scratch output
 ```
@@ -55,8 +55,8 @@ filename.
 - Additional figures go below the main one. `heatmap_figure`, `space_time_figure` (a field over
   space and time) and `heatmap_movie` (an animation over one dimension) build them from xarray
   arrays such as `output.evaluate("kinetic_ions/e1_v1_density/f")`, and
-  `save_extra_figure(figure, "<script-stem>", "<key>", alt=..., caption=...)` saves one (plus its
-  committed thumbnail in `docs/public/images/examples/`) and returns its entry for
+  `save_extra_figure(figure, "<script-stem>", "<key>", alt=..., caption=...)` saves one (its PNG is also copied
+  to `docs/public/images/examples/`, like the main figure's) and returns its entry for
   `merge_metadata("<script-stem>", figures=[...])`. The page shows every entry of `figures`
   through `ExtraFigures.astro`, so no page edit is needed beyond adding that component once.
   Reductions such as `f.struphy.analysis.spatial_average()` and `.velocity_moments()` turn a
@@ -82,10 +82,9 @@ This writes `docs/public/examples/<script-stem>.metadata.json` for every script 
 directory, with `name`, `description`, `model`, `equationsMarkdown`, `domain`, `grid`,
 `degree`, `steps`, and (when applicable) `integrator` and `visualization` — all read
 straight off your `sim`/`model` objects. It's safe to re-run any time; it preserves fields
-it doesn't know about (like the result field from step 1, and `thumbnail`/`interactive`
-from step 3).
+it doesn't know about (like the result fields from step 1).
 
-## 3. Run it for real, and wire up the figure
+## 3. Run it for real
 
 ```sh
 cd docs/public/examples
@@ -93,29 +92,22 @@ struphy compile   # once, if you haven't already
 python ../../src/examples/<script-stem>.py
 ```
 
-This produces `<script-stem>.png` and `<script-stem>.html` in `docs/public/examples/`, and
-folds any result field into the metadata JSON (step 1). Then:
-
-- Copy the PNG to `docs/public/images/examples/<script-stem>.png` (the `<noscript>`
-  fallback and the gallery thumbnail use this path, separate from the interactive HTML).
-- Add two fields to `docs/public/examples/<script-stem>.metadata.json` by hand — these are
-  run outputs `generate_examples.py` can't know about:
-
-  ```json
-  "thumbnail": "/images/examples/<script-stem>.png",
-  "interactive": "/examples/<script-stem>.html"
-  ```
+This produces `<script-stem>.png` and `<script-stem>.html` in `docs/public/examples/`, copies each PNG
+to `docs/public/images/examples/` (the gallery thumbnail and the `<noscript>` fallback read it there)
+and folds any result field into the metadata JSON (step 1). Everything is named after the script:
+the example page refers to `/examples/<script-stem>.html` and `/images/examples/<script-stem>.png`,
+and the gallery finds the thumbnail by that name. Nothing has to be wired up by hand.
 
 Clean up `docs/public/examples/struphy_gallery_runs/` (or wherever `EnvironmentOptions`
 pointed) and any `struphy.log` left behind in that directory — they're simulation
 scratch output, not part of the site.
 
-Only `<script-stem>.metadata.json` and `docs/public/images/examples/<script-stem>.png` are
-committed to git — `.gitignore` excludes everything else this step produces
-(`<script-stem>.html`, the `docs/public/examples/<script-stem>.png` copy, and the profiling
-JSON/HDF5). `.github/workflows/deploy.yml` reruns every script here from scratch before each
-site build, so those files never need to be pushed by hand; running the script locally is
-only for wiring up the figure once and for local `npm run dev` previews.
+None of these files is committed: `.gitignore` excludes the metadata JSON, the figures, the thumbnails,
+the profiling exports and `docs/src/data/examples-index.json`. `.github/workflows/build-site.yml` reruns
+every script from scratch before each site build. A fresh clone therefore has none of them, and
+`npm run dev` stops with instructions to generate them: `python cli.py metadata --all` is enough for
+the pages to build (Struphy needed, compiled kernels not), and `python cli.py run <example>` also
+makes that example's figures.
 
 ## 4. Add the download route: `docs/src/pages/examples/<script-stem>.py.ts`
 
@@ -172,12 +164,9 @@ in its metadata. No list to edit by hand.
 
 - [ ] `docs/src/examples/<script-stem>.py` — `Simulation(name=..., description=...)` at
       module scope, heavy work behind `if __name__ == "__main__":`, Plotly output
-- [ ] `docs/public/examples/<script-stem>.metadata.json` — from `generate_examples.py`, plus
-      hand-added `thumbnail` / `interactive` (and any result field from the script itself)
-- [ ] `docs/public/examples/<script-stem>.png` / `.html` — from actually running the script
-      once locally (gitignored; CI regenerates these on every deploy)
-- [ ] `docs/public/images/examples/<script-stem>.png` — copy of the PNG (the one example
-      artifact that *is* committed, as a fallback for local dev without a compiled Struphy)
+- [ ] Name every file the script writes after the script: `<script-stem>.png`, `<script-stem>.html`
+      (and `<script-stem>-<key>.*` for extra figures). The metadata JSON, figures and thumbnails are
+      generated and gitignored; check them locally with `python cli.py run <script-stem>`
 - [ ] `docs/src/pages/examples/<script-stem>.py.ts` — download route
 - [ ] `docs/src/pages/examples/<script-stem>/index.astro` — detail page
 - [ ] `npm run build` (or `dev`) — regenerates `examples-index.json` and confirms it builds

@@ -98,7 +98,7 @@ sim = Simulation(
 )
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, publish_thumbnail, save_extra_figure, save_figure
+    from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.run(profiling_activated=True)
     output.pproc()
@@ -263,6 +263,5 @@ if __name__ == "__main__":
         markersInBox=in_box,
         kernel="Gaussian, 2D",
         figures=figures,
-        **publish_thumbnail("dam-break"),
         **profiling,
     )

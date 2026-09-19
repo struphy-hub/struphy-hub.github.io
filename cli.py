@@ -8,7 +8,7 @@ PNGs to ``docs/public/images/examples/`` and delete the simulation scratch outpu
 This tool does the same locally for the examples you name, and prints every file it made.
 
     python cli.py list                      # what examples exist, and which have been run
-    python cli.py run orszag-tang-vortex    # metadata + run + thumbnails + clean-up
+    python cli.py run orszag-tang-vortex    # metadata + run + clean-up
     python cli.py run orszag dam --open     # unique prefixes work; --open shows the figures
     python cli.py show orszag-tang-vortex   # paths of the files of an earlier run
     python cli.py clean --all               # remove everything a run generated
@@ -35,7 +35,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 SCRIPTS_DIR = ROOT / "docs" / "src" / "examples"
 OUTPUT_DIR = ROOT / "docs" / "public" / "examples"  # scripts run here and write their files here
-IMAGES_DIR = ROOT / "docs" / "public" / "images" / "examples"  # committed thumbnails
+IMAGES_DIR = ROOT / "docs" / "public" / "images" / "examples"  # thumbnails, copied there by the scripts
 SCRATCH = ("struphy_gallery_runs", "struphy.log")  # simulation scratch output, never part of the site
 DEV_SERVER = "http://localhost:4321"
 
@@ -96,15 +96,6 @@ def metadata_of(stem: str) -> dict:
     return json.loads(path.read_text()) if path.exists() else {}
 
 
-def output_stem(stem: str) -> str:
-    """The name a script gives its figure files, which is not always its own (maxwell-wave.py).
-
-    The ``interactive`` field of the committed metadata always names the real one; CI does the same.
-    """
-    name = metadata_of(stem).get("interactive", "").rsplit("/", 1)[-1]
-    return name.removesuffix(".html") or stem
-
-
 def resolve(names: list[str], everything: bool) -> list[str]:
     """Expand ``--all`` and unique prefixes (``orszag`` -> ``orszag-tang-vortex``) into script stems."""
     known = all_stems()
@@ -138,7 +129,7 @@ class Artifacts:
 
     figures: list[Path] = field(default_factory=list)  # interactive .html and static .png
     data: list[Path] = field(default_factory=list)  # metadata and profiling exports
-    thumbnails: list[Path] = field(default_factory=list)  # committed copies for the gallery
+    thumbnails: list[Path] = field(default_factory=list)  # copies of the PNGs for the gallery
 
     @property
     def has_html(self) -> bool:
@@ -150,7 +141,7 @@ class Artifacts:
 
 def collect(stem: str, since: float | None = None) -> Artifacts:
     """Find the generated files of an example, optionally only those written after ``since``."""
-    prefixes = {stem, output_stem(stem)}
+    prefixes = {stem}  # every generated file is named after its script
 
     def files(directory: Path) -> list[Path]:
         if not directory.is_dir():
@@ -175,7 +166,7 @@ def print_artifacts(stem: str, artifacts: Artifacts, indent: str = "  ") -> None
         ("Interactive figures", [p for p in artifacts.figures if p.suffix == ".html"]),
         ("Static images", [p for p in artifacts.figures if p.suffix == ".png"]),
         ("Metadata and profiling", artifacts.data),
-        ("Gallery thumbnails (committed)", artifacts.thumbnails),
+        ("Gallery thumbnails", artifacts.thumbnails),
     )
     for title, paths in groups:
         if not paths:
@@ -269,12 +260,12 @@ def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     if not args.skip_metadata:
-        print(dim("  1/3 generating metadata"))
+        print(dim("  1/2 generating metadata"))
         code = subprocess.call([sys.executable, str(ROOT / "generate_examples.py"), stem], cwd=ROOT)
         if code:
             return False, time.time() - started, Artifacts(), "metadata generation failed"
 
-    print(dim(f"  2/3 running docs/src/examples/{stem}.py in docs/public/examples/"))
+    print(dim(f"  2/2 running docs/src/examples/{stem}.py in docs/public/examples/"))
     log = None
     if args.quiet:
         log = Path(os.environ.get("TMPDIR", "/tmp")) / f"struphy-gallery-{stem}.log"
@@ -288,11 +279,6 @@ def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts
         tail += "\nIf the error mentions Chrome (PNG export by Kaleido), install it once with `plotly_get_chrome`."
         return False, time.time() - started, collect(stem, run_started), f"script exited with code {code}{tail}"
 
-    print(dim("  3/3 copying thumbnails, removing scratch output"))
-    for png in OUTPUT_DIR.glob("*.png"):
-        if png.stat().st_mtime >= run_started and png.stem.startswith(tuple({stem, output_stem(stem)})):
-            IMAGES_DIR.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(png, IMAGES_DIR / png.name)
     if not args.keep_scratch:
         clean_scratch()
 
@@ -332,9 +318,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         skipped = [s for s in stems if s not in {r[0] for r in results}]
         for stem in skipped:
             print(f"  {yellow('skipped')} {stem}  (stopped after a failure; use --keep-going to continue)")
-    print(dim("\nCI regenerates everything but the metadata JSON and docs/public/images/examples/, which are committed;"))
-    print(dim("check `git diff` before committing, since the metadata is rewritten from your local Struphy."))
-    print(dim("Leftovers of a failed run: python cli.py clean --all"))
+    print(dim("\nEverything above is generated and git-ignored; CI rebuilds it. Remove it with: python cli.py clean"))
     return 0 if all(ok for _, ok, _ in results) and len(results) == len(stems) else 1
 
 
@@ -354,12 +338,12 @@ def cmd_show(args: argparse.Namespace) -> int:
 
 
 def cmd_clean(args: argparse.Namespace) -> int:
-    """Delete generated files (all git-ignored). Committed metadata and thumbnails are never touched."""
+    """Delete generated files (all git-ignored); the metadata only with ``--metadata``, as the site build needs it."""
     stems = resolve(args.examples, args.all)
     doomed: list[Path] = []
     for stem in stems:
         artifacts = collect(stem)
-        doomed += [p for p in artifacts.figures + artifacts.data if not p.name.endswith(".metadata.json")]
+        doomed += [p for p in artifacts.all() if args.metadata or not p.name.endswith(".metadata.json")]
     doomed += [OUTPUT_DIR / name for name in SCRATCH if (OUTPUT_DIR / name).exists()]
     doomed = sorted(set(doomed))
     if not doomed:
@@ -414,8 +398,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--open", action="store_true", help="open the interactive figures in a browser")
     p.set_defaults(func=cmd_show)
 
-    p = sub.add_parser("clean", help="remove generated figures, profiling data and scratch output")
+    p = sub.add_parser("clean", help="remove generated figures, thumbnails, profiling data and scratch output")
     add_selection(p)
+    p.add_argument("--metadata", action="store_true", help="also remove the metadata JSON files (`npm run dev` needs them)")
     p.add_argument("-n", "--dry-run", action="store_true", help="only print what would be removed")
     p.set_defaults(func=cmd_clean)
     return parser

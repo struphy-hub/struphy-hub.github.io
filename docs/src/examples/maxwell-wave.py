@@ -148,7 +148,7 @@ if __name__ == "__main__":
     figure.update_xaxes(range=[0, float(kvec[-1])])
     figure.update_yaxes(range=[0, float(kvec[-1])])
 
-    save_figure(figure, "maxwell-dispersion")
+    save_figure(figure, "maxwell-wave")
 
     # The same field along z, over time: waves travelling in both directions leave diagonal
     # stripes, whose slope is the wave speed.

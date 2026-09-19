@@ -32,6 +32,8 @@ def save_figure(
 ) -> None:
     """Write `<stem><suffix>.png` (static fallback) and `<stem><suffix>.html` (interactive).
 
+    The PNG is also copied to `../images/examples/` when that directory exists, as the gallery thumbnail.
+
     An animation that starts at t = 0 can still have an informative static image: `static_z`
     replaces the heatmap in the first trace for the PNG only, and `static_data` (a list of traces,
     e.g. one frame's `data`) gives the traces of the PNG (with the figure's layout, its slider set to `static_active`).
@@ -59,31 +61,21 @@ def save_figure(
     )
     print(f"Saved {png_path.resolve()}")
     print(f"Saved {html_path.resolve()}")
-
-
-def publish_thumbnail(stem: str) -> dict:
-    """Copy the main figure's PNG to `../images/examples/` and return the metadata fields that point to it.
-
-    The gallery page and the `<noscript>` fallback use the committed copy, the example page the
-    interactive HTML. Pass the result to `merge_metadata(stem, **fields)`.
-    """
+    # The gallery, the model pages and the <noscript> fallbacks read the PNG from the images directory,
+    # under the same name as here. Both directories are generated and untracked.
     images = Path("../images/examples")
     if images.is_dir():
-        shutil.copyfile(f"{stem}.png", images / f"{stem}.png")
-    return {"thumbnail": f"/images/examples/{stem}.png", "interactive": f"/examples/{stem}.html"}
+        shutil.copyfile(png_path, images / png_path.name)
 
 
 def save_extra_figure(figure, stem: str, key: str, *, alt: str, caption: str, static_z=None) -> dict:
     """Save an additional figure of an example and return its entry for the `figures` metadata list.
 
-    Writes `<stem>-<key>.png/.html` here and copies the PNG to `../images/examples/`, where the
-    committed thumbnails live. The example page shows every entry of `figures` below its main
+    Writes `<stem>-<key>.png/.html` here (the PNG is copied to `../images/examples/` by `save_figure`).
+    The example page shows every entry of `figures` below its main
     figure: pass the list to `merge_metadata(stem, figures=[...])`.
     """
     save_figure(figure, stem, suffix=f"-{key}", static_z=static_z)
-    images = Path("../images/examples")
-    if images.is_dir():
-        shutil.copyfile(f"{stem}-{key}.png", images / f"{stem}-{key}.png")
     return {
         "key": key,
         "interactive": f"/examples/{stem}-{key}.html",
