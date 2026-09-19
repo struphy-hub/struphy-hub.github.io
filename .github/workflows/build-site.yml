@@ -198,8 +198,9 @@ jobs:
           # The SPH examples hang under MPI in Struphy (ranks disagree on the box communication in
           # `update_distr_functions`), so they run serially until that is fixed. `timeout` keeps any
           # other hang from holding the runner.
-          export OMP_NUM_THREADS=1
+          # Count the CPUs first: nproc honours OMP_NUM_THREADS and would report 1 after the export.
           cpus=$(nproc)
+          export OMP_NUM_THREADS=1
           ranks=$(( MPI_RANKS < cpus ? MPI_RANKS : cpus ))
           case "${{ matrix.example }}" in
             dam-break|gas-expansion) ranks=1 ;;
