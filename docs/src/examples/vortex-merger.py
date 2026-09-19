@@ -101,7 +101,7 @@ sim = Simulation(
 if __name__ == "__main__":
     import xarray as xr
     from scipy.ndimage import map_coordinates
-    from _gallery import export_profiling, heatmap_movie, merge_metadata, publish_thumbnail, save_extra_figure, save_figure
+    from _gallery import export_profiling, heatmap_movie, merge_metadata, save_extra_figure, save_figure
 
     output = sim.run(profiling_activated=True)
     output.pproc()
@@ -153,4 +153,4 @@ if __name__ == "__main__":
         caption="Electrostatic energy relative to the first solved field, at t = 0.02. The t = 0 scalar is an uninitialized zero and is omitted. The drift measures the error of this finite-resolution particle and field calculation; it is not a convergence study.",
     )]
     merge_metadata("vortex-merger", finalTime=float(times[-1]), maxEnergyDrift=float(np.abs(drift).max()),
-                   figures=figures, **publish_thumbnail("vortex-merger"), **export_profiling(sim, "vortex-merger"))
+                   figures=figures, **export_profiling(sim, "vortex-merger"))
