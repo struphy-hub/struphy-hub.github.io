@@ -1,0 +1,10 @@
+import damBreak from '../../examples/dam-break.py?raw';
+
+export function GET() {
+  return new Response(damBreak, {
+    headers: {
+      'Content-Type': 'text/x-python; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="dam-break.py"',
+    },
+  });
+}

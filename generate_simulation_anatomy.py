@@ -27,10 +27,13 @@ import json
 import re
 from pathlib import Path
 
-from struphy.io.options import DerhamOptions, EnvironmentOptions, ProfilingOptions, Time
+from struphy.io.options import (DerhamOptions, EnvironmentOptions,
+                                ProfilingOptions, Time)
 from struphy.simulation.sim import Simulation
 
-OUTPUT_FILE = Path(__file__).parent / "docs" / "src" / "data" / "simulation-anatomy.json"
+OUTPUT_FILE = (
+    Path(__file__).parent / "docs" / "src" / "data" / "simulation-anatomy.json"
+)
 
 # Where each ingredient is catalogued on this site.
 CATALOGUE_LINKS = {
@@ -86,7 +89,9 @@ FIELD_LIMIT = 12
 def docstring_parameters(cls: type) -> dict[str, str]:
     """Map parameter name -> its description in a numpydoc ``Parameters`` block."""
     docstring = inspect.getdoc(cls) or ""
-    match = re.search(r"\nParameters\n-+[ \t]*\n([\s\S]*?)(?:\n\S.*\n-+[ \t]*\n|$)", docstring)
+    match = re.search(
+        r"\nParameters\n-+[ \t]*\n([\s\S]*?)(?:\n\S.*\n-+[ \t]*\n|$)", docstring
+    )
     if not match:
         return {}
 
@@ -103,7 +108,9 @@ def docstring_parameters(cls: type) -> dict[str, str]:
         header = re.match(r"([\w, ]+?)\s*:\s*\S", line)
         if header and not line.startswith((" ", "\t")):
             flush()
-            names = [part.strip() for part in header.group(1).split(",") if part.strip()]
+            names = [
+                part.strip() for part in header.group(1).split(",") if part.strip()
+            ]
             lines = []
         elif names:
             lines.append(line)
@@ -122,7 +129,9 @@ def annotation_sources() -> dict[str, str]:
     """
     source = inspect.getsource(Simulation.__init__)
     signature = source[source.index("(") : source.index("):")]
-    return dict(re.findall(r"^\s*(\w+)\s*:\s*([^=\n]+?)\s*(?:=[^\n]*)?,?$", signature, re.M))
+    return dict(
+        re.findall(r"^\s*(\w+)\s*:\s*([^=\n]+?)\s*(?:=[^\n]*)?,?$", signature, re.M)
+    )
 
 
 def type_name(annotation, declared: str = "") -> str:
@@ -203,7 +212,9 @@ def generate(output_file: Path = OUTPUT_FILE) -> None:
     for name, parameter in signature.parameters.items():
         if name == "self":
             continue
-        fields = option_fields(option_classes.get(name)) if name in option_classes else None
+        fields = (
+            option_fields(option_classes.get(name)) if name in option_classes else None
+        )
         parameters[name] = {
             "name": name,
             "type": type_name(parameter.annotation, declared.get(name, "")),
@@ -216,13 +227,24 @@ def generate(output_file: Path = OUTPUT_FILE) -> None:
             "fieldCount": len(fields) if fields else 0,
         }
 
-    missing = set(parameters) - {name for group in GROUPS for name in group["parameters"]}
+    missing = set(parameters) - {
+        name for group in GROUPS for name in group["parameters"]
+    }
     if missing:
-        raise SystemExit(f"Simulation gained parameters this page does not place: {sorted(missing)}")
+        raise SystemExit(
+            f"Simulation gained parameters this page does not place: {sorted(missing)}"
+        )
 
     data = {
         "groups": [
-            {**group, "parameters": [parameters[name] for name in group["parameters"] if name in parameters]}
+            {
+                **group,
+                "parameters": [
+                    parameters[name]
+                    for name in group["parameters"]
+                    if name in parameters
+                ],
+            }
             for group in GROUPS
         ],
         "runPhases": run_phases(),

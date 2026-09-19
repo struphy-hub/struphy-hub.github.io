@@ -34,7 +34,7 @@ def integrator_of(model) -> str | None:
     for propagator in vars(model.propagators).values():
         algo = getattr(getattr(propagator, "options", None), "algo", None)
         if algo:
-            return str(algo).capitalize()
+            return str(algo).replace("_", " ").capitalize()
     return None
 
 
@@ -55,7 +55,9 @@ def describe_domain(domain) -> str:
     interesting = [
         f"{key}={value:g}"
         for key, value in getattr(domain, "params", {}).items()
-        if isinstance(value, (int, float)) and not isinstance(value, bool) and value not in (0.0, 1.0)
+        if isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and value not in (0.0, 1.0)
     ]
     if not interesting:
         return type(domain).__name__
@@ -70,10 +72,13 @@ def build_metadata(sim, namespace: dict) -> dict:
         "model": type(model).name(),
         "equationsMarkdown": type(model).pde_markdown(),
         "domain": describe_domain(sim.domain),
-        "grid": " × ".join(str(n) for n in sim.grid.num_elements),
-        "degree": " × ".join(str(p) for p in sim.derham_opts.degree),
         "steps": round(sim.time_opts.Tend / sim.time_opts.dt),
     }
+    # Particle-only models (SPH) have no finite element grid or spline degree.
+    if sim.grid is not None:
+        metadata["grid"] = " × ".join(str(n) for n in sim.grid.num_elements)
+    if sim.derham_opts is not None:
+        metadata["degree"] = " × ".join(str(p) for p in sim.derham_opts.degree)
     integrator = integrator_of(model)
     if integrator:
         metadata["integrator"] = integrator
@@ -85,7 +90,9 @@ def build_metadata(sim, namespace: dict) -> dict:
 
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    for script in sorted(path for path in EXAMPLES_DIR.glob("*.py") if not path.name.startswith("_")):
+    for script in sorted(
+        path for path in EXAMPLES_DIR.glob("*.py") if not path.name.startswith("_")
+    ):
         # `run_name` deliberately isn't "__main__", so each script's own
         # `if __name__ == "__main__":` block (the run + plotting) stays skipped.
         namespace = runpy.run_path(str(script), run_name=script.stem)

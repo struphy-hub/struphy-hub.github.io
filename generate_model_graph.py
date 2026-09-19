@@ -42,7 +42,9 @@ def collect_models() -> list[dict]:
                             "isFeec": space in FEEC_SPACES,
                         }
                     )
-            propagators = sorted({type(p).__name__ for p in vars(model.propagators).values()})
+            propagators = sorted(
+                {type(p).__name__ for p in vars(model.propagators).values()}
+            )
             models.append(
                 {
                     "id": model_cls.__name__,
@@ -60,11 +62,20 @@ def build_edges(models: list[dict]) -> list[dict]:
         for b in models[i + 1 :]:
             shared = sorted(set(a["propagators"]) & set(b["propagators"]))
             if shared:
-                edges.append({"source": a["id"], "target": b["id"], "shared": shared, "weight": len(shared)})
+                edges.append(
+                    {
+                        "source": a["id"],
+                        "target": b["id"],
+                        "shared": shared,
+                        "weight": len(shared),
+                    }
+                )
     return edges
 
 
-def layout(models: list[dict], edges: list[dict], iterations: int = 400, seed: int = 7) -> dict[str, tuple[float, float]]:
+def layout(
+    models: list[dict], edges: list[dict], iterations: int = 400, seed: int = 7
+) -> dict[str, tuple[float, float]]:
     """A minimal Fruchterman-Reingold-style force layout, so the page can ship
     static positions instead of running a physics simulation in the browser.
     """
@@ -111,7 +122,10 @@ def layout(models: list[dict], edges: list[dict], iterations: int = 400, seed: i
     span = np.clip(maxs - mins, 1e-6, None)
     normalized = (pos - mins) / span * np.array([124, 84]) + np.array([8, 8])
 
-    return {node_id: (float(normalized[i, 0]), float(normalized[i, 1])) for node_id, i in index.items()}
+    return {
+        node_id: (float(normalized[i, 0]), float(normalized[i, 1]))
+        for node_id, i in index.items()
+    }
 
 
 def generate() -> None:
@@ -136,7 +150,9 @@ def generate() -> None:
         )
 
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_FILE.write_text(json.dumps({"nodes": nodes, "edges": edges}, indent=2) + "\n", encoding="utf-8")
+    OUTPUT_FILE.write_text(
+        json.dumps({"nodes": nodes, "edges": edges}, indent=2) + "\n", encoding="utf-8"
+    )
     print(f"Generated {len(nodes)} nodes and {len(edges)} edges in {OUTPUT_FILE}")
 
 

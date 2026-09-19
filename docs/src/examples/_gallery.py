@@ -27,21 +27,29 @@ def save_figure(
     height: int = 650,
     suffix: str = "",
     static_z=None,
+    static_data=None,
+    static_active=None,
 ) -> None:
     """Write `<stem><suffix>.png` (static fallback) and `<stem><suffix>.html` (interactive).
 
-    `static_z` replaces the heatmap in the first trace for the PNG only, so an animation that
-    starts at t = 0 can still have an informative static image.
+    An animation that starts at t = 0 can still have an informative static image: `static_z`
+    replaces the heatmap in the first trace for the PNG only, and `static_data` (a list of traces,
+    e.g. one frame's `data`) gives the traces of the PNG (with the figure's layout, its slider set to `static_active`).
     """
     png_path = Path(f"{stem}{suffix}.png")
     html_path = Path(f"{stem}{suffix}.html")
-    if static_z is None:
-        figure.write_image(png_path, width=width, height=height, scale=2)
-    else:
+    if static_data is not None:
+        still = go.Figure(data=static_data, layout=figure.layout)
+        if static_active is not None and still.layout.sliders:
+            still.layout.sliders[0].active = static_active  # the slider shows the still's frame
+        still.write_image(png_path, width=width, height=height, scale=2)
+    elif static_z is not None:
         initial_z = figure.data[0].z
         figure.data[0].z = static_z
         figure.write_image(png_path, width=width, height=height, scale=2)
         figure.data[0].z = initial_z
+    else:
+        figure.write_image(png_path, width=width, height=height, scale=2)
     figure.write_html(
         html_path,
         include_plotlyjs="cdn",
@@ -51,6 +59,18 @@ def save_figure(
     )
     print(f"Saved {png_path.resolve()}")
     print(f"Saved {html_path.resolve()}")
+
+
+def publish_thumbnail(stem: str) -> dict:
+    """Copy the main figure's PNG to `../images/examples/` and return the metadata fields that point to it.
+
+    The gallery page and the `<noscript>` fallback use the committed copy, the example page the
+    interactive HTML. Pass the result to `merge_metadata(stem, **fields)`.
+    """
+    images = Path("../images/examples")
+    if images.is_dir():
+        shutil.copyfile(f"{stem}.png", images / f"{stem}.png")
+    return {"thumbnail": f"/images/examples/{stem}.png", "interactive": f"/examples/{stem}.html"}
 
 
 def save_extra_figure(figure, stem: str, key: str, *, alt: str, caption: str, static_z=None) -> dict:

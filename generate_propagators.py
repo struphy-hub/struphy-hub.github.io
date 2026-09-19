@@ -37,10 +37,11 @@ import typing
 from pathlib import Path
 
 import struphy.propagators as propagator_module
-from catalogue_docs import extract_math
 from struphy.models.utils import get_models
 from struphy.propagators.base import Propagator
 from struphy.utils.docstring_converter import rst_to_html
+
+from catalogue_docs import extract_math
 
 OUTPUT_FILE = Path(__file__).parent / "docs" / "src" / "data" / "propagators.json"
 CATEGORIES = ("Fluid", "Kinetic", "Hybrid", "Toy")
@@ -48,7 +49,9 @@ CATEGORIES = ("Fluid", "Kinetic", "Hybrid", "Toy")
 FEEC_KINDS = {"FEECVariable"}
 PARTICLE_KINDS = {"PICVariable", "SPHVariable"}
 
-DOCS_BASE = "https://struphy-hub.github.io/struphy/sections/subsections/propagators.html"
+DOCS_BASE = (
+    "https://struphy-hub.github.io/struphy/sections/subsections/propagators.html"
+)
 
 
 def collect_propagator_classes() -> list[tuple[str, type]]:
@@ -97,19 +100,26 @@ def declared_variables(propagator: type) -> list[dict]:
             if not isinstance(statement, ast.Assert):
                 continue
             test = statement.test
-            if isinstance(test, ast.Call) and getattr(test.func, "id", "") == "isinstance":
+            if (
+                isinstance(test, ast.Call)
+                and getattr(test.func, "id", "") == "isinstance"
+            ):
                 # `isinstance(new, PICVariable | SPHVariable)` -- the union's members.
                 kinds = [
                     name.id
                     for name in ast.walk(test.args[1])
                     if isinstance(name, ast.Name)
                 ]
-            elif isinstance(test, ast.Compare) and getattr(test.left, "attr", "") == "space":
+            elif (
+                isinstance(test, ast.Compare)
+                and getattr(test.left, "attr", "") == "space"
+            ):
                 # `new.space == "Hcurl"` or `new.space in ("Hcurl", "Hdiv")`.
                 spaces = [
                     constant.value
                     for constant in ast.walk(test.comparators[0])
-                    if isinstance(constant, ast.Constant) and isinstance(constant.value, str)
+                    if isinstance(constant, ast.Constant)
+                    and isinstance(constant.value, str)
                 ]
 
         variables.append({"name": node.name, "kinds": kinds, "spaces": spaces})
@@ -223,7 +233,11 @@ def declared_options(propagator: type) -> list[dict]:
             # `from __future__ import annotations` in the defining module leaves
             # the annotation as source text; the Literal choices are still
             # readable from it, which is all this needs.
-            choices = re.findall(r"[\"']([^\"']+)[\"']", annotation) if "Literal" in annotation else []
+            choices = (
+                re.findall(r"[\"']([^\"']+)[\"']", annotation)
+                if "Literal" in annotation
+                else []
+            )
             type_name = annotation
         elif typing.get_origin(annotation) is typing.Literal:
             choices = [str(choice) for choice in typing.get_args(annotation)]
@@ -334,12 +348,14 @@ def generate(output_file: Path = OUTPUT_FILE) -> None:
                 "module": propagator.__module__,
                 "category": categorize(variables),
                 "summary": summarize(propagator, variables),
-                "descriptionHtml": description_html or "<p>No description is available.</p>",
+                "descriptionHtml": description_html
+                or "<p>No description is available.</p>",
                 "descriptionMath": description_math,
                 "variables": variables,
                 "options": declared_options(propagator),
                 "usedBy": sorted(
-                    usage.get(name, []), key=lambda entry: (entry["type"], entry["model"])
+                    usage.get(name, []),
+                    key=lambda entry: (entry["type"], entry["model"]),
                 ),
                 "docsUrl": f"{DOCS_BASE}#struphy.propagators.{propagator.__module__.split('.')[-1]}.{name}",
             }

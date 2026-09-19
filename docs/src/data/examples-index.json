@@ -9,6 +9,15 @@
     "thumbnail": "/images/examples/bump-on-tail.png"
   },
   {
+    "slug": "dam-break",
+    "href": "/examples/dam-break/",
+    "name": "Dam break",
+    "description": "A dense fluid column collapses under gravity in a closed box. Smoothed particle hydrodynamics follows the collapse, the wave across the box and the settling of the fluid, using markers alone.",
+    "model": "ViscousEulerSPH",
+    "modelSlug": "viscous-euler-sph",
+    "thumbnail": "/images/examples/dam-break.png"
+  },
+  {
     "slug": "diocotron-instability",
     "href": "/examples/diocotron-instability/",
     "name": "Diocotron instability",
