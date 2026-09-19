@@ -61,8 +61,8 @@ if __name__ == "__main__":
     if not all(bool(np.isfinite(value).all()) for value in output.scalars.values()):
         raise RuntimeError("Non-finite MHD diagnostics: refusing to publish the run")
     b = output.evaluate("em_fields/b_field_xyz").isel(e3=0)
-    rho = output.evaluate("mhd/density_phy").isel(e3=0).squeeze(drop=True)
-    entropy = output.evaluate("mhd/entropy_phy").isel(e3=0).squeeze(drop=True)
+    rho = output.evaluate("mhd/density_xyz").isel(e3=0).squeeze(drop=True)
+    entropy = output.evaluate("mhd/entropy_xyz").isel(e3=0).squeeze(drop=True)
     times = b.t.values
     if times[-1] < time_opts.Tend - 0.5 * time_opts.dt or float(rho.min()) <= 0:
         raise RuntimeError("Incomplete MHD evolution or non-positive density")
