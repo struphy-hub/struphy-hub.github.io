@@ -1,16 +1,17 @@
 ---
-interface DomainEntry { name: string; url?: string; docsUrl: string; unavailableReason?: string; }
-interface Props { domains: DomainEntry[]; initialDomain: string; }
-const { domains, initialDomain } = Astro.props;
+interface DomainMetadata { parameters?: Record<string, unknown>; parameter_descriptions?: Record<string, string>; description_html?: string; mapping_html?: string; }
+interface DomainEntry { name: string; url?: string; sliceBase?: string; docsUrl: string; unavailableReason?: string; metadata?: DomainMetadata; }
+interface Props { domains: DomainEntry[]; initialDomain: string; single?: boolean; }
+const { domains, initialDomain, single = false } = Astro.props;
 ---
 
-<div class="domain-browser" data-domain-browser data-domains={JSON.stringify(domains)} data-initial-domain={initialDomain}>
-  <aside class="domain-index" aria-label="Available Struphy domains">
+<div class:list={['domain-browser', { single }]} data-domain-browser data-domains={JSON.stringify(domains)} data-initial-domain={initialDomain}>
+  {!single && <aside class="domain-index" aria-label="Available Struphy domains">
     <p class="eyebrow">Select a domain</p>
     <input type="search" class="domain-filter" data-domain-filter placeholder="Filter domains…" aria-label="Filter domains" />
     <ul data-domain-list>{domains.map((domain) => <li data-domain-item={domain.name}><button type="button" class="domain-option" data-domain-name={domain.name} aria-label={`View ${domain.name} geometry`} aria-pressed={domain.name === initialDomain ? 'true' : 'false'} disabled={!domain.url} title={domain.unavailableReason}><code>{domain.name}</code></button></li>)}</ul>
     <p class="empty-filter" data-domain-filter-empty hidden>No domains match "<span data-domain-filter-query></span>".</p>
-  </aside>
+  </aside>}
   <figure class="card" aria-labelledby="domain-caption">
     <div class="card-heading">
       <div>
@@ -54,7 +55,7 @@ const { domains, initialDomain } = Astro.props;
   import katex from 'katex';
   import 'katex/dist/katex.min.css';
 
-  type DomainEntry = { name: string; url?: string; docsUrl: string };
+  type DomainEntry = { name: string; url?: string; sliceBase?: string; docsUrl: string; metadata?: DomainMetadata };
   type MathItem = { token: string; latex: string; display: boolean };
   type DomainMetadata = {
     parameters?: Record<string, unknown>;
@@ -147,7 +148,9 @@ const { domains, initialDomain } = Astro.props;
     let aborter: AbortController | undefined;
     let serial = 0;
     let disposed = false;
-    let metadata: Record<string, DomainMetadata> = {};
+    let metadata: Record<string, DomainMetadata> = Object.fromEntries(
+      domains.filter((domain) => domain.metadata).map((domain) => [domain.name, domain.metadata]),
+    );
 
     const readThemeColour = (variable: string): [number, number, number] => {
       const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
@@ -229,7 +232,7 @@ const { domains, initialDomain } = Astro.props;
         return response.json() as Promise<{ domains?: Record<string, DomainMetadata> }>;
       })
       .then((data) => {
-        metadata = data.domains ?? {};
+        metadata = { ...(data.domains ?? {}), ...metadata };
         if (!disposed) { renderParameters(activeDomain); renderDescription(activeDomain); renderMapping(activeDomain); }
       })
       .catch((error) => {
@@ -262,7 +265,9 @@ const { domains, initialDomain } = Astro.props;
     const drawGrid = async (name: string, planeName: string) => {
       const requestedDomain = name;
       const requestedView = planeName;
-      const response = await fetch(`/domains/${name}-${planeName}.json`);
+      const entry = byName.get(name);
+      const base = entry?.sliceBase ?? `/domains/${name}`;
+      const response = await fetch(`${base}-${planeName}.json`);
       if (!response.ok || requestedDomain !== activeDomain || requestedView !== activeView) return;
       const data = await response.json() as {
         grids: Array<{
@@ -447,7 +452,7 @@ const { domains, initialDomain } = Astro.props;
 </script>
 
 <style>
-  .domain-browser { --viewer-highlight:#a43f00; display:grid; grid-template-columns:minmax(250px,300px) minmax(0,1fr); gap:48px; align-items:start; }
+  .domain-browser { --viewer-highlight:#a43f00; display:grid; grid-template-columns:minmax(250px,300px) minmax(0,1fr); gap:48px; align-items:start; }.domain-browser.single{grid-template-columns:minmax(0,1fr)}
   :global(html[data-theme='dark']) .domain-browser { --viewer-highlight:#f2b35d; }
   .domain-index { position:sticky; top:24px; min-width:0; }
   .eyebrow { margin:0 0 7px; color:var(--muted); font:600 .76rem/1.4 var(--mono); letter-spacing:.08em; text-transform:uppercase; }
