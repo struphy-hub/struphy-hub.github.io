@@ -1119,6 +1119,20 @@
         ]
       },
       {
+        "name": "coupling",
+        "type": "float",
+        "choices": [],
+        "default": "1",
+        "descriptionHtml": "Constant value of @@MATH0@@ when <code>c_fun=\"const\"</code>.",
+        "descriptionMath": [
+          {
+            "token": "@@MATH0@@",
+            "latex": "C",
+            "display": false
+          }
+        ]
+      },
+      {
         "name": "kappa",
         "type": "float",
         "choices": [],
