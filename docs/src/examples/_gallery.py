@@ -91,7 +91,8 @@ def save_figure(
     )
     print(f"Saved {png_path.resolve()}")
     print(f"Saved {html_path.resolve()}")
-    # The gallery, the model pages and the <noscript> fallbacks read the PNG from the images directory,
+    # The gallery, the model pages and the static fallbacks of the example page (shown on phones and
+    # without JavaScript, in place of the interactive plot) read the PNG from the images directory,
     # under the same name as here. Both directories are generated and untracked.
     images = Path("../images/examples")
     if images.is_dir():

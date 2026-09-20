@@ -98,7 +98,8 @@ python ../../src/examples/<script-stem>.py
 ```
 
 This produces `<script-stem>.png` and `<script-stem>.html` in `docs/public/examples/`, copies each PNG
-to `docs/public/images/examples/` (the gallery thumbnail and the `<noscript>` fallback read it there)
+to `docs/public/images/examples/` (the gallery thumbnail reads it there, and so does the example page
+on phones and without JavaScript, where it shows the PNG instead of the interactive plot)
 and folds any result field into the metadata JSON (step 1). Everything is named after the script:
 the example page refers to `/examples/<script-stem>.html` and `/images/examples/<script-stem>.png`,
 and the gallery finds the thumbnail by that name. Nothing has to be wired up by hand.

@@ -14,8 +14,8 @@ const { figures = [] } = Astro.props as { figures?: ExampleFigure[] };
 
 {figures.map((figure) => (
   <figure class="extra">
-    <div class="plot-frame"><iframe src={figure.interactive} title={figure.alt} loading="lazy"></iframe></div>
-    <noscript><img src={figure.thumbnail} alt={figure.alt} width="2200" height="1300" /></noscript>
+    <div class="plot-frame"><iframe data-plot-src={figure.interactive} title={figure.alt} loading="lazy"></iframe></div>
+    <img class="plot-static" src={figure.thumbnail} alt={figure.alt} width="2200" height="1300" />
     <figcaption>{figure.caption}</figcaption>
   </figure>
 ))}
@@ -26,4 +26,7 @@ const { figures = [] } = Astro.props as { figures?: ExampleFigure[] };
   .extra iframe{display:block;width:100%;height:100%;border:1px solid var(--rule);background:#fff}
   .extra img{display:block;width:min(100%,1100px);height:auto;margin-inline:auto;border:1px solid var(--rule);background:#fff}
   .extra figcaption{width:min(100%,1100px);margin:10px auto 0;color:var(--muted);font-size:.84rem}
+  /* Phones show the rendered PNG instead of the Plotly page; ExamplePage.astro swaps them. */
+  .extra .plot-static{display:none}
+  @media(max-width:720px){.extra .plot-frame{display:none}.extra .plot-static{display:block}}
 </style>
