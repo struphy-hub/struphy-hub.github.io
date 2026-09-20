@@ -36,7 +36,7 @@ jobs:
   # every example but none of their results, and `generate_examples.py` writes that metadata by importing
   # the scripts without running them (no compiled kernels needed). So this builds the whole site, with
   # every page, in a few minutes, and a broken page, route or metadata file fails here instead of after the
-  # slow example runs. The example jobs wait for it. Its generation steps mirror the `build` job below.
+  # slow example runs. It runs in parallel with them; its generation steps mirror the `build` job below.
   check-site:
     runs-on: ubuntu-latest
     steps:
@@ -97,7 +97,7 @@ jobs:
   # way to share compiled kernels across separate container instances -- worth it since
   # that's small next to the simulation run times this is meant to parallelize away.
   run-example:
-    needs: [list-examples, check-site]
+    needs: list-examples
     strategy:
       fail-fast: false
       matrix:
