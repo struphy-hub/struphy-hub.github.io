@@ -1,8 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 
-// Maintainers as named in the Struphy README's "Get in touch" section, plus
-// the developer with the longest, earliest commit history in the project.
+// Maintainers as named in the Struphy README's "Get in touch" section.
 const coreTeam = [
   {
     name: 'Stefan Possanner',
@@ -16,11 +15,6 @@ const coreTeam = [
     affiliation: 'Max Planck Institute for Plasma Physics',
     github: 'max-models',
   },
-  {
-    name: 'Florian Holderied',
-    role: 'Founding developer',
-    affiliation: 'Max Planck Institute for Plasma Physics / Technical University of Munich',
-  },
 ];
 
 // Other developers with a substantial, sustained commit history in the
@@ -30,6 +24,7 @@ const contributors = [
   'Valentin Carlier',
   'Tin Kei Cheng',
   'Florian Hindenlang',
+  'Florian Holderied',
   'Yingzhe Li',
   'Byung Kyu Na',
   'Ahmed Ratnani',
@@ -82,7 +77,7 @@ const publications = [
 
     <section class="section" aria-labelledby="core-title">
       <h2 id="core-title">Core team</h2>
-      <p class="lead">The maintainers and founding developers, as listed in the project's README.</p>
+      <p class="lead">The maintainers, as listed in the project's README.</p>
       <div class="people">
         {coreTeam.map((person) => (
           <article class="person">
