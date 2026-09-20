@@ -16,7 +16,7 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `zeldovich-caustic.py` — pressureless SPH collapse to a caustic and multi-stream flow, with the exact density from the Lagrangian map (animated density and phase space)
 - `diffusion-methods.py` — the random-walk and the deterministic particle methods for the diffusion equation, compared with the exact decay (two simulations in one script)
 - `incompressible-shear-relaxation.py` — incompressible SPH between no-slip walls: the pressure projection removes a compressive wave, and the shear mode decays at the exact viscous rate
-- `gvec-equilibrium.py` — runs G-Vec to create a converged circular-tokamak equilibrium, then uses its curved mapping and magnetic field in a Struphy shear-Alfvén simulation (requires the `phys` extra)
+- `gvec-equilibrium.py` — runs GVEC to create a converged circular-tokamak equilibrium, then uses its curved mapping and magnetic field in a Struphy shear-Alfvén simulation (requires the `phys` extra)
 - `strong-landau-damping.py`, `two-stream-instability.py`, `bump-on-tail.py`, `weibel-instability.py` — other Vlasov-Ampère/Maxwell instability benchmarks, all sharing the same field-energy-vs-time diagnostic pattern
 
 To build the assets of existing examples, use the CLI at the repository root (standard library only):

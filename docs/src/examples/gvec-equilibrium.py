@@ -1,6 +1,6 @@
-"""Create a compact G-Vec MHD equilibrium, then use it as a Struphy magnetic geometry.
+"""Create a compact GVEC MHD equilibrium, then use it as a Struphy magnetic geometry.
 
-G-Vec first minimizes a circular-tokamak MHD equilibrium defined entirely by
+GVEC first minimizes a circular-tokamak MHD equilibrium defined entirely by
 a Python parameter dictionary. Its newly written final state is passed directly to Struphy's `GVECequilibrium`,
 which supplies both the curved `GVECunit` mapping and the equilibrium magnetic
 field to a short shear-Alfvén simulation.  The plotted perturbation energies
@@ -20,7 +20,7 @@ import plotly.graph_objects as go
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ShearAlfven
 
-# Keep both the G-Vec solve and the following FEEC simulation deliberately
+# Keep both the GVEC solve and the following FEEC simulation deliberately
 # small. The complete equilibrium input is defined below, so the example has
 # no external parameter or state-file dependency.
 mapping_elements = (4, 8, 4)
@@ -63,7 +63,7 @@ def gvec_parameters() -> dict:
 
 
 def create_gvec_equilibrium(workdir: Path) -> tuple[equils.GVECequilibrium, int, float]:
-    """Run G-Vec from our Python parameters and expose its new final state to Struphy."""
+    """Run GVEC from our Python parameters and expose its new final state to Struphy."""
     import gvec
     # pyGVEC writes our new parameter and state files into `workdir`. This
     # compact case normally converges in roughly one hundred iterations.
@@ -81,7 +81,7 @@ def create_gvec_equilibrium(workdir: Path) -> tuple[equils.GVECequilibrium, int,
 
 def make_simulation(equilibrium, folder: str, domain=None, **extra) -> Simulation:
     model = ShearAlfven()
-    # A physical transverse mode. Struphy maps and projects it onto G-Vec's
+    # A physical transverse mode. Struphy maps and projects it onto GVEC's
     # physical torus before advancing it with the numerical B0 field.
     model.mhd.velocity.add_perturbation(
         perturbations.ModesSin(ns=(1,), amps=(velocity_amplitude,), comp=0, given_in_basis="physical")
@@ -98,13 +98,13 @@ def make_simulation(equilibrium, folder: str, domain=None, **extra) -> Simulatio
     )
 
 
-# Metadata generation imports this script without executing G-Vec. The cheap
+# Metadata generation imports this script without executing GVEC. The cheap
 # placeholder below is never run; `metadata_overrides` records the runtime
 # geometry, while the executable block replaces it with our generated state.
 simulation_details = {
-    "name": "G-Vec equilibrium in a Struphy simulation",
+    "name": "GVEC equilibrium in a Struphy simulation",
     "description": (
-        "G-Vec creates a circular-tokamak MHD equilibrium, then Struphy loads its final state as the "
+        "GVEC creates a circular-tokamak MHD equilibrium, then Struphy loads its final state as the "
         "magnetic field and curved geometry for a short shear-Alfvén simulation."
     ),
 }
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     run.run(profiling_activated=True)
 
     # Scalar diagnostics are rank-independent and live in the first HDF5 file.
-    # Reading them directly also keeps this example focused on the G-Vec handoff.
+    # Reading them directly also keeps this example focused on the GVEC handoff.
     data_file = Path(run.env.path_out) / "data/data_proc0.hdf5"
     with h5py.File(data_file) as data:
         time = np.asarray(data["time/value"])
@@ -135,9 +135,9 @@ if __name__ == "__main__":
     scale = float(total[0])
     relative_drift = float(np.max(np.abs(total / scale - 1.0)))
     if not np.isfinite(relative_drift):
-        raise RuntimeError("Non-finite energy diagnostic in the G-Vec-backed simulation")
+        raise RuntimeError("Non-finite energy diagnostic in the GVEC-backed simulation")
     print(
-        f"G-Vec converged in {gvec_iterations} iterations to |force| = {gvec_force:.2e}; "
+        f"GVEC converged in {gvec_iterations} iterations to |force| = {gvec_force:.2e}; "
         f"field periods: {equilibrium.state.nfp}; perturbation-energy drift: {relative_drift:.2e}"
     )
 
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     figure.add_scatter(x=time, y=magnetic / scale, mode="lines", name="magnetic", line={"color": "#d62828", "width": 2.5})
     figure.add_scatter(x=time, y=total / scale, mode="lines", name="total", line={"color": "#264653", "width": 2.5})
     figure.update_layout(
-        title="Shear-Alfvén perturbation on a G-Vec circular-tokamak equilibrium",
+        title="Shear-Alfvén perturbation on a GVEC circular-tokamak equilibrium",
         xaxis_title="t [a.u.]", yaxis_title="energy / initial perturbation energy",
         template="plotly_white", autosize=True, legend={"orientation": "h", "y": -0.18},
         margin={"l": 75, "r": 30, "t": 80, "b": 100},
