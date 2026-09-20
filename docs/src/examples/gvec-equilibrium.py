@@ -37,10 +37,13 @@ from struphy.models import GuidingCenter
 # Keep both the GVEC solve and the following FEEC simulation deliberately
 # small. The complete equilibrium input is defined below, so the example has
 # no external parameter or state-file dependency.
-mapping_elements = (4, 8, 10)
+# The grid covers one field period (`use_nfp=True`), so its ten-ish toroidal elements resolve a single
+# helical ripple. Spanning the whole torus instead would put two elements on each of the five ripples,
+# which smooths away the magnetic wells and leaves every orbit passing.
+mapping_elements = (8, 16, 16)
 mapping_degree = (2, 2, 2)
 speed = 1.5
-pitches = (-0.85, -0.5, -0.2, 0.2, 0.5, 0.85)
+pitches = (-0.85, -0.5, -0.2, 0.1, 0.2, 0.5)
 start_rho = 0.55
 
 
@@ -152,12 +155,10 @@ def create_gvec_equilibrium(workdir: Path) -> tuple[equils.GVECequilibrium, int,
         rel_path=False,
         param_file=str(run.state.parameterfile),
         dat_file=str(run.state.statefile),
-        use_nfp=False,
+        use_nfp=True,
         num_elements=mapping_elements,
         degree=mapping_degree,
     )
-    # GuidingCenter needs ∇|B|. GVEC exposes these exact derivatives, while
-    # Struphy's GVEC adapter does not yet forward them.
     equilibrium.gradB1 = MethodType(gvec_grad_b_1, equilibrium)
     return equilibrium, int(run.GVEC_iter_used), float(run.max_force)
 
@@ -201,7 +202,7 @@ def make_simulation(equilibrium, folder: str, domain=None, **extra) -> Simulatio
         env=EnvironmentOptions(
             out_folders="struphy_gallery_runs", sim_folder=folder, save_step=5
         ),
-        time_opts=Time(dt=0.01, Tend=20.0, split_algo="Strang"),
+        time_opts=Time(dt=0.02, Tend=40.0, split_algo="Strang"),
         domain=simulation_domain,
         equil=equilibrium,
         grid=grids.TensorProductGrid(num_elements=mapping_elements),
@@ -268,6 +269,18 @@ if __name__ == "__main__":
         logical_positions.reshape(-1, 3), change_out_order=True
     ).reshape(logical_positions.shape)
     x, y, z = np.moveaxis(physical_positions, -1, 0)
+
+    # The grid holds one field period, so a marker leaving it re-enters at the other end and its
+    # position comes back mapped into the same wedge. Counting those wraps and rotating by
+    # 2*pi/nfp per wrap — the symmetry of the equilibrium — puts each orbit where it belongs.
+    field_periods = int(equilibrium.state.nfp)
+    wraps = np.cumsum(
+        np.vstack((np.zeros((1, len(pitches))), -np.rint(np.diff(logical_positions[:, :, 2], axis=0)))),
+        axis=0,
+    )
+    wrap_angle = 2.0 * np.pi * wraps / field_periods
+    x, y = (x * np.cos(wrap_angle) - y * np.sin(wrap_angle), x * np.sin(wrap_angle) + y * np.cos(wrap_angle))
+    major_radius = np.hypot(x, y)
     v_parallel = marker_history[:, :, 3]
     reflections = np.array(
         [
@@ -277,7 +290,7 @@ if __name__ == "__main__":
     )
     reflected = reflections > 0
     labels = [
-        f"v∥/v = {pitch:+.2f} ({'reflected' if reflected[index] else 'passing'})"
+        f"v∥/v = {pitch:+.2f} ({'trapped' if reflected[index] else 'passing'})"
         for index, pitch in enumerate(pitches)
     ]
     colors = ("#ef476f", "#f78c6b", "#ffd166", "#06d6a0", "#118ab2", "#7b2cbf")
@@ -393,13 +406,14 @@ if __name__ == "__main__":
         horizontal_spacing=0.14,
     )
     for index, radius in enumerate(cut_radii):
-        x = cut_positions[0, index, :, 0]
-        y = cut_positions[1, index, :, 0]
-        z = cut_positions[2, index, :, 0]
-        radial_position = np.sqrt(x**2 + y**2)
+        # Not x, y, z: those hold the orbits, which the panels below still need.
+        cut_x = cut_positions[0, index, :, 0]
+        cut_y = cut_positions[1, index, :, 0]
+        cut_z = cut_positions[2, index, :, 0]
+        radial_position = np.sqrt(cut_x**2 + cut_y**2)
         profiles.add_scatter(
             x=np.append(radial_position, radial_position[0]),
-            y=np.append(z, z[0]),
+            y=np.append(cut_z, cut_z[0]),
             mode="lines",
             line={"color": "#168aad", "width": 1.5 + 1.2 * radius},
             opacity=0.35 + 0.65 * radius,
@@ -456,6 +470,83 @@ if __name__ == "__main__":
         )
     ]
 
+    # One panel per marker, the orbit projected on the (R, Z) plane, as in the tokamak example. The
+    # cross-section of a stellarator turns with the toroidal angle, so the surfaces drawn behind each
+    # orbit are the cut at zeta = 0: context for the radial excursion, not a plane the orbit stays in.
+    panels = make_subplots(
+        rows=2,
+        cols=3,
+        subplot_titles=labels,
+        horizontal_spacing=0.05,
+        vertical_spacing=0.13,
+    )
+    cut_radial = np.sqrt(cut_positions[0, :, :, 0] ** 2 + cut_positions[1, :, :, 0] ** 2)
+    cut_height = cut_positions[2, :, :, 0]
+    for index, label in enumerate(labels):
+        row, column = divmod(index, 3)
+        for surface in range(len(cut_radii)):
+            panels.add_scatter(
+                x=np.append(cut_radial[surface], cut_radial[surface][0]),
+                y=np.append(cut_height[surface], cut_height[surface][0]),
+                mode="lines",
+                line={"color": "#b8c4cc", "width": 1},
+                showlegend=False,
+                hoverinfo="skip",
+                row=row + 1,
+                col=column + 1,
+            )
+        panels.add_scatter(
+            x=major_radius[:, index],
+            y=z[:, index],
+            mode="lines",
+            line={"color": colors[index], "width": 2},
+            showlegend=False,
+            hovertemplate="R = %{x:.3f}<br>Z = %{y:.3f}<extra></extra>",
+            row=row + 1,
+            col=column + 1,
+        )
+        panels.add_scatter(
+            x=[major_radius[0, index]],
+            y=[z[0, index]],
+            mode="markers",
+            marker={"color": "#222", "size": 7, "symbol": "circle-open", "line": {"width": 2}},
+            showlegend=False,
+            hoverinfo="skip",
+            row=row + 1,
+            col=column + 1,
+        )
+        axis_index = index + 1
+        panels.update_xaxes(title_text="R" if row == 1 else None, row=row + 1, col=column + 1)
+        panels.update_yaxes(
+            title_text="Z" if column == 0 else None,
+            scaleanchor="x" if axis_index == 1 else f"x{axis_index}",
+            scaleratio=1,
+            row=row + 1,
+            col=column + 1,
+        )
+    panels.update_layout(
+        title="Guiding-center orbits projected on the poloidal plane",
+        template="plotly_white",
+        margin={"l": 70, "r": 30, "t": 90, "b": 60},
+        height=760,
+    )
+    figures.append(
+        save_extra_figure(
+            panels,
+            "gvec-equilibrium",
+            "poloidal-orbits",
+            alt="One panel per marker showing its guiding-center orbit projected on the poloidal plane",
+            caption=(
+                "Each marker's orbit projected on the (R, Z) plane, over the flux-surface cut at zeta = 0. "
+                "The trapped markers stay within a narrow band of flux surfaces and retrace it, while the "
+                "passing ones sweep the whole cross-section as they circulate. Unlike a tokamak, the "
+                "stellarator cross-section rotates with the toroidal angle, so these projections are not "
+                "closed banana curves: the width of the band is the radial excursion, the filling-in is the "
+                "toroidal motion."
+            ),
+        )
+    )
+
     diagnostics = make_subplots(
         rows=1,
         cols=2,
@@ -501,9 +592,12 @@ if __name__ == "__main__":
             "orbit-diagnostics",
             alt="Parallel velocities and total-energy conservation of guiding-center orbits in the GVEC stellarator",
             caption=(
-                "A sign change in parallel velocity identifies a magnetic-mirror reflection. "
-                "The total guiding-center energy stays nearly constant because the generated "
-                "GVEC equilibrium is static."
+                "A sign change in parallel velocity identifies a magnetic-mirror reflection: the markers "
+                "launched with a small parallel velocity are caught in the helical wells of the stellarator, "
+                "while the faster ones circulate. The magnetic moment is a coordinate of the model and is "
+                "conserved exactly; the total energy drifts by a few percent, which is set by the accuracy "
+                "of the coarse FEEC projection of the GVEC field rather than by the time integrator — the "
+                "drift does not fall when the time step is reduced."
             ),
         )
     )
