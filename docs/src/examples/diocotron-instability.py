@@ -42,9 +42,9 @@ model = ToyDrift(epsilon=1.0, alpha=1.0, base_units=BaseUnits(kBT=1.0))
 # An annular ring, r in [1, 10], with a uniform background field.
 domain = domains.HollowCylinder(a1=1.0, a2=10.0, Lz=10.0)
 equil = equils.HomogenSlab()
-grid = grids.TensorProductGrid(num_elements=(64, 128, 1), mpi_dims_mask=(False, True, False))
+grid = grids.TensorProductGrid(num_elements=(64, 64, 1), mpi_dims_mask=(False, True, False))
 derham_opts = DerhamOptions(degree=(3, 3, 1), bcs=(("dirichlet", "dirichlet"), None, None))
-time_opts = Time(dt=0.1, Tend=25.0, split_algo="LieTrotter")
+time_opts = Time(dt=0.5, Tend=100.0, split_algo="LieTrotter")
 
 # A high-resolution radial-angular density snapshot at every step.  The extra
 # angular samples make the m = 4 ripples legible in the interactive movie.
