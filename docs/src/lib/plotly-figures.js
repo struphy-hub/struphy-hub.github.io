@@ -29,11 +29,29 @@ function axisTheme(axis = {}, colors) {
   };
 }
 
+function themedUpdatemenus(updatemenus = [], colors) {
+  return updatemenus.map((menu) => ({
+    ...menu,
+    bgcolor: colors.background,
+    bordercolor: colors.accent,
+    borderwidth: 1,
+    font: { ...menu.font, color: colors.text, size: Math.max(menu.font?.size ?? 0, 14) },
+    pad: { ...menu.pad, l: Math.max(menu.pad?.l ?? 0, 8), r: Math.max(menu.pad?.r ?? 0, 8), t: Math.max(menu.pad?.t ?? 0, 6), b: Math.max(menu.pad?.b ?? 0, 6) },
+    buttons: menu.buttons?.map((button) => {
+      if (button.label === 'Play') return { ...button, label: '▶ Play' };
+      if (button.label === 'Pause') return { ...button, label: '⏸ Pause' };
+      return button;
+    }),
+  }));
+}
+
 function themedLayout(layout = {}) {
   const colors = {
     text: cssColor('--paper'),
     muted: cssColor('--muted'),
     grid: cssColor('--rule'),
+    background: cssColor('--ink'),
+    accent: cssColor('--cyan'),
   };
   const next = {
     ...layout,
@@ -53,6 +71,7 @@ function themedLayout(layout = {}) {
       bordercolor: colors.grid,
       font: { ...layout.hoverlabel?.font, color: colors.text },
     },
+    updatemenus: themedUpdatemenus(layout.updatemenus, colors),
   };
 
   const axisNames = new Set(['xaxis', 'yaxis']);
@@ -81,10 +100,45 @@ function themedLayout(layout = {}) {
   return next;
 }
 
+function setupPlayButton(root, Plotly, hasFrames) {
+  if (!hasFrames) return;
+  let button = root.querySelector('[data-plot-play]');
+  if (!button) {
+    button = document.createElement('button');
+    button.className = 'plot-play';
+    button.dataset.plotPlay = '';
+    button.type = 'button';
+    button.ariaLabel = 'Play animation';
+    button.innerHTML = '<span aria-hidden="true">▶</span> <span data-plot-play-label>Play</span>';
+    root.append(button);
+  }
+  const label = button.querySelector('[data-plot-play-label]');
+  if (!label) return;
+  button.hidden = false;
+  button.addEventListener('click', async () => {
+    const playing = button.dataset.playing === 'true';
+    if (playing) {
+      await Plotly.animate(root, [null], { frame: { duration: 0, redraw: false }, mode: 'immediate' });
+      button.dataset.playing = 'false';
+      button.setAttribute('aria-label', 'Play animation');
+      label.textContent = 'Play';
+      button.querySelector('span')?.replaceChildren(document.createTextNode('▶'));
+      return;
+    }
+    await Plotly.animate(root, null, { frame: { duration: 45, redraw: true }, transition: { duration: 0 }, fromcurrent: true });
+    button.dataset.playing = 'true';
+    button.setAttribute('aria-label', 'Pause animation');
+    label.textContent = 'Pause';
+    button.querySelector('span')?.replaceChildren(document.createTextNode('Ⅱ'));
+  });
+}
+
 function themedRelayout(layout = {}) {
   const colors = {
     text: cssColor('--paper'),
     grid: cssColor('--rule'),
+    background: cssColor('--ink'),
+    accent: cssColor('--cyan'),
   };
   const update = {
     paper_bgcolor: 'rgba(0,0,0,0)',
@@ -97,6 +151,7 @@ function themedRelayout(layout = {}) {
     'hoverlabel.bordercolor': colors.grid,
     'hoverlabel.font.color': colors.text,
   };
+  if (layout.updatemenus?.length) update.updatemenus = themedUpdatemenus(layout.updatemenus, colors);
   const axisNames = new Set(['xaxis', 'yaxis']);
   for (const name of Object.keys(layout)) {
     if (/^[xyz]axis\d*$/.test(name)) axisNames.add(name);
@@ -135,8 +190,15 @@ async function render(root) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const figure = await response.json();
     root._plotlySourceLayout = figure.layout ?? {};
-    await Plotly.newPlot(root, figure.data ?? [], themedLayout(root._plotlySourceLayout), CONFIG);
-    if (figure.frames?.length) await Plotly.addFrames(root, figure.frames);
+    root._plotlyHasFrames = Boolean(figure.frames?.length);
+    root.querySelector('[data-plot-status]')?.remove();
+    const layout = themedLayout(root._plotlySourceLayout);
+    if (root._plotlyHasFrames) layout.updatemenus = [];
+    await Plotly.newPlot(root, figure.data ?? [], layout, CONFIG);
+    if (figure.frames?.length) {
+      await Plotly.addFrames(root, figure.frames);
+      setupPlayButton(root, Plotly, true);
+    }
     root.setAttribute('aria-busy', 'false');
     mounted.add(root);
   } catch (error) {
@@ -167,7 +229,9 @@ function ensureObservers() {
           mounted.delete(root);
           continue;
         }
-        Plotly.relayout(root, themedRelayout(root._plotlySourceLayout));
+        const update = themedRelayout(root._plotlySourceLayout);
+        if (root._plotlyHasFrames) update.updatemenus = [];
+        Plotly.relayout(root, update);
       }
     });
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
