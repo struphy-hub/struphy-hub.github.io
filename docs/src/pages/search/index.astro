@@ -7,7 +7,19 @@ import catalogueIndex from '../../data/catalogue-index.json';
 import { toSlug } from '../../lib/catalogue';
 
 const domainNames = ['Colella','Cuboid','DESCunit','GVECunit','HollowCylinder','HollowTorus','IGAPolarCylinder','IGAPolarTorus','Orthogonal','PoweredEllipticCylinder','ShafranovDshapedCylinder','ShafranovShiftCylinder','ShafranovSqrtCylinder','Tokamak'];
+const sitePages = [
+  {name:'Examples',description:'Reproducible Struphy simulations and benchmark problems.',href:'/examples/',keywords:'gallery runs tutorials'},
+  {name:'Numerical methods',description:'The structure-preserving methods used throughout Struphy.',href:'/numerics/',keywords:'discretization algorithms'},
+  {name:'Building a simulation',description:'How models, domains, grids, and time integration fit together.',href:'/simulation/',keywords:'configuration setup'},
+  {name:'FEEC basics',description:'An introduction to compatible finite element spaces and operators.',href:'/feec/',keywords:'finite element exterior calculus'},
+  {name:'Time integration',description:'Splitting methods and time-stepping schemes available in Struphy.',href:'/time-integration/',keywords:'integrators splitting'},
+  {name:'Code and parallelization',description:'The architecture and parallel implementation of Struphy.',href:'/implementation/',keywords:'implementation mpi performance'},
+  {name:'Citation and reproducibility',description:'How to cite Struphy and document reproducible simulations.',href:'/citation/',keywords:'bibtex cff cite'},
+  {name:'Team',description:'The maintainers and contributors behind Struphy.',href:'/team/',keywords:'people developers maintainers'},
+  {name:'Contact us',description:'Ask questions, report bugs, contribute, or contact the maintainers.',href:'/contact/',keywords:'support help email discussions issues'},
+];
 const records = [
+  ...sitePages.map((item)=>({type:'Page',...item})),
   ...rawModels.map((item: any)=>({type:'Model',name:item.className,description:item.description||'Struphy simulation model.',href:`/models/${toSlug(item.className)}/`,keywords:`${item.type} ${item.useCasesHtml||''}`})),
   ...rawPropagators.map((item: any)=>({type:'Propagator',name:item.className,description:`${item.summary} ${item.usedBy.length?`Used by ${item.usedBy.length} model${item.usedBy.length===1?'':'s'}.`:'Not used by a model yet.'}`,href:`/propagators/${toSlug(item.className)}/`,keywords:`${item.category} ${item.variables.map((variable: any)=>`${variable.name} ${variable.spaces.join(' ')}`).join(' ')} ${item.usedBy.map((entry: any)=>entry.model).join(' ')}`})),
   ...rawBackgrounds.map((item: any)=>({type:'Background',name:item.className,description:item.summary,href:`/backgrounds/${toSlug(item.className)}/`,keywords:`kinetic background f0 maxwellian ${item.velocityCoords??''} ${item.velocityLabels.join(' ')}`})),
@@ -15,12 +27,12 @@ const records = [
   ...catalogueIndex.equilibria.map((item)=>({type:'Equilibrium',name:item.type,description:item.description||'Background fields for initializing a Struphy simulation.',href:`/equilibria/${item.slug}/`,keywords:''})),
   ...catalogueIndex.perturbations.map((item)=>({type:'Perturbation',name:item.type,description:`Initial-condition perturbation${item.basis?` in the ${item.basis} basis`:''}.`,href:`/perturbations/${item.slug}/`,keywords:item.basis||''})),
 ].sort((a,b)=>a.name.localeCompare(b.name));
-const types = ['All','Model','Propagator','Domain','Equilibrium','Perturbation','Background'];
+const types = ['All','Page','Model','Propagator','Domain','Equilibrium','Perturbation','Background'];
 ---
 
-<Layout title="Search the Struphy catalogue" description="Search Struphy models, propagators, domains, equilibria, perturbations, and kinetic backgrounds in one place.">
+<Layout title="Search Struphy" description="Search Struphy pages, models, propagators, domains, equilibria, perturbations, and kinetic backgrounds in one place.">
   <main>
-    <section class="intro"><p class="eyebrow">Unified catalogue</p><h1>Find a Struphy component</h1><p>Search across models, the propagators they are split into, mapped domains, background equilibria, initial-condition perturbations, and kinetic backgrounds.</p></section>
+    <section class="intro"><p class="eyebrow">Site-wide search</p><h1>Search Struphy</h1><p>Search site pages and the full catalogue of models, propagators, mapped domains, background equilibria, initial-condition perturbations, and kinetic backgrounds.</p></section>
     <section class="search-area" aria-label="Catalogue search">
       <label for="catalogue-search">Search by name, physics, geometry, or parameter</label>
       <input id="catalogue-search" type="search" data-query placeholder="Try “Alfvén”, “toroidal”, or “density”…" autofocus />
