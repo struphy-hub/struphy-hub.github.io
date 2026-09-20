@@ -21,6 +21,7 @@ __pycache__/
 /docs/public/images/examples/*.png
 /docs/src/data/examples-index.json
 /docs/public/examples/*.html
+/docs/public/examples/*.plotly.json
 /docs/public/examples/*.png
 /docs/public/examples/*-profile.h5
 /docs/public/examples/*-durations.json

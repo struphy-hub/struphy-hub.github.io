@@ -25,7 +25,7 @@ To build the assets of existing examples, use the CLI at the repository root (st
 ```sh
 python cli.py list                    # examples, and which have generated figures
 python cli.py run orszag-tang-vortex  # metadata + run + clean-up, then prints every generated file
-python cli.py show orszag             # paths of an earlier run (unique prefixes work; --open shows the figures)
+python cli.py show orszag             # paths of an earlier run (unique prefixes work; --open shows its page)
 python cli.py clean --all             # remove generated figures, profiling data and scratch output
 ```
 
@@ -49,12 +49,13 @@ filename.
 - Put `sim.run()`, post-processing, plotting, and file output behind
   `if __name__ == "__main__":`. That's the part that needs `struphy compile` and actually
   takes time to run.
-- Plot with Plotly (`plotly.graph_objects`), not matplotlib — the site embeds the
-  `write_html(...)` output directly for a live, interactive figure. See either existing
-  script for layout conventions (margins, slider/button placement if animated).
+- Plot with Plotly (`plotly.graph_objects`), not matplotlib. The shared gallery helper
+  serializes the completed figure as Plotly JSON; the site renders it with its single shared
+  Plotly runtime. See an existing script for layout conventions (margins, slider/button
+  placement if animated).
 - Save output with the helpers in `_gallery.py` (import them inside the `__main__` block, since
   `generate_examples.py` runs the module without the examples directory on `sys.path`):
-  `save_figure(figure, "<script-stem>")` writes `<script-stem>.png` and `.html`;
+  `save_figure(figure, "<script-stem>")` writes `<script-stem>.png` and `.plotly.json`;
   `export_profiling(sim, "<script-stem>")` writes the profiling files and returns their metadata
   fields; `merge_metadata("<script-stem>", **fields)` adds result fields to the metadata JSON.
   The script is run from inside `docs/public/examples/`, so these land there directly.
@@ -98,11 +99,11 @@ struphy compile   # once, if you haven't already
 python ../../src/examples/<script-stem>.py
 ```
 
-This produces `<script-stem>.png` and `<script-stem>.html` in `docs/public/examples/`, copies each PNG
+This produces `<script-stem>.png` and `<script-stem>.plotly.json` in `docs/public/examples/`, copies each PNG
 to `docs/public/images/examples/` (the gallery thumbnail reads it there, and so does the example page
 on phones and without JavaScript, where it shows the PNG instead of the interactive plot)
 and folds any result field into the metadata JSON (step 1). Everything is named after the script:
-the example page refers to `/examples/<script-stem>.html` and `/images/examples/<script-stem>.png`,
+the example page refers to `/examples/<script-stem>.plotly.json` and `/images/examples/<script-stem>.png`,
 and the gallery finds the thumbnail by that name. Nothing has to be wired up by hand.
 
 Clean up `docs/public/examples/struphy_gallery_runs/` (or wherever `EnvironmentOptions`
@@ -173,7 +174,7 @@ in its metadata. No list to edit by hand.
 
 - [ ] `docs/src/examples/<script-stem>.py` — `Simulation(name=..., description=...)` at
       module scope, heavy work behind `if __name__ == "__main__":`, Plotly output
-- [ ] Name every file the script writes after the script: `<script-stem>.png`, `<script-stem>.html`
+- [ ] Name every file the script writes after the script: `<script-stem>.png`, `<script-stem>.plotly.json`
       (and `<script-stem>-<key>.*` for extra figures). The metadata JSON, figures and thumbnails are
       generated and gitignored; check them locally with `python cli.py run <script-stem>`
 - [ ] `docs/src/pages/examples/<script-stem>.py.ts` — download route

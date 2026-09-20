@@ -9,7 +9,7 @@ This tool does the same locally for the examples you name, and prints every file
 
     python cli.py list                      # what examples exist, and which have been run
     python cli.py run orszag-tang-vortex    # metadata + run + clean-up
-    python cli.py run orszag dam --open     # unique prefixes work; --open shows the figures
+    python cli.py run orszag dam --open     # unique prefixes work; --open shows their pages
     python cli.py run orszag --mpi 4        # on 4 MPI ranks, as CI does (rank 0 writes the files)
     python cli.py show orszag-tang-vortex   # paths of the files of an earlier run
     python cli.py clean --all               # remove everything a run generated
@@ -143,15 +143,15 @@ class Artifacts:
 
     figures: list[Path] = field(
         default_factory=list
-    )  # interactive .html and static .png
+    )  # interactive .plotly.json and static .png
     data: list[Path] = field(default_factory=list)  # metadata and profiling exports
     thumbnails: list[Path] = field(
         default_factory=list
     )  # copies of the PNGs for the gallery
 
     @property
-    def has_html(self) -> bool:
-        return any(p.suffix == ".html" for p in self.figures)
+    def has_interactive(self) -> bool:
+        return any(p.name.endswith(".plotly.json") for p in self.figures)
 
     def all(self) -> list[Path]:
         return [*self.figures, *self.data, *self.thumbnails]
@@ -174,7 +174,7 @@ def collect(stem: str, since: float | None = None) -> Artifacts:
 
     artifacts = Artifacts()
     for path in files(OUTPUT_DIR):
-        if path.suffix in (".html", ".png"):
+        if path.suffix in (".html", ".png") or path.name.endswith(".plotly.json"):
             artifacts.figures.append(path)
         else:
             artifacts.data.append(path)
@@ -184,7 +184,10 @@ def collect(stem: str, since: float | None = None) -> Artifacts:
 
 def print_artifacts(stem: str, artifacts: Artifacts, indent: str = "  ") -> None:
     groups = (
-        ("Interactive figures", [p for p in artifacts.figures if p.suffix == ".html"]),
+        (
+            "Interactive figures",
+            [p for p in artifacts.figures if p.name.endswith(".plotly.json")],
+        ),
         ("Static images", [p for p in artifacts.figures if p.suffix == ".png"]),
         ("Metadata and profiling", artifacts.data),
         ("Gallery thumbnails", artifacts.thumbnails),
@@ -200,12 +203,9 @@ def print_artifacts(stem: str, artifacts: Artifacts, indent: str = "  ") -> None
     print(f"{indent}  {page}")
 
 
-def open_figures(artifacts: Artifacts) -> None:
-    for path in artifacts.figures:
-        if path.suffix == ".html" and not path.name.endswith(
-            ("-gantt.html", "-durations.html")
-        ):
-            webbrowser.open(path.as_uri())
+def open_example_page(stem: str) -> None:
+    """Open the page that renders the generated Plotly JSON."""
+    webbrowser.open(f"{DEV_SERVER}/examples/{stem}/")
 
 
 # --------------------------------------------------------------------------- commands
@@ -235,7 +235,7 @@ def cmd_list(args: argparse.Namespace) -> int:
                 "example": stem,
                 "name": meta.get("name", ""),
                 "model": meta.get("model", ""),
-                "generated": artifacts.has_html,
+                "generated": artifacts.has_interactive,
             }
         )
     if args.json:
@@ -369,12 +369,12 @@ def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts
         clean_scratch()
 
     artifacts = collect(stem, run_started)
-    if not artifacts.has_html:
+    if not artifacts.has_interactive:
         return (
             False,
             time.time() - started,
             artifacts,
-            "the script finished but wrote no interactive .html figure",
+            "the script finished but wrote no interactive .plotly.json figure",
         )
     return True, time.time() - started, artifacts, ""
 
@@ -401,7 +401,7 @@ def cmd_run(args: argparse.Namespace) -> int:
                     f"  {bold('Simulation data')} (kept)\n    {OUTPUT_DIR / SCRATCH[0]}"
                 )
             if args.open:
-                open_figures(artifacts)
+                open_example_page(stem)
         else:
             print(red(f"\n  {stem}: FAILED after {human_time(seconds)}: {message}"))
             if artifacts.all():
@@ -438,7 +438,7 @@ def cmd_show(args: argparse.Namespace) -> int:
             continue
         print_artifacts(stem, artifacts)
         if args.open:
-            open_figures(artifacts)
+            open_example_page(stem)
     return status
 
 
@@ -506,7 +506,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--open",
         action="store_true",
-        help="open the interactive figures in a browser afterwards",
+        help=f"open each example page afterwards (expects the docs dev server at {DEV_SERVER})",
     )
     p.add_argument(
         "-q",
@@ -545,7 +545,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_selection(p)
     p.add_argument(
-        "--open", action="store_true", help="open the interactive figures in a browser"
+        "--open",
+        action="store_true",
+        help=f"open each example page (expects the docs dev server at {DEV_SERVER})",
     )
     p.set_defaults(func=cmd_show)
 
