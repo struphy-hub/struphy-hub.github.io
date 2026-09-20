@@ -24,10 +24,7 @@ def export_example_domain(slug: str, metadata_root: Path, output_dir: Path) -> P
     # Comparison examples can run more than one simulation. The primary
     # gallery simulation has a name; use that domain for the page while
     # preserving every run's domain record in the generated manifest.
-    records = [
-        (path, json.loads(path.read_text(encoding="utf-8")))
-        for path in matches
-    ]
+    records = [(path, json.loads(path.read_text(encoding="utf-8"))) for path in matches]
     metadata_path, results = next(
         ((path, record) for path, record in records if record.get("name")),
         records[0],
