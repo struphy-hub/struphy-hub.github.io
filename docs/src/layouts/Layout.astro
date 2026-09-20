@@ -42,7 +42,10 @@ const moreGroups = [
   },
   {
     name: 'About',
-    links: [{ href: '/team/', label: 'Team' }],
+    links: [
+      { href: '/team/', label: 'Team' },
+      { href: '/contact/', label: 'Contact us' },
+    ],
   },
 ];
 
@@ -164,6 +167,22 @@ const structuredData = {
             {link.label}
           </a>
         ))}
+        <form class="global-search" action="/search/" method="get" role="search">
+          <label for="global-search-input">Search</label>
+          <input
+            id="global-search-input"
+            name="q"
+            type="search"
+            placeholder="Search…"
+            autocomplete="off"
+          />
+          <button type="submit" aria-label="Submit search">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <circle cx="8.5" cy="8.5" r="5.5"></circle>
+              <path d="m12.5 12.5 4 4"></path>
+            </svg>
+          </button>
+        </form>
         <button class="theme-toggle" type="button" aria-label="Switch color theme"></button>
       </nav>
     </header>
@@ -192,6 +211,7 @@ const structuredData = {
         <a href="https://github.com/struphy-hub/struphy/releases">Changelog</a>
         <a href="/citation/">Cite Struphy</a>
         <a href="/team/">Team</a>
+        <a href="/contact/">Contact us</a>
       </nav>
       <p class="build-status">
         <a href="https://github.com/struphy-hub/struphy-hub.github.io/actions/workflows/deploy.yml">
@@ -450,6 +470,54 @@ const structuredData = {
     text-transform: uppercase;
   }
 
+  .global-search {
+    position: relative;
+    width: 148px;
+  }
+
+  .global-search label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .global-search input {
+    width: 100%;
+    height: 34px;
+    padding: 6px 34px 6px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: transparent;
+    color: var(--paper);
+    font: 0.82rem var(--sans);
+  }
+
+  .global-search input::placeholder { color: var(--muted); opacity: 1; }
+  .global-search input:focus { border-color: var(--cyan); outline: none; }
+
+  .global-search button {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    display: grid;
+    width: 32px;
+    height: 32px;
+    padding: 7px;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--cyan);
+    cursor: pointer;
+  }
+
+  .global-search svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+
   .theme-toggle {
     flex: none;
     padding: 0;
@@ -542,7 +610,7 @@ const structuredData = {
     *, *:before, *:after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   }
 
-  @media (max-width: 760px) {
+  @media (max-width: 900px) {
     .site-header {
       flex-wrap: wrap;
       padding-block: 14px;
@@ -570,6 +638,8 @@ const structuredData = {
       border-left: 1px solid var(--rule);
       background: none;
     }
+
+    .global-search { width: min(100%, 320px); }
 
     .theme-toggle { margin-top: 4px; }
   }
