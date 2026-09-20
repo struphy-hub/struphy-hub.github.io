@@ -87,6 +87,7 @@ def save_figure(
         include_plotlyjs="cdn",
         default_width="100%",
         default_height="100%",
+        auto_play=False,
         config={"responsive": True, "displaylogo": False},
     )
     print(f"Saved {png_path.resolve()}")
