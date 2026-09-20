@@ -82,6 +82,9 @@ if __name__ == "__main__":
     for label, options in schemes.items():
         simulation = sim if label == reference_label else build_simulation(label, options)
         runs[label] = simulation.run(profiling_activated=label == reference_label)
+        # Every rank post-processes: the field profile below is evaluated from the FEEC output, which
+        # under MPI is not materialized on first use.
+        runs[label].pproc()
 
     colors = {
         "Crank-Nicolson (implicit)": "#168aad",
