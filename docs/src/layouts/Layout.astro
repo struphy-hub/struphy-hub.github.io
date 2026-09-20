@@ -307,6 +307,14 @@ const structuredData = {
     --plot-bg: #112c34;
   }
 
+  /* Shiki's dual-theme output stores token colours in custom properties.
+     Select the palette with the site's explicit theme instead of the OS
+     preference, since the header toggle can override that preference. */
+  html[data-theme='light'] .shiki,
+  html[data-theme='light'] .shiki span { color: var(--shiki-light); }
+  html[data-theme='dark'] .shiki,
+  html[data-theme='dark'] .shiki span { color: var(--shiki-dark); }
+
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body { margin: 0; min-width: 320px; background: var(--ink); color: var(--paper); font-family: var(--sans); line-height: 1.6; }
