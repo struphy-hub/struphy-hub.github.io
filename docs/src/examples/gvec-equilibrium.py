@@ -1,72 +1,112 @@
 """Create a compact GVEC MHD equilibrium, then use it as a Struphy magnetic geometry.
 
-GVEC first minimizes a circular-tokamak MHD equilibrium defined entirely by
+GVEC first minimizes a five-field-period stellarator equilibrium defined entirely by
 a Python parameter dictionary. Its newly written final state is passed directly to Struphy's `GVECequilibrium`,
 which supplies both the curved `GVECunit` mapping and the equilibrium magnetic
-field to a short shear-Alfvén simulation. The figures expose the resulting
-three-dimensional flux geometry, a poloidal cut and the radial equilibrium
-profiles, as well as the perturbation energies from the Struphy run.
+field to Struphy's guiding-center model. The figures expose the resulting
+three-dimensional flux geometry and particle orbits, a poloidal cut and the
+radial equilibrium profiles, as well as orbit diagnostics from the Struphy run.
 
 Requires the optional physics dependencies (`pip install -e ".[phys]"`) and
 compiled Struphy kernels (`struphy compile`).
 """
 
 from pathlib import Path
+from types import MethodType
 
 import h5py
 import numpy as np
 import plotly.graph_objects as go
 
 from struphy import (
+    BoundaryParameters,
     DerhamOptions,
     EnvironmentOptions,
+    LoadingParameters,
+    SavingParameters,
     Simulation,
     Time,
+    WeightsParameters,
     domains,
     equils,
     grids,
-    perturbations,
+    maxwellians,
 )
-from struphy.models import ShearAlfven
+from struphy.models import GuidingCenter
 
 # Keep both the GVEC solve and the following FEEC simulation deliberately
 # small. The complete equilibrium input is defined below, so the example has
 # no external parameter or state-file dependency.
-mapping_elements = (4, 8, 4)
+mapping_elements = (4, 8, 10)
 mapping_degree = (2, 2, 2)
-velocity_amplitude = 1.0e-4
+speed = 1.5
+pitches = (-0.85, -0.5, -0.2, 0.2, 0.5, 0.85)
+start_rho = 0.55
+
+
+def gvec_grad_b_1(equilibrium, *etas, squeeze_out=False):
+    """Covariant derivatives of |B| in Struphy's normalized coordinates."""
+    evaluations, _ = equilibrium._gvec_evaluations(*etas)
+    equilibrium.state.compute(
+        evaluations, "dmod_B_dr", "dmod_B_dt", "dmod_B_dz"
+    )
+    radial_scale = 1.0 - equilibrium.params["rmin"]
+    return (
+        evaluations.dmod_B_dr.data * radial_scale / equilibrium.units.B,
+        evaluations.dmod_B_dt.data * (2.0 * np.pi) / equilibrium.units.B,
+        evaluations.dmod_B_dz.data
+        * (2.0 * np.pi / equilibrium._nfp)
+        / equilibrium.units.B,
+    )
 
 
 def gvec_parameters() -> dict:
-    """A complete axisymmetric circular-tokamak equilibrium, defined through pyGVEC's API."""
+    """A complete five-field-period stellarator equilibrium defined through pyGVEC's API."""
     return {
-        "ProjectName": "struphy_gallery_gvec",
+        "ProjectName": "struphy_gallery_stellarator",
         "whichInitEquilibrium": 0,
         "init_LA": True,
-        "iota": {"type": "polynomial", "scale": 1.0, "coefs": (0.625, 0.523)},
-        "pres": {"type": "polynomial", "scale": 1.0, "coefs": (0.02, -0.0136878012275)},
+        "iota": {"type": "polynomial", "scale": -1.0, "coefs": (0.86, -0.08)},
+        "pres": {"type": "polynomial", "scale": 1.0, "coefs": (0.02, -0.0137)},
         "PsiEdge": 1.0,
-        # Circular magnetic axis at R=5 and an elliptical last closed flux
-        # surface with radial and vertical half-widths 0.9 and 1.1.
-        "X1_b_cos": {(0, 0): 5.0, (1, 0): 0.9},
-        "X2_b_sin": {(1, 0): 1.1},
-        "X1_a_cos": {(0, 0): 5.0},
+        # A compact, reduced stellarator boundary. Non-zero toroidal Fourier
+        # modes twist both the magnetic axis and the last closed flux surface
+        # through five field periods; no external input or state file is used.
+        "X1_b_cos": {
+            (0, 0): 5.5,
+            (0, 1): 0.2354,
+            (1, -1): -0.2233,
+            (1, 0): 0.47685,
+            (1, 1): -0.0121,
+            (2, -1): 0.1,
+            (2, 0): 0.0616,
+        },
+        "X2_b_sin": {
+            (0, 1): 0.1155,
+            (1, -1): 0.2233,
+            (1, 0): 0.62315,
+            (1, 1): -0.0121,
+            (2, -1): 0.132,
+            (2, 0): 0.06435,
+        },
+        "X1_a_cos": {(0, 0): 5.59625, (0, 1): 0.3586},
+        "X2_a_sin": {(0, 1): 0.28765},
         "sgrid": {"nElems": 5, "grid_type": 0},
         "degGP": 8,
         "X1X2_deg": 5,
         "LA_deg": 5,
-        "X1_mn_max": (2, 0),
-        "X2_mn_max": (2, 0),
-        "LA_mn_max": (2, 0),
+        "X1_mn_max": (2, 2),
+        "X2_mn_max": (2, 2),
+        "LA_mn_max": (2, 2),
         "X1_sin_cos": "_cos_",
         "X2_sin_cos": "_sin_",
         "LA_sin_cos": "_sin_",
-        "nfp": 1,
-        "start_dt": 0.5,
+        "nfp": 5,
+        "start_dt": 0.3,
         "PrecondType": 1,
         "MinimizerType": 10,
-        "maxiter": 200,
-        "totaliter": 200,
+        "maxiter": 1000,
+        "totaliter": 1000,
         "minimize_tol": 1.0e-4,
     }
 
@@ -76,7 +116,7 @@ def create_gvec_equilibrium(workdir: Path) -> tuple[equils.GVECequilibrium, int,
     import gvec
 
     # pyGVEC writes our new parameter and state files into `workdir`. This
-    # compact case normally converges in roughly one hundred iterations.
+    # compact case normally converges in fewer than five hundred iterations.
     run = gvec.run(
         gvec_parameters(), runpath=workdir, quiet=True, redirect_gvec_stdout=True
     )
@@ -88,26 +128,58 @@ def create_gvec_equilibrium(workdir: Path) -> tuple[equils.GVECequilibrium, int,
         num_elements=mapping_elements,
         degree=mapping_degree,
     )
+    # GuidingCenter needs ∇|B|. GVEC exposes these exact derivatives, while
+    # Struphy's GVEC adapter does not yet forward them.
+    equilibrium.gradB1 = MethodType(gvec_grad_b_1, equilibrium)
     return equilibrium, int(run.GVEC_iter_used), float(run.max_force)
 
 
 def make_simulation(equilibrium, folder: str, domain=None, **extra) -> Simulation:
-    model = ShearAlfven()
-    # A physical transverse mode. Struphy maps and projects it onto GVEC's
-    # physical torus before advancing it with the numerical B0 field.
-    model.mhd.velocity.add_perturbation(
-        perturbations.ModesSin(
-            ns=(1,), amps=(velocity_amplitude,), comp=0, given_in_basis="physical"
+    simulation_domain = domain or equilibrium.numerical_domain
+    if domain is not None:
+        equilibrium.domain = simulation_domain
+    b_start = float(equilibrium.absB0(start_rho, 0.0, 0.0, squeeze_out=True))
+    initial = tuple(
+        (
+            start_rho,
+            0.0,
+            0.0,
+            speed * pitch,
+            speed**2 * (1.0 - pitch**2) / (2.0 * b_start),
         )
+        for pitch in pitches
+    )
+    model = GuidingCenter()
+    model.kinetic_ions.set_markers(
+        loading_params=LoadingParameters(
+            Np=len(initial), seed=1, specific_markers=initial
+        ),
+        weights_params=WeightsParameters(),
+        boundary_params=BoundaryParameters(bc=("remove", "periodic", "periodic")),
+        saving_params=SavingParameters(n_markers=1.0),
+        bufsize=2.0,
+    )
+    model.propagators.push_bxe.options = model.propagators.push_bxe.Options(
+        maxiter=100, tol=1e-8
+    )
+    model.propagators.push_parallel.options = model.propagators.push_parallel.Options(
+        maxiter=100, tol=1e-8
+    )
+    model.kinetic_ions.var.add_background(
+        maxwellians.GyroMaxwellian2D(n=(1.0, None), B0=b_start)
     )
     return Simulation(
         model=model,
-        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder=folder),
-        time_opts=Time(dt=0.01, Tend=0.10),
-        domain=domain or equilibrium.numerical_domain,
+        env=EnvironmentOptions(
+            out_folders="struphy_gallery_runs", sim_folder=folder, save_step=5
+        ),
+        time_opts=Time(dt=0.01, Tend=20.0, split_algo="Strang"),
+        domain=simulation_domain,
         equil=equilibrium,
         grid=grids.TensorProductGrid(num_elements=mapping_elements),
-        derham_opts=DerhamOptions(degree=mapping_degree),
+        derham_opts=DerhamOptions(
+            degree=mapping_degree, bcs=(("free", "free"), None, None)
+        ),
         **extra,
     )
 
@@ -116,10 +188,10 @@ def make_simulation(equilibrium, folder: str, domain=None, **extra) -> Simulatio
 # placeholder below is never run; `metadata_overrides` records the runtime
 # geometry, while the executable block replaces it with our generated state.
 simulation_details = {
-    "name": "GVEC equilibrium in a Struphy simulation",
+    "name": "Guiding-center orbits in a GVEC stellarator",
     "description": (
-        "GVEC creates a circular-tokamak MHD equilibrium, then Struphy loads its final state as the "
-        "magnetic field and curved geometry for a short shear-Alfvén simulation."
+        "GVEC creates a five-field-period stellarator equilibrium, then Struphy follows passing and "
+        "mirror-trapped guiding centers in its three-dimensional magnetic field."
     ),
 }
 sim = make_simulation(
@@ -149,26 +221,54 @@ if __name__ == "__main__":
     )
     run.run(profiling_activated=True)
 
-    # Scalar diagnostics are rank-independent and live in the first HDF5 file.
-    # Reading them directly also keeps this example focused on the GVEC handoff.
+    # Keep the live GVEC mapping for post-processing. A GVECunit reconstructed
+    # only from generic run metadata does not retain its generated state file.
     data_file = Path(run.env.path_out) / "data/data_proc0.hdf5"
     with h5py.File(data_file) as data:
         time = np.asarray(data["time/value"])
-        kinetic = np.asarray(data["scalar/en_U"])
-        magnetic = np.asarray(data["scalar/en_B"])
-        total = np.asarray(data["scalar/en_tot"])
-    scale = float(total[0])
-    relative_drift = float(np.max(np.abs(total / scale - 1.0)))
+        saved_markers = np.asarray(data["kinetic/kinetic_ions/markers"])
+        total_energy = np.asarray(data["scalar/en_tot"])
+        lost_history = np.asarray(data["scalar/n_lost_particles"])
+    marker_history = np.empty((len(time), len(pitches), saved_markers.shape[-1]))
+    for step, marker_rows in enumerate(saved_markers):
+        active = marker_rows[marker_rows[:, -1] >= 0]
+        if len(active) != len(pitches):
+            raise RuntimeError("A guiding center left the GVEC radial domain")
+        marker_history[step] = active[np.argsort(active[:, -1])]
+    logical_positions = marker_history[:, :, :3]
+    physical_positions = equilibrium.numerical_domain(
+        logical_positions.reshape(-1, 3), change_out_order=True
+    ).reshape(logical_positions.shape)
+    x, y, z = np.moveaxis(physical_positions, -1, 0)
+    v_parallel = marker_history[:, :, 3]
+    reflections = np.array(
+        [
+            np.count_nonzero(np.diff(np.sign(column[np.isfinite(column)])))
+            for column in v_parallel.T
+        ]
+    )
+    reflected = reflections > 0
+    labels = [
+        f"v∥/v = {pitch:+.2f} ({'reflected' if reflected[index] else 'passing'})"
+        for index, pitch in enumerate(pitches)
+    ]
+    colors = ("#ef476f", "#f78c6b", "#ffd166", "#06d6a0", "#118ab2", "#7b2cbf")
+
+    relative_energy = np.abs(total_energy / total_energy[0] - 1.0)
+    relative_drift = float(np.nanmax(relative_energy))
+    lost_markers = int(np.nanmax(lost_history))
     if not np.isfinite(relative_drift):
-        raise RuntimeError("Non-finite energy diagnostic in the GVEC-backed simulation")
+        raise RuntimeError(
+            "Non-finite energy diagnostic in the GVEC guiding-center run"
+        )
     print(
         f"GVEC converged in {gvec_iterations} iterations to |force| = {gvec_force:.2e}; "
-        f"field periods: {equilibrium.state.nfp}; perturbation-energy drift: {relative_drift:.2e}"
+        f"field periods: {equilibrium.state.nfp}; reflections per orbit: {reflections.tolist()}; "
+        f"guiding-center energy drift: {relative_drift:.2e}"
     )
 
-    # A cutaway torus makes the nested GVEC flux surfaces visible instead of
-    # hiding all of them behind the last closed surface. Color is |B|, so the
-    # familiar stronger inboard / weaker outboard tokamak field is visible too.
+    # A cutaway stellarator makes the nested GVEC flux surfaces visible behind
+    # the guiding-center trajectories. Surface color is the magnetic strength.
     surface_radii = np.array((0.2, 0.4, 0.6, 0.8, 1.0))
     toroidal_angles = np.linspace(0.05 * np.pi, 1.95 * np.pi, 97)
     surface_data = equilibrium.state.evaluate(
@@ -198,7 +298,7 @@ if __name__ == "__main__":
                 cmin=field_min,
                 cmax=field_max,
                 colorscale="Viridis",
-                opacity=0.82 if radius < 1.0 else 0.68,
+                opacity=0.10 + 0.02 * index,
                 showscale=index == len(surface_radii) - 1,
                 colorbar={"title": "|B|", "len": 0.72},
                 name=f"ρ = {radius:.1f}",
@@ -212,8 +312,23 @@ if __name__ == "__main__":
                 ),
             )
         )
+    for index, label in enumerate(labels):
+        figure.add_trace(
+            go.Scatter3d(
+                x=x[:, index],
+                y=y[:, index],
+                z=z[:, index],
+                mode="lines",
+                line={"color": colors[index], "width": 6},
+                name=label,
+                hovertemplate=(
+                    f"{label}<br>x = %{{x:.3f}}<br>y = %{{y:.3f}}<br>"
+                    "z = %{z:.3f}<extra></extra>"
+                ),
+            )
+        )
     figure.update_layout(
-        title="GVEC equilibrium: nested magnetic flux surfaces",
+        title="Guiding-center orbits in a GVEC stellarator",
         template="plotly_white",
         scene={
             "xaxis_title": "x",
@@ -222,6 +337,7 @@ if __name__ == "__main__":
             "aspectmode": "data",
             "camera": {"eye": {"x": 1.45, "y": 1.45, "z": 0.85}},
         },
+        legend={"x": 0.01, "y": 0.99, "bgcolor": "rgba(255,255,255,0.72)"},
         margin={"l": 10, "r": 30, "t": 75, "b": 10},
     )
     save_figure(figure, "gvec-equilibrium", height=760)
@@ -312,46 +428,54 @@ if __name__ == "__main__":
         )
     ]
 
-    energy_figure = go.Figure()
-    energy_figure.add_scatter(
-        x=time,
-        y=kinetic / scale,
-        mode="lines",
-        name="kinetic",
-        line={"color": "#168aad", "width": 2.5},
+    diagnostics = make_subplots(
+        rows=1,
+        cols=2,
+        subplot_titles=("Parallel velocity", "Total guiding-center energy"),
+        horizontal_spacing=0.13,
     )
-    energy_figure.add_scatter(
+    for index, label in enumerate(labels):
+        diagnostics.add_scatter(
+            x=time,
+            y=v_parallel[:, index] / speed,
+            mode="lines",
+            name=label,
+            line={"color": colors[index], "width": 2.2},
+            row=1,
+            col=1,
+        )
+    diagnostics.add_hline(y=0.0, line={"color": "#888", "width": 1}, row=1, col=1)
+    diagnostics.add_scatter(
         x=time,
-        y=magnetic / scale,
+        y=np.maximum(relative_energy, 1.0e-14),
         mode="lines",
-        name="magnetic",
-        line={"color": "#d62828", "width": 2.5},
+        name="relative energy change",
+        line={"color": "#264653", "width": 3},
+        row=1,
+        col=2,
     )
-    energy_figure.add_scatter(
-        x=time,
-        y=total / scale,
-        mode="lines",
-        name="total",
-        line={"color": "#264653", "width": 2.5},
+    diagnostics.update_xaxes(title_text="t [a.u.]", row=1, col=1)
+    diagnostics.update_xaxes(title_text="t [a.u.]", row=1, col=2)
+    diagnostics.update_yaxes(title_text="v∥ / v", row=1, col=1)
+    diagnostics.update_yaxes(
+        title_text="|E / E₀ − 1|", type="log", exponentformat="power", row=1, col=2
     )
-    energy_figure.update_layout(
-        title="Shear-Alfvén perturbation on the GVEC equilibrium",
-        xaxis_title="t [a.u.]",
-        yaxis_title="energy / initial perturbation energy",
+    diagnostics.update_layout(
+        title="Orbit classification and conservation",
         template="plotly_white",
-        autosize=True,
-        legend={"orientation": "h", "y": -0.18},
+        legend={"orientation": "h", "y": -0.2},
         margin={"l": 75, "r": 30, "t": 80, "b": 100},
     )
     figures.append(
         save_extra_figure(
-            energy_figure,
+            diagnostics,
             "gvec-equilibrium",
-            "energies",
-            alt="Kinetic, magnetic and total perturbation energies in the GVEC-backed Struphy run",
+            "orbit-diagnostics",
+            alt="Parallel velocities and total-energy conservation of guiding-center orbits in the GVEC stellarator",
             caption=(
-                "Energy exchange during the short shear-Alfvén simulation that uses the generated "
-                "GVEC state for both its curved domain and equilibrium magnetic field."
+                "A sign change in parallel velocity identifies a magnetic-mirror reflection. "
+                "The total guiding-center energy stays nearly constant because the generated "
+                "GVEC equilibrium is static."
             ),
         )
     )
@@ -360,6 +484,9 @@ if __name__ == "__main__":
         gvecIterations=gvec_iterations,
         gvecFinalForce=gvec_force,
         gvecFieldPeriods=int(equilibrium.state.nfp),
+        markers=len(pitches),
+        reflectedMarkers=int(reflected.sum()),
+        lostMarkers=lost_markers,
         relativeEnergyDrift=relative_drift,
         figures=figures,
         **export_profiling(run, "gvec-equilibrium"),
