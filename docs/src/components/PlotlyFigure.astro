@@ -21,6 +21,9 @@ const { src, title, eager = false } = Astro.props;
   <button class="plot-play" data-plot-play hidden type="button" aria-label="Play animation">
     <span aria-hidden="true">▶</span> <span data-plot-play-label>Play</span>
   </button>
+  <button class="plot-replay" data-plot-replay hidden type="button" aria-pressed="false">
+    <span aria-hidden="true">↻</span> Replay
+  </button>
 </div>
 
 <script>
@@ -38,5 +41,9 @@ const { src, title, eager = false } = Astro.props;
   .plotly-figure :global(.plot-play:hover){transform:translateY(-2px);box-shadow:0 8px 22px color-mix(in srgb,var(--ink) 45%,transparent);filter:saturate(1.15)}
   .plotly-figure :global(.plot-play:focus-visible){outline:3px solid color-mix(in srgb,var(--cyan) 45%,white);outline-offset:3px}
   .plotly-figure :global(.plot-play span:first-child){font-size:.78rem}
-  @media(max-width:720px){.plotly-figure :global(.plot-play){display:none}}
+  .plotly-figure :global(.plot-replay){position:absolute;z-index:2;bottom:18px;left:18px;display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--rule);border-radius:999px;background:color-mix(in srgb,var(--ink) 88%,transparent);color:var(--paper);cursor:pointer;font:650 .76rem var(--sans);transition:border-color .15s ease,color .15s ease,background .15s ease}
+  .plotly-figure :global(.plot-replay:hover),.plotly-figure :global(.plot-replay[aria-pressed='true']){border-color:var(--cyan);color:var(--cyan)}
+  .plotly-figure :global(.plot-replay[aria-pressed='true']){background:color-mix(in srgb,var(--cyan) 14%,var(--ink))}
+  .plotly-figure :global(.plot-replay:focus-visible){outline:3px solid color-mix(in srgb,var(--cyan) 45%,white);outline-offset:3px}
+  @media(max-width:720px){.plotly-figure :global(.plot-play),.plotly-figure :global(.plot-replay){display:none}}
 </style>

@@ -45,6 +45,27 @@ function themedUpdatemenus(updatemenus = [], colors) {
   }));
 }
 
+function themedSliders(sliders = [], colors) {
+  return sliders.map((slider) => ({
+    ...slider,
+    x: Math.min(slider.x ?? 0.06, 0.06),
+    len: Math.max(slider.len ?? 0, 0.94),
+    bgcolor: colors.accent,
+    activebgcolor: colors.text,
+    bordercolor: colors.grid,
+    borderwidth: 1,
+    font: { ...slider.font, color: colors.text, size: Math.max(slider.font?.size ?? 0, 12) },
+    currentvalue: {
+      ...slider.currentvalue,
+      font: { ...slider.currentvalue?.font, color: colors.accent, size: Math.max(slider.currentvalue?.font?.size ?? 0, 13) },
+    },
+    tickcolor: colors.text,
+    ticklen: Math.max(slider.ticklen ?? 0, 8),
+    tickwidth: Math.max(slider.tickwidth ?? 0, 2),
+    pad: { ...slider.pad, t: Math.max(slider.pad?.t ?? 0, 10), b: Math.max(slider.pad?.b ?? 0, 8) },
+  }));
+}
+
 function themedLayout(layout = {}) {
   const colors = {
     text: cssColor('--paper'),
@@ -72,6 +93,7 @@ function themedLayout(layout = {}) {
       font: { ...layout.hoverlabel?.font, color: colors.text },
     },
     updatemenus: themedUpdatemenus(layout.updatemenus, colors),
+    sliders: themedSliders(layout.sliders, colors),
   };
 
   const axisNames = new Set(['xaxis', 'yaxis']);
@@ -112,24 +134,54 @@ function setupPlayButton(root, Plotly, hasFrames) {
     button.innerHTML = '<span aria-hidden="true">▶</span> <span data-plot-play-label>Play</span>';
     root.append(button);
   }
+  let replay = root.querySelector('[data-plot-replay]');
+  if (!replay) {
+    replay = document.createElement('button');
+    replay.className = 'plot-replay';
+    replay.dataset.plotReplay = '';
+    replay.type = 'button';
+    replay.ariaPressed = 'false';
+    replay.innerHTML = '<span aria-hidden="true">↻</span> Replay';
+    root.append(replay);
+  }
   const label = button.querySelector('[data-plot-play-label]');
   if (!label) return;
   button.hidden = false;
-  button.addEventListener('click', async () => {
+  replay.hidden = false;
+  replay.addEventListener('click', () => {
+    const enabled = replay.getAttribute('aria-pressed') !== 'true';
+    replay.setAttribute('aria-pressed', String(enabled));
+    replay.dataset.replay = String(enabled);
+  });
+  const setIdle = () => {
+    button.dataset.playing = 'false';
+    button.setAttribute('aria-label', 'Play animation');
+    label.textContent = 'Play';
+    button.querySelector('span')?.replaceChildren(document.createTextNode('▶'));
+  };
+  const playAnimation = (fromCurrent) => {
+    Plotly.animate(root, null, {
+      frame: { duration: 45, redraw: true },
+      transition: { duration: 0 },
+      fromcurrent: fromCurrent,
+    }).then(() => {
+      if (button.dataset.playing !== 'true') return;
+      if (replay.dataset.replay === 'true') playAnimation(false);
+      else setIdle();
+    });
+  };
+  button.addEventListener('click', () => {
     const playing = button.dataset.playing === 'true';
     if (playing) {
-      await Plotly.animate(root, [null], { frame: { duration: 0, redraw: false }, mode: 'immediate' });
-      button.dataset.playing = 'false';
-      button.setAttribute('aria-label', 'Play animation');
-      label.textContent = 'Play';
-      button.querySelector('span')?.replaceChildren(document.createTextNode('▶'));
+      setIdle();
+      Plotly.animate(root, [null], { frame: { duration: 0, redraw: false }, mode: 'immediate' });
       return;
     }
-    await Plotly.animate(root, null, { frame: { duration: 45, redraw: true }, transition: { duration: 0 }, fromcurrent: true });
     button.dataset.playing = 'true';
     button.setAttribute('aria-label', 'Pause animation');
     label.textContent = 'Pause';
     button.querySelector('span')?.replaceChildren(document.createTextNode('Ⅱ'));
+    playAnimation(true);
   });
 }
 
@@ -152,6 +204,7 @@ function themedRelayout(layout = {}) {
     'hoverlabel.font.color': colors.text,
   };
   if (layout.updatemenus?.length) update.updatemenus = themedUpdatemenus(layout.updatemenus, colors);
+  if (layout.sliders?.length) update.sliders = themedSliders(layout.sliders, colors);
   const axisNames = new Set(['xaxis', 'yaxis']);
   for (const name of Object.keys(layout)) {
     if (/^[xyz]axis\d*$/.test(name)) axisNames.add(name);
