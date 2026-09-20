@@ -7,9 +7,9 @@ PolyData files for the interactive viewer (``VtkHeroViewer.astro``) into ``docs/
 * ``stellarator-lines.vtp``: magnetic field lines on nested flux surfaces, drawn as thin tubes (WebGL
   cannot draw lines wider than one pixel), with |B| along each line.
 
-* ``stellarator-particles.vtp`` / ``stellarator-trails.vtp``: Struphy guiding-center markers (the model of the
-  gallery example, launched over the plasma volume) as spheres at their final position, and their most recent
-  orbit as thin tubes.
+* ``stellarator-particles.vtp`` / ``stellarator-trails.vtp``: full-orbit ions from Struphy's ``Vlasov`` model,
+  launched over the plasma volume, as spheres at their final position and their most recent orbit as thin tubes.
+  The orbits are helices: the gyration around the field lines is resolved.
 
 It also renders ``docs/public/images/stellarator-hero.webp``, the still shown until the viewer has loaded.
 
@@ -40,8 +40,13 @@ B_STOPS = ("#2f6bd8", "#55e6e1", "#ffd166")
 B_RANGE = (1.0, 1.42)
 TUBE_RADIUS, TUBE_SIDES = 0.016, 6
 PARTICLE_COLOR = "#ff5a5f"
-N_MARKERS, MARKER_SPEED, TRAIL_STEPS = 48, 1.5, 70  # markers, their thermal speed, saved steps drawn as a trail
-MARKER_RADIUS, TRAIL_RADIUS = 0.11, 0.02
+# Full-orbit ions. |B| ~ 1.2 in these units, so v_perp = 0.14 is a gyroradius of ~0.12. The cross-section is only
+# ~0.3 wide from the axis in its narrow direction, so this is as large as it can be without markers hitting the
+# wall, and small enough that most of them stay confined for the whole trail.
+N_MARKERS, V_PERP, V_PAR, RHO = 60, 0.14, (0.1, 0.3), (0.2, 0.55)
+T_END, DT, SAVE_STEP, TRAIL_STEPS = 13.0, 0.02, 5, 131  # the trail is the whole run: 13 time units, 2.4 gyrations
+MAPPING_ELEMENTS, MAPPING_DEGREE = (8, 16, 80), (2, 2, 2)  # the full torus: five field periods, 16 elements each
+MARKER_RADIUS, TRAIL_RADIUS = 0.12, 0.024
 
 TWO_PI = 2.0 * np.pi
 N_THETA, N_ZETA = 720, 1000  # dense sampling of a flux surface, for the surface mesh and the field lines
@@ -58,11 +63,12 @@ def example_namespace() -> dict:
 
 
 def solve(namespace: dict):
-    """Run GVEC and hand its state to Struphy; returns the `GVECequilibrium` (its `.state` is GVEC's)."""
-    workdir = Path(tempfile.mkdtemp())
-    equilibrium, iterations, force = namespace["create_gvec_equilibrium"](workdir)
-    print(f"GVEC converged in {iterations} iterations, |force| = {force:.2e}")
-    return equilibrium
+    """Run GVEC; returns its state and the state files that Struphy's `GVECequilibrium` reads."""
+    import gvec
+
+    run = gvec.run(namespace["gvec_parameters"](), runpath=Path(tempfile.mkdtemp()), quiet=True, redirect_gvec_stdout=True)
+    print(f"GVEC converged in {run.GVEC_iter_used} iterations, |force| = {run.max_force:.2e}")
+    return run.state, {"param_file": str(run.state.parameterfile), "dat_file": str(run.state.statefile)}
 
 
 def periodic(values: np.ndarray) -> np.ndarray:
@@ -134,26 +140,69 @@ def lines_mesh(state) -> pv.PolyData:
     return mesh.tube(radius=TUBE_RADIUS, n_sides=TUBE_SIDES, capping=False)
 
 
-def particle_meshes(namespace: dict, equilibrium) -> tuple[pv.PolyData, pv.PolyData]:
-    """Run Struphy's guiding-center model on many markers; return (spheres at the end, recent orbit tubes)."""
+def particle_meshes(state_files: dict) -> tuple[pv.PolyData, pv.PolyData]:
+    """Run Struphy's full-orbit `Vlasov` model; return (spheres at the end, recent orbit tubes)."""
     import h5py
 
-    rng = np.random.default_rng(7)
-    rho = rng.uniform(0.25, 0.9, N_MARKERS)
-    eta2, eta3 = rng.uniform(0.0, 1.0, (2, N_MARKERS))
-    pitch = rng.uniform(-0.95, 0.95, N_MARKERS)
-    b = np.array([float(equilibrium.absB0(r, e2, e3, squeeze_out=True)) for r, e2, e3 in zip(rho, eta2, eta3)])
-    initial = tuple(
-        zip(rho, eta2, eta3, MARKER_SPEED * pitch, MARKER_SPEED**2 * (1.0 - pitch**2) / (2.0 * b))
+    from struphy import (
+        BoundaryParameters,
+        DerhamOptions,
+        EnvironmentOptions,
+        LoadingParameters,
+        SavingParameters,
+        Simulation,
+        Time,
+        WeightsParameters,
+        equils,
+        grids,
+        maxwellians,
     )
-    run = namespace["make_simulation"](equilibrium, "hero_markers", initial=initial)
+    from struphy.models import Vlasov
+
+    # Full-orbit velocities are Cartesian, so the whole torus is mapped (`use_nfp=False`): a marker leaving a
+    # single field period would need its velocity rotated when it re-enters.
+    equilibrium = equils.GVECequilibrium(
+        rel_path=False, use_nfp=False, num_elements=MAPPING_ELEMENTS, degree=MAPPING_DEGREE, **state_files
+    )
+
+    rng = np.random.default_rng(7)
+    rho = rng.uniform(*RHO, N_MARKERS)
+    eta2, eta3 = rng.uniform(0.0, 1.0, (2, N_MARKERS))
+    v_par = rng.uniform(*V_PAR, N_MARKERS) * rng.choice([-1.0, 1.0], N_MARKERS)
+    initial = []
+    for r, e2, e3, vp in zip(rho, eta2, eta3, v_par):
+        b_hat = np.ravel(equilibrium.unit_b_cart(r, e2, e3, squeeze_out=True))[:3]  # unit vector, then position
+        perp = np.cross(b_hat, [0.0, 0.0, 1.0])
+        perp /= np.linalg.norm(perp)
+        initial.append((r, e2, e3, *(vp * b_hat + V_PERP * perp)))
+
+    model = Vlasov()
+    model.kinetic_ions.set_markers(
+        loading_params=LoadingParameters(Np=N_MARKERS, seed=1, specific_markers=tuple(initial)),
+        weights_params=WeightsParameters(),
+        boundary_params=BoundaryParameters(bc=("remove", "periodic", "periodic")),
+        saving_params=SavingParameters(n_markers=1.0),
+        bufsize=2.0,
+    )
+    model.propagators.push_vxb.options = model.propagators.push_vxb.Options()
+    model.propagators.push_eta.options = model.propagators.push_eta.Options()
+    model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D(n=(1.0, None)))
+    run = Simulation(
+        model=model,
+        env=EnvironmentOptions(out_folders=tempfile.mkdtemp(), sim_folder="hero_markers", save_step=SAVE_STEP),
+        time_opts=Time(dt=DT, Tend=T_END, split_algo="Strang"),
+        domain=equilibrium.numerical_domain,
+        equil=equilibrium,
+        grid=grids.TensorProductGrid(num_elements=MAPPING_ELEMENTS),
+        derham_opts=DerhamOptions(degree=MAPPING_DEGREE, bcs=(("free", "free"), None, None)),
+    )
     run.run()
 
     with h5py.File(Path(run.env.path_out) / "data/data_proc0.hdf5") as data:
         saved = np.asarray(data["kinetic/kinetic_ions/markers"])
     history = np.full((len(saved), N_MARKERS, 3), np.nan)
     for step, rows in enumerate(saved):
-        active = rows[rows[:, -1] >= 0]
+        active = rows[(rows[:, -1] >= 0) & (rows[:, 0] >= 0)]  # removed markers keep their id but get eta1 = -1
         history[step, active[:, -1].astype(int)] = active[:, :3]
     alive = np.isfinite(history[-TRAIL_STEPS:]).all(axis=(0, 2))  # markers that stayed inside for the whole trail
     print(f"markers still confined: {alive.sum()} of {N_MARKERS}")
@@ -162,15 +211,10 @@ def particle_meshes(namespace: dict, equilibrium) -> tuple[pv.PolyData, pv.PolyD
     x, y, z = np.moveaxis(
         equilibrium.numerical_domain(logical.reshape(-1, 3), change_out_order=True).reshape(logical.shape), -1, 0
     )
-    # The grid is one field period; continue each orbit into the next period (see the example).
-    period = 2.0 * np.pi / int(equilibrium.state.nfp)
-    angle = np.unwrap(np.arctan2(y, x), period=period, axis=0)
-    radius = np.hypot(x, y)
-    positions = np.stack([radius * np.cos(angle), radius * np.sin(angle), z], axis=-1)  # (step, marker, xyz)
+    positions = np.stack([x, y, z], axis=-1)  # (step, marker, xyz)
 
-    trail_points = positions.transpose(1, 0, 2).reshape(-1, 3)
     steps = positions.shape[0]
-    trails = pv.PolyData(trail_points)
+    trails = pv.PolyData(positions.transpose(1, 0, 2).reshape(-1, 3))
     trails.lines = np.concatenate(
         [np.concatenate([[steps], m * steps + np.arange(steps)]) for m in range(positions.shape[1])]
     ).astype(np.int64)
@@ -209,8 +253,7 @@ def render_poster(surface: pv.PolyData, lines: pv.PolyData, spheres: pv.PolyData
 def main() -> None:
     OUTPUT.mkdir(parents=True, exist_ok=True)
     namespace = example_namespace()
-    equilibrium = solve(namespace)
-    state = equilibrium.state
+    state, state_files = solve(namespace)
 
     surface = surface_mesh(Surface(state, 1.0))
     surface.points = surface.points.astype(np.float32)
@@ -222,7 +265,7 @@ def main() -> None:
     lines.save(OUTPUT / "stellarator-lines.vtp", binary=True)
     print(f"field lines: {lines.n_points} points, |B| in [{lines['B'].min():.3f}, {lines['B'].max():.3f}]")
 
-    spheres, trails = particle_meshes(namespace, equilibrium)
+    spheres, trails = particle_meshes(state_files)
     spheres.save(OUTPUT / "stellarator-particles.vtp", binary=True)
     trails.save(OUTPUT / "stellarator-trails.vtp", binary=True)
     print(f"particles: {spheres.n_points} sphere points, {trails.n_points} trail points")

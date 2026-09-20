@@ -168,25 +168,21 @@ def create_gvec_equilibrium(workdir: Path) -> tuple[equils.GVECequilibrium, int,
     return equilibrium, int(run.GVEC_iter_used), float(run.max_force)
 
 
-def make_simulation(equilibrium, folder: str, domain=None, initial=None, **extra) -> Simulation:
-    """`initial` optionally replaces the default markers by rows of (eta1, eta2, eta3, v_parallel, mu)."""
+def make_simulation(equilibrium, folder: str, domain=None, **extra) -> Simulation:
     simulation_domain = domain or equilibrium.numerical_domain
     if domain is not None:
         equilibrium.domain = simulation_domain
-    if initial is None:
-        b_start = float(equilibrium.absB0(start_rho, 0.0, 0.0, squeeze_out=True))
-        initial = tuple(
-            (
-                start_rho,
-                0.0,
-                0.0,
-                speed * pitch,
-                speed**2 * (1.0 - pitch**2) / (2.0 * b_start),
-            )
-            for pitch in pitches
+    b_start = float(equilibrium.absB0(start_rho, 0.0, 0.0, squeeze_out=True))
+    initial = tuple(
+        (
+            start_rho,
+            0.0,
+            0.0,
+            speed * pitch,
+            speed**2 * (1.0 - pitch**2) / (2.0 * b_start),
         )
-    else:
-        b_start = float(equilibrium.absB0(start_rho, 0.0, 0.0, squeeze_out=True))
+        for pitch in pitches
+    )
     model = GuidingCenter()
     model.kinetic_ions.set_markers(
         loading_params=LoadingParameters(
