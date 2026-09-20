@@ -26,9 +26,9 @@ length = 2 * np.pi
 model = HasegawaWakatani()
 domain = domains.Cuboid(r1=length, r2=length)
 equil = equils.HomogenSlab()
-grid = grids.TensorProductGrid(num_elements=(40, 40, 1))
+grid = grids.TensorProductGrid(num_elements=(64, 64, 1))
 derham_opts = DerhamOptions(degree=(2, 2, 1))
-time_opts = Time(dt=0.04, Tend=12.0, split_algo="LieTrotter")
+time_opts = Time(dt=0.04, Tend=14.0, split_algo="LieTrotter")
 
 # C couples density and potential, kappa supplies the background-gradient
 # drive, and weak diffusion removes only the smallest resolved scales.  RK4
