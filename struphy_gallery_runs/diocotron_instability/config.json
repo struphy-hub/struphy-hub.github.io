@@ -17,7 +17,7 @@
         "num_clones": 1
     },
     "time_opts": {
-        "dt": 0.02,
+        "dt": 0.1,
         "Tend": 25.0,
         "split_algo": "LieTrotter"
     },
@@ -42,8 +42,8 @@
     },
     "grid": {
         "num_elements": [
-            32,
             64,
+            128,
             1
         ],
         "mpi_dims_mask": [
@@ -75,7 +75,13 @@
         "file_path": null,
         "label": null,
         "use_likwid": null,
+        "perf_events": null,
         "use_line_profiler": null,
+        "use_memray": null,
+        "memory_profile_path": null,
+        "memray_native_traces": null,
+        "memray_trace_python_allocators": null,
+        "memray_follow_fork": null,
         "deactivate_profiling": null,
         "use_nvtx": null,
         "use_gpu_timing": null,
@@ -83,11 +89,17 @@
         "deactivate_file_output": null,
         "recursive_profile": null,
         "aggregation_mode": null,
+        "profile_mpi_calls": null,
+        "track_threads": null,
+        "track_async": null,
         "capture_region_source": null,
         "buffer_limit": null,
         "output_mode": null,
         "hdf5_compression": null,
         "hdf5_compression_level": null,
-        "hdf5_chunk_size": null
+        "hdf5_chunk_size": null,
+        "memray": null,
+        "gpu": null,
+        "hdf5": null
     }
 }

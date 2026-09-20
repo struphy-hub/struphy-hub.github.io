@@ -1,102 +1,35 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import BackgroundPreview from '../../components/BackgroundPreview.astro';
 import rawBackgrounds from '../../data/kinetic-backgrounds.json';
 import { toSlug } from '../../lib/catalogue';
 
 const backgrounds = (rawBackgrounds as any[]).map((background) => ({
-  ...background,
-  slug: toSlug(background.className),
-}));
-
-// The 1-D profile along the first velocity axis, drawn small enough to sit on a
-// card: enough to tell a Maxwellian from a shifted or anisotropic one at a glance.
-function linePoints(values: number[], width = 260, height = 90) {
-  const finite = values.map((value) => (Number.isFinite(value) ? value : 0));
-  const min = Math.min(...finite);
-  const max = Math.max(...finite);
-  const span = max - min || 1;
-  return finite
-    .map((value, index) => `${(index / Math.max(1, finite.length - 1)) * width},${height - ((value - min) / span) * height}`)
-    .join(' ');
-}
+  className: background.className, summary: background.summary, vdim: background.vdim,
+  velocityLabels: background.velocityLabels, slug: toSlug(background.className),
+})).sort((a, b) => a.className.localeCompare(b.className));
+const initial = backgrounds[0];
 ---
 
-<Layout
-  title="Kinetic backgrounds — Struphy"
-  description="Browse the kinetic backgrounds available in Struphy: the velocity-space distributions f₀ that kinetic species are initialized from and weighted against."
->
+<Layout title="Kinetic backgrounds — Struphy" description="Browse the velocity-space distributions that initialize kinetic species in Struphy.">
   <main>
-    <header class="intro">
-      <p class="eyebrow">Velocity-space distributions</p>
-      <h1>Kinetic backgrounds</h1>
-      <p>
-        A kinetic background is the distribution <strong>f₀</strong> a kinetic species starts from. It sets the
-        initial marker sampling, appears in the numerator of the particle weights, and is subtracted off again in
-        the control-variate method that keeps PIC noise down. Where a fluid <a href="/equilibria/">equilibrium</a>
-        {' '}describes a background in space, these describe one in velocity — each in its own velocity coordinates.
-      </p>
-    </header>
-
-    <section class="catalogue" aria-label="Kinetic background catalogue">
-      <div class="grid">
-        {backgrounds.map((background) => (
-          <a class="card" href={`/backgrounds/${background.slug}/`}>
-            <div class="card-plot">
-              {background.profiles.length > 0 ? (
-                <svg viewBox="0 0 260 90" role="img" aria-label={`${background.className} distribution along ${background.profiles[0].axis}`} preserveAspectRatio="none">
-                  <polyline points={linePoints(background.profiles[0].values)} fill="none" stroke="var(--cyan)" stroke-width="2" vector-effect="non-scaling-stroke" />
-                </svg>
-              ) : (
-                <p class="no-plot">No velocity space</p>
-              )}
-            </div>
-            <div class="card-body">
-              <h2>{background.className}</h2>
-              <p class="meta">
-                {background.vdim === 0 ? 'vdim 0' : `vdim ${background.vdim} · ${background.velocityLabels.join(', ')}`}
-                {background.volumeForm && <span class="tag">volume form</span>}
-              </p>
-              <p class="summary">{background.summary}</p>
-            </div>
-          </a>
-        ))}
-      </div>
+    <header class="intro"><p class="eyebrow">Velocity-space distributions</p><h1>Kinetic backgrounds</h1><p>A kinetic background is the distribution <strong>f₀</strong> a kinetic species starts from. Select one to inspect its velocity-space distribution, phase-space conventions, and constructor defaults.</p></header>
+    <section class="browser" aria-label="Kinetic background catalogue">
+      <aside class="selector" aria-label="Select a kinetic background"><label for="background-filter">{backgrounds.length} available</label><input id="background-filter" type="search" data-filter placeholder="Filter backgrounds…" /><ul>{backgrounds.map((background) => <li data-row data-search={`${background.className} ${background.summary} ${background.velocityLabels.join(' ')}`.toLowerCase()}><a href={`/backgrounds/${background.slug}/`} data-option={background.slug} aria-current={background.slug === initial.slug ? 'true' : undefined}><code>{background.className}</code><span>{background.summary}</span></a></li>)}</ul><p class="empty" data-empty hidden>No kinetic backgrounds match your search.</p></aside>
+      <BackgroundPreview initialSlug={initial.slug} />
     </section>
-
-    <section class="section note" aria-labelledby="sampling-title">
-      <h2 id="sampling-title">How these are sampled</h2>
-      <p>
-        Every plot on these pages is evaluated through struphy's own <code>reduced_eval</code>, which integrates the
-        distribution over the phase-space axes that are not shown. Velocity space is sampled at the fixed logical
-        point <code>η = (0.5, 0.5, 0.5)</code>; that choice only matters for backgrounds whose moments vary in
-        space, but it keeps the plots comparable across classes. Each class is shown with its constructor defaults,
-        so a background that looks symmetric here can still be shifted or sheared by the moments you give it in a
-        parameter file.
-      </p>
-    </section>
+    <section class="note"><h2>How these are sampled</h2><p>Plots are evaluated through Struphy’s <code>reduced_eval</code>, integrating over phase-space axes not shown. They use the fixed logical point <code>η = (0.5, 0.5, 0.5)</code> and each class’s constructor defaults.</p></section>
   </main>
 </Layout>
 
+<script is:inline define:vars={{ backgrounds }}>
+  const input=document.querySelector('[data-filter]'),options=[...document.querySelectorAll('[data-option]')],rows=[...document.querySelectorAll('[data-row]')],empty=document.querySelector('[data-empty]'),preview=document.querySelector('[data-background-preview]');
+  function select(slug,updateHash=true){if(!backgrounds.some((item)=>item.slug===slug))return;options.forEach((option)=>option.setAttribute('aria-current',String(option.dataset.option===slug)));if(preview){preview.dataset.slug=slug;preview.dispatchEvent(new CustomEvent('background-preview-change',{detail:{slug}}));}if(updateHash)history.replaceState(null,'',`#${slug}`);}
+  options.forEach((option)=>option.addEventListener('click',(event)=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();select(option.dataset.option);}));
+  input?.addEventListener('input',()=>{const query=input.value.trim().toLowerCase();let visible=0;rows.forEach((row)=>{const match=!query||(row.dataset.search||'').includes(query);row.hidden=!match;if(match)visible++;});if(empty)empty.hidden=visible>0;});
+  const requested=decodeURIComponent(location.hash.slice(1));if(requested)select(requested,false);
+</script>
+
 <style>
-  .intro{max-width:820px;padding-block:clamp(56px,8vw,92px)}
-  .eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}
-  h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}
-  .intro>p:not(.eyebrow){color:var(--muted)}
-  .intro a{color:var(--cyan)}
-  .catalogue{padding-block:40px 20px;border-top:1px solid var(--rule)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-  .card{display:flex;flex-direction:column;border:1px solid var(--rule);color:var(--paper);text-decoration:none}
-  .card:hover{border-color:var(--cyan)}
-  .card-plot{padding:14px 16px 0;background:var(--plot-bg)}
-  .card-plot svg{display:block;width:100%;height:90px}
-  .no-plot{margin:0;padding:33px 0;color:var(--muted);font-size:.8rem;text-align:center}
-  .card-body{padding:14px 16px 16px}
-  .card-body h2{margin:0;color:var(--cyan);font:650 .95rem/1.35 var(--mono);overflow-wrap:anywhere}
-  .meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:7px 0 0;color:var(--muted);font:.76rem var(--mono)}
-  .tag{padding:1px 6px;border:1px solid var(--rule)}
-  .summary{margin:9px 0 0;color:var(--muted);font-size:.82rem;line-height:1.45}
-  .section{padding-block:40px 64px;border-top:1px solid var(--rule);margin-top:44px}
-  .note{max-width:820px}
-  .note h2{margin:0 0 14px;font-size:1.15rem}
-  .note p{margin:0;color:var(--muted)}
+  .intro{max-width:820px;padding-block:clamp(56px,8vw,92px)}.eyebrow{margin:0 0 7px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}h1{margin:0 0 18px;font-size:clamp(2.35rem,5vw,4rem);line-height:1.08;letter-spacing:-.035em}.intro>p:not(.eyebrow),.note p{color:var(--muted)}.browser{display:grid;grid-template-columns:minmax(250px,300px) minmax(0,1fr);gap:48px;padding-block:40px 72px;border-top:1px solid var(--rule);align-items:start}.selector{position:sticky;top:92px;max-height:calc(100vh - 116px);overflow:auto;padding-right:12px}.selector label{display:block;margin-bottom:9px;color:var(--muted);font:600 .76rem/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}.selector input{width:100%;padding:10px 12px;border:1px solid var(--rule);background:var(--ink);color:var(--paper);font:inherit}.selector ul{margin:26px 0 0;padding:0;list-style:none}.selector a{display:block;padding:9px 10px;border-left:2px solid transparent;color:var(--paper);text-decoration:none}.selector a:hover{background:var(--accent-wash)}.selector a[aria-current=true]{border-left-color:var(--cyan);background:var(--accent-wash)}.selector code{display:block;color:var(--cyan);font-size:.82rem;overflow-wrap:anywhere}.selector span{display:block;margin-top:3px;color:var(--muted);font-size:.73rem;line-height:1.4}.empty{color:var(--muted);font-size:.84rem}.note{max-width:820px;padding-block:40px 64px;border-top:1px solid var(--rule)}.note h2{margin:0 0 14px;font-size:1.15rem}[hidden]{display:none!important}@media(max-width:820px){.browser{grid-template-columns:1fr;gap:28px}.selector{position:static;max-height:none;padding-right:0}.selector ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}}@media(max-width:560px){.selector ul{display:block}}
 </style>
