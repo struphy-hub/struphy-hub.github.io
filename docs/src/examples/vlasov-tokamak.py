@@ -260,6 +260,6 @@ if __name__ == "__main__":
         maxRelativeSpeedDrift=max_relative_speed_drift,
         trackedParticles=n_tracked,
         projectionsThumbnail="/images/examples/vlasov-tokamak-projections.png",
-        projectionsInteractive="/examples/vlasov-tokamak-projections.html",
+        projectionsInteractive="/examples/vlasov-tokamak-projections.plotly.json",
         **profiling,
     )

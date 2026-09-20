@@ -59,7 +59,7 @@ def main() -> int:
     parser.add_argument(
         "--require-figures",
         action="store_true",
-        help="also require <stem>.html of every example",
+        help="also require <stem>.plotly.json of every example",
     )
     args = parser.parse_args()
 
@@ -76,9 +76,9 @@ def main() -> int:
             problems.append(
                 f"{stem}: no download route {route.relative_to(ROOT)} (its 'Download .py' link would be a 404)"
             )
-        if args.require_figures and not (OUTPUT_DIR / f"{stem}.html").is_file():
+        if args.require_figures and not (OUTPUT_DIR / f"{stem}.plotly.json").is_file():
             problems.append(
-                f"{stem}: no {stem}.html in {OUTPUT_DIR.relative_to(ROOT)}; the example did not produce its figure"
+                f"{stem}: no {stem}.plotly.json in {OUTPUT_DIR.relative_to(ROOT)}; the example did not produce its figure"
             )
     # Metadata of a script that no longer exists would still get a page.
     for path in sorted(OUTPUT_DIR.glob("*.metadata.json")):

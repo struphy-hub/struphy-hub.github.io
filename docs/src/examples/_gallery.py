@@ -58,7 +58,7 @@ def save_figure(
     static_data=None,
     static_active=None,
 ) -> None:
-    """Write `<stem><suffix>.png` (static fallback) and `<stem><suffix>.html` (interactive).
+    """Write `<stem><suffix>.png` (static fallback) and `<stem><suffix>.plotly.json` (interactive).
 
     The PNG is also copied to `../images/examples/` when that directory exists, as the gallery thumbnail.
 
@@ -69,7 +69,7 @@ def save_figure(
     if not is_root():
         return
     png_path = Path(f"{stem}{suffix}.png")
-    html_path = Path(f"{stem}{suffix}.html")
+    json_path = Path(f"{stem}{suffix}.plotly.json")
     if static_data is not None:
         still = go.Figure(data=static_data, layout=figure.layout)
         if static_active is not None and still.layout.sliders:
@@ -82,16 +82,9 @@ def save_figure(
         figure.data[0].z = initial_z
     else:
         figure.write_image(png_path, width=width, height=height, scale=2)
-    figure.write_html(
-        html_path,
-        include_plotlyjs="cdn",
-        default_width="100%",
-        default_height="100%",
-        auto_play=False,
-        config={"responsive": True, "displaylogo": False},
-    )
+    figure.write_json(json_path, pretty=False)
     print(f"Saved {png_path.resolve()}")
-    print(f"Saved {html_path.resolve()}")
+    print(f"Saved {json_path.resolve()}")
     # The gallery, the model pages and the static fallbacks of the example page (shown on phones and
     # without JavaScript, in place of the interactive plot) read the PNG from the images directory,
     # under the same name as here. Both directories are generated and untracked.
@@ -103,14 +96,14 @@ def save_figure(
 def save_extra_figure(figure, stem: str, key: str, *, alt: str, caption: str, static_z=None) -> dict:
     """Save an additional figure of an example and return its entry for the `figures` metadata list.
 
-    Writes `<stem>-<key>.png/.html` here (the PNG is copied to `../images/examples/` by `save_figure`).
+    Writes `<stem>-<key>.png/.plotly.json` here (the PNG is copied to `../images/examples/` by `save_figure`).
     The example page shows every entry of `figures` below its main
     figure: pass the list to `merge_metadata(stem, figures=[...])`.
     """
     save_figure(figure, stem, suffix=f"-{key}", static_z=static_z)
     return {
         "key": key,
-        "interactive": f"/examples/{stem}-{key}.html",
+        "interactive": f"/examples/{stem}-{key}.plotly.json",
         "thumbnail": f"/images/examples/{stem}-{key}.png",
         "alt": alt,
         "caption": caption,
