@@ -85,6 +85,10 @@ def build_metadata(sim, namespace: dict) -> dict:
     visualization = visualization_of(namespace)
     if visualization:
         metadata["visualization"] = visualization
+    # A few examples create optional or expensive runtime resources inside
+    # their __main__ block. They can describe those runtime-only details while
+    # keeping metadata imports cheap and dependency-light.
+    metadata.update(namespace.get("metadata_overrides", {}))
     return metadata
 
 
