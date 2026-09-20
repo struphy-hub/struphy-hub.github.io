@@ -7,6 +7,7 @@ export interface ExamplePageConfig {
 
 /** Small, hand-written presentation layer for the generated example results. */
 export const exampleConfig: Record<string, ExamplePageConfig> = {
+  'beltrami-sph': { category: 'Pressureless particle flow', setupTitle: 'Markers following a stationary cellular flow', plotTitle: 'SPH markers circulating on Beltrami streamlines', plotAlt: 'Pressureless SPH markers circulating along exact streamlines beside velocity and energy error histories' },
   'bump-on-tail': { category: 'Kinetic electrostatics', setupTitle: 'A minority beam driving Langmuir waves', plotTitle: 'Electric field energy growth in the bump-on-tail instability', plotAlt: 'Electric field energy growing unsteadily over time as the bump-on-tail instability develops' },
   'coaxial-waveguide': { category: 'Electromagnetism', setupTitle: 'A rotating mode between conducting cylinders', plotTitle: 'Axial magnetic field and error against the exact coaxial waveguide mode', plotAlt: 'Axial magnetic field and error against the exact coaxial waveguide mode' },
   'dam-break': { category: 'Free-surface flow', setupTitle: 'A fluid column released in a closed box', plotTitle: 'Animated dam break simulated with SPH', plotAlt: 'SPH markers and their density estimate during the collapse of a fluid column' },

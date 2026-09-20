@@ -8,6 +8,7 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `diocotron-instability.py` — a 2D binned density animated over time (`Heatmap` + frames)
 - `hasegawa-wakatani.py` — 2D drift-wave turbulence, with animated vorticity/density heatmaps and a zonal-flow energy split
 - `dam-break.py` — SPH markers (no grid): a two-panel animation of the markers and their kernel density estimate, built with `make_subplots` and a frame per saved step
+- `beltrami-sph.py` — pressureless SPH markers circulating in a prescribed stationary Beltrami flow, checked against the exact velocity field and particle Hamiltonian
 - `gas-expansion.py` — isothermal SPH rarefaction, with an analytic reference, similarity profiles and error diagnostics
 - `coaxial-waveguide.py` — rotating Maxwell eigenmode, physical-plane field/error animation, probe frequency and energy
 - `guiding-center-orbits.py` — passing and trapped orbits, parallel velocity and per-particle invariants
@@ -55,7 +56,7 @@ filename.
   placement if animated).
 - Save output with the helpers in `_gallery.py` (import them inside the `__main__` block, since
   `generate_examples.py` runs the module without the examples directory on `sys.path`):
-  `save_figure(figure, "<script-stem>")` writes `<script-stem>.png` and `.plotly.json`;
+  `save_figure(figure, "<script-stem>")` writes `<script-stem>.png`, `.plotly.json`, and `.html`;
   `export_profiling(sim, "<script-stem>")` writes the profiling files and returns their metadata
   fields; `merge_metadata("<script-stem>", **fields)` adds result fields to the metadata JSON.
   The script is run from inside `docs/public/examples/`, so these land there directly.
@@ -99,7 +100,7 @@ struphy compile   # once, if you haven't already
 python ../../src/examples/<script-stem>.py
 ```
 
-This produces `<script-stem>.png` and `<script-stem>.plotly.json` in `docs/public/examples/`, copies each PNG
+This produces `<script-stem>.png`, `<script-stem>.plotly.json`, and `<script-stem>.html` in `docs/public/examples/`, copies each PNG
 to `docs/public/images/examples/` (the gallery thumbnail reads it there, and so does the example page
 on phones and without JavaScript, where it shows the PNG instead of the interactive plot)
 and folds any result field into the metadata JSON (step 1). Everything is named after the script:
@@ -130,7 +131,7 @@ Locally: `python cli.py run <example> --mpi 4`, or `mpirun -n 4 python ../../src
   (Orszag–Tang uses 32 × 32 × 1, i.e. 16 × 16 cells per rank).
 - Particle results depend on the rank count (each rank draws its own markers), so measured rates move a little.
 - Saved orbits of tracked markers (`SavingParameters(n_markers=...)`) are empty after the first time step on several ranks, so `guiding-center-orbits` runs on one rank in CI.
-- The SPH examples (`dam-break`, `gas-expansion`, `zeldovich-caustic`, `incompressible-shear-relaxation`) hang under MPI in Struphy, so CI runs them on one rank.
+- The SPH examples (`beltrami-sph`, `dam-break`, `gas-expansion`, `zeldovich-caustic`, `incompressible-shear-relaxation`) hang under MPI in Struphy, so CI runs them on one rank.
 
 ## 4. Add the download route: `docs/src/pages/examples/<script-stem>.py.ts`
 
@@ -174,7 +175,7 @@ in its metadata. No list to edit by hand.
 
 - [ ] `docs/src/examples/<script-stem>.py` — `Simulation(name=..., description=...)` at
       module scope, heavy work behind `if __name__ == "__main__":`, Plotly output
-- [ ] Name every file the script writes after the script: `<script-stem>.png`, `<script-stem>.plotly.json`
+- [ ] Name every file the script writes after the script: `<script-stem>.png`, `<script-stem>.plotly.json`, `<script-stem>.html`
       (and `<script-stem>-<key>.*` for extra figures). The metadata JSON, figures and thumbnails are
       generated and gitignored; check them locally with `python cli.py run <script-stem>`
 - [ ] `docs/src/pages/examples/<script-stem>.py.ts` — download route
