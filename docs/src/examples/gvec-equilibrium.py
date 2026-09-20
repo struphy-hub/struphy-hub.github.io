@@ -44,20 +44,48 @@ pitches = (-0.85, -0.5, -0.2, 0.2, 0.5, 0.85)
 start_rho = 0.55
 
 
+grad_b_step = 1e-5  # central-difference step in logical coordinates
+
+
 def gvec_grad_b_1(equilibrium, *etas, squeeze_out=False):
-    """Covariant derivatives of |B| in Struphy's normalized coordinates."""
-    evaluations, _ = equilibrium._gvec_evaluations(*etas)
-    equilibrium.state.compute(
-        evaluations, "dmod_B_dr", "dmod_B_dt", "dmod_B_dz"
-    )
-    radial_scale = 1.0 - equilibrium.params["rmin"]
-    return (
-        evaluations.dmod_B_dr.data * radial_scale / equilibrium.units.B,
-        evaluations.dmod_B_dt.data * (2.0 * np.pi) / equilibrium.units.B,
-        evaluations.dmod_B_dz.data
-        * (2.0 * np.pi / equilibrium._nfp)
-        / equilibrium.units.B,
-    )
+    """Covariant derivatives of |B| in Struphy's logical coordinates, by central differences.
+
+    `GuidingCenter` needs ∇|B|, which Struphy's GVEC adapter does not provide
+    (`GVECequilibrium.gradB1` raises `NotImplementedError`). GVEC exposes exact derivatives with
+    respect to its own (r, θ, ζ), but Struphy's logical cube is not a per-axis rescaling of those
+    coordinates, so converting them needs the full Jacobian of the map rather than three factors.
+    Differencing `absB0` instead is consistent by construction with the field strength the model
+    evaluates, at the cost of six evaluations per call — negligible for a handful of markers.
+
+    The first direction is radial and not periodic, so samples are kept inside the domain and the
+    true spacing is used; the two angles wrap around. Only grid evaluation is supported, which is how
+    the equilibrium is consumed: `Propagator.projected_equil` projects ∇|B| onto the FEEC spaces once,
+    and `GVECequilibrium.absB0` does not support flat marker evaluation either.
+    """
+    if len(etas) != 3:
+        raise NotImplementedError("gvec_grad_b_1 evaluates on a grid; pass eta1, eta2, eta3")
+    coordinates = [np.atleast_1d(np.asarray(eta, dtype=float)) for eta in etas]
+
+    derivatives = []
+    for axis in range(3):
+        upper = coordinates[axis] + grad_b_step
+        lower = coordinates[axis] - grad_b_step
+        if axis == 0:
+            upper = np.minimum(upper, 1.0)
+            lower = np.maximum(lower, 0.0)
+            spacing = upper - lower  # one-sided at the radial boundaries
+        else:
+            upper = np.mod(upper, 1.0)
+            lower = np.mod(lower, 1.0)
+            spacing = 2.0 * grad_b_step
+
+        def sample(shifted):
+            shifted_coordinates = list(coordinates)
+            shifted_coordinates[axis] = shifted
+            return equilibrium.absB0(*shifted_coordinates, squeeze_out=squeeze_out)
+
+        derivatives.append((sample(upper) - sample(lower)) / spacing)
+    return tuple(derivatives)
 
 
 def gvec_parameters() -> dict:
