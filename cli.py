@@ -143,7 +143,7 @@ class Artifacts:
 
     figures: list[Path] = field(
         default_factory=list
-    )  # interactive .plotly.json and static .png
+    )  # interactive .plotly.json/.html and static .png
     data: list[Path] = field(default_factory=list)  # metadata and profiling exports
     thumbnails: list[Path] = field(
         default_factory=list
@@ -188,6 +188,7 @@ def print_artifacts(stem: str, artifacts: Artifacts, indent: str = "  ") -> None
             "Interactive figures",
             [p for p in artifacts.figures if p.name.endswith(".plotly.json")],
         ),
+        ("Standalone HTML figures", [p for p in artifacts.figures if p.suffix == ".html"]),
         ("Static images", [p for p in artifacts.figures if p.suffix == ".png"]),
         ("Metadata and profiling", artifacts.data),
         ("Gallery thumbnails", artifacts.thumbnails),

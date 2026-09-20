@@ -290,6 +290,10 @@ jobs:
             echo "::error::${{ matrix.example }}: mpirun finished without writing ${{ matrix.example }}.plotly.json; look for MPI_ABORT or a load imbalance warning above (raise bufsize in set_markers)."
             exit 1
           fi
+          if [ ! -f "${{ matrix.example }}.html" ]; then
+            echo "::error::${{ matrix.example }}: the run did not write the standalone HTML figure."
+            exit 1
+          fi
 
       - name: Copy example thumbnails
         if: steps.cache-example.outputs.cache-hit != 'true'
@@ -314,7 +318,9 @@ jobs:
         run: rm -rf docs/public/examples/struphy_gallery_runs docs/public/examples/struphy.log
 
       - name: Verify generated example
-        run: test -f "docs/public/examples/${{ matrix.example }}.plotly.json"
+        run: |
+          test -f "docs/public/examples/${{ matrix.example }}.plotly.json"
+          test -f "docs/public/examples/${{ matrix.example }}.html"
 
       - name: Upload generated example
         uses: actions/upload-artifact@v4
@@ -368,6 +374,7 @@ jobs:
       - name: Verify generated examples
         run: |
           test -n "$(find docs/public/examples -maxdepth 1 -name '*.plotly.json' -print -quit)"
+          test -n "$(find docs/public/examples -maxdepth 1 -name '*.html' -print -quit)"
           test -n "$(find docs/public/example-domains -maxdepth 1 -name '*.vtp' -print -quit)"
 
       - name: Check example metadata, figures and download routes

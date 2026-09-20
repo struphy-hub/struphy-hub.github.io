@@ -12,13 +12,17 @@ interface ExampleFigure {
 }
 
 const { figures = [] } = Astro.props as { figures?: ExampleFigure[] };
+const htmlHref = (interactive: string) => interactive.replace(/\.plotly\.json$/, '.html');
 ---
 
 {figures.map((figure) => (
   <figure class="extra">
     <div class="plot-frame"><PlotlyFigure src={figure.interactive.replace(/\.html$/, '.plotly.json')} title={figure.alt} /></div>
     <img class="plot-static" src={figure.thumbnail} alt={figure.alt} width="2200" height="1300" />
-    <figcaption>{figure.caption}</figcaption>
+    <figcaption>
+      {figure.caption}
+      <a class="figure-link" href={htmlHref(figure.interactive)} target="_blank" rel="noopener noreferrer">Open graph in a new tab ↗</a>
+    </figcaption>
   </figure>
 ))}
 
@@ -27,6 +31,7 @@ const { figures = [] } = Astro.props as { figures?: ExampleFigure[] };
   .plot-frame{display:grid;width:min(100%,1100px);aspect-ratio:1100/650;margin-inline:auto}
   .extra img{display:block;width:min(100%,1100px);height:auto;margin-inline:auto;border:1px solid var(--rule);background:#fff}
   .extra figcaption{width:min(100%,1100px);margin:10px auto 0;color:var(--muted);font-size:.84rem}
+  .figure-link{margin-left:.55rem;color:var(--cyan);white-space:nowrap}
   /* Phones show the rendered PNG instead of the Plotly page; ExamplePage.astro swaps them. */
   .extra .plot-static{display:none}
   @media(max-width:720px){.extra .plot-frame{display:none}.extra .plot-static{display:block}}

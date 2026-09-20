@@ -24,6 +24,7 @@ from struphy import (
     BoundaryParameters,
     DerhamOptions,
     EnvironmentOptions,
+    KernelDensityPlot,
     LoadingParameters,
     SavingParameters,
     Simulation,
@@ -41,6 +42,7 @@ box_min = -0.5
 box_max = 0.5
 boxes = 16
 markers_per_box = 4
+density_points = 65
 
 
 def velocity(x, y, z):
@@ -84,7 +86,16 @@ model.cold_fluid.set_markers(
         boxes_per_dim=(boxes, boxes, 1),
         dims_mask=(True, True, False),
     ),
-    saving_params=SavingParameters(n_markers=1.0),
+    saving_params=SavingParameters(
+        n_markers=1.0,
+        kernel_density_plots=(
+            KernelDensityPlot(
+                pts_e1=density_points,
+                pts_e2=density_points,
+                pts_e3=1,
+            ),
+        ),
+    ),
     bufsize=0.5,
 )
 model.cold_fluid.var.add_background(beltrami_flow)
@@ -121,20 +132,24 @@ sim = Simulation(
 
 
 if __name__ == "__main__":
-    from _gallery import export_profiling, is_root, merge_metadata, save_figure
+    from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
     output = sim.run(profiling_activated=True)
     output.pproc()
 
     orbits = output.evaluate("cold_fluid")
+    rho = output.evaluate("cold_fluid/view_0/n").isel(e3=0)
     times = np.asarray(orbits.t.values)
     x, y, z = (np.asarray(orbits.sel(quantity=name).values) for name in ("x", "y", "z"))
     v1, v2, v3 = (np.asarray(orbits.sel(quantity=name).values) for name in ("v1", "v2", "v3"))
     values = np.stack((x, y, z, v1, v2, v3), axis=-1)
-    if not np.isfinite(values).all():
-        raise RuntimeError("Non-finite Beltrami marker orbit: refusing to publish the run")
+    rho_values = np.asarray(rho.transpose("t", "e2", "e1").values)
+    if not (np.isfinite(values).all() and np.isfinite(rho_values).all()):
+        raise RuntimeError("Non-finite Beltrami result: refusing to publish the run")
     if not np.isclose(times[-1], sim.time_opts.Tend):
         raise RuntimeError(f"Incomplete Beltrami run: stopped at t={times[-1]:g}")
+    if not np.allclose(times, rho.t.values):
+        raise RuntimeError("Marker and density output times do not match")
 
     exact_v1, exact_v2, _ = velocity(x, y, z)
     initial_speed_rms = float(np.sqrt(np.mean(v1[0] ** 2 + v2[0] ** 2)))
@@ -173,8 +188,8 @@ if __name__ == "__main__":
             marker={
                 "size": 5,
                 "color": marker_color,
-                "colorscale": "RdBu",
-                "cmin": -color_limit,
+                "colorscale": "Viridis",
+                "cmin": 0.0,
                 "cmax": color_limit,
                 "line": {"width": 0},
                 "colorbar": {"title": "initial ψ", "x": 0.47},
@@ -192,6 +207,19 @@ if __name__ == "__main__":
         hoverinfo="skip",
         name="exact streamlines",
     )
+
+    def error_trace(index, values, name, color):
+        """Error history up to one animation frame."""
+        return go.Scatter(
+            x=times[: index + 1],
+            y=np.maximum(values[: index + 1], 1e-16),
+            xaxis="x2",
+            yaxis="y2",
+            mode="lines",
+            name=name,
+            line={"color": color, "width": 2.5},
+        )
+
     figure = make_subplots(
         rows=1,
         cols=2,
@@ -201,26 +229,33 @@ if __name__ == "__main__":
     )
     figure.add_trace(contour, row=1, col=1)
     figure.add_trace(marker_trace(0), row=1, col=1)
-    figure.add_trace(
-        go.Scatter(x=times, y=np.maximum(velocity_error, 1e-16), mode="lines", name="velocity RMS"),
-        row=1,
-        col=2,
-    )
-    figure.add_trace(
-        go.Scatter(x=times, y=np.maximum(energy_error, 1e-16), mode="lines", name="Hamiltonian drift"),
-        row=1,
-        col=2,
-    )
+    figure.add_trace(error_trace(0, velocity_error, "velocity RMS", "#00a884"), row=1, col=2)
+    figure.add_trace(error_trace(0, energy_error, "Hamiltonian drift", "#9b51e0"), row=1, col=2)
 
     picks = np.unique(np.linspace(0, len(times) - 1, min(100, len(times)), dtype=int))
     figure.frames = [
-        go.Frame(name=f"{times[index]:.2f}", data=[marker_trace(index)], traces=[1]) for index in picks
+        go.Frame(
+            name=f"{times[index]:.2f}",
+            data=[
+                marker_trace(index),
+                error_trace(index, velocity_error, "velocity RMS", "#00a884"),
+                error_trace(index, energy_error, "Hamiltonian drift", "#9b51e0"),
+            ],
+            traces=[1, 2, 3],
+        )
+        for index in picks
     ]
     figure.update_layout(
         title="Pressureless SPH in a stationary Beltrami flow",
         template="plotly_white",
-        margin={"l": 65, "r": 35, "t": 90, "b": 135},
-        legend={"orientation": "h", "y": 1.08},
+        margin={"l": 65, "r": 175, "t": 90, "b": 135},
+        legend={
+            "orientation": "v",
+            "x": 1.02,
+            "xanchor": "left",
+            "y": 1,
+            "yanchor": "top",
+        },
         updatemenus=[
             {
                 "type": "buttons",
@@ -277,10 +312,16 @@ if __name__ == "__main__":
         row=1,
         col=1,
     )
-    figure.update_xaxes(title_text="t", row=1, col=2)
+    figure.update_xaxes(title_text="t", range=[0, float(times[-1])], row=1, col=2)
     figure.update_yaxes(title_text="relative error", type="log", range=[-7, -0.7], row=1, col=2)
 
-    final_data = [contour, marker_trace(-1), figure.data[2], figure.data[3]]
+    last = len(times) - 1
+    final_data = [
+        contour,
+        marker_trace(last),
+        error_trace(last, velocity_error, "velocity RMS", "#00a884"),
+        error_trace(last, energy_error, "Hamiltonian drift", "#9b51e0"),
+    ]
     save_figure(
         figure,
         "beltrami-sph",
@@ -289,11 +330,111 @@ if __name__ == "__main__":
         static_data=final_data,
         static_active=len(figure.frames) - 1,
     )
+
+    # The kernel reconstruction shows the simulated mass density independently of the marker view.
+    # The exact divergence-free Beltrami transport preserves the initially uniform rho = 1.
+    density_x = box_min + (box_max - box_min) * np.asarray(rho.e1.values)
+    density_y = box_min + (box_max - box_min) * np.asarray(rho.e2.values)
+    density_min = float(np.min(rho_values))
+    density_max = float(np.max(rho_values))
+    max_density_deviation = float(np.max(np.abs(rho_values - 1.0)))
+
+    def density_trace(index, *, colorbar=False):
+        return go.Heatmap(
+            x=density_x,
+            y=density_y,
+            z=rho_values[index],
+            zmin=density_min,
+            zmax=density_max,
+            colorscale="Viridis",
+            colorbar={"title": "ρ"} if colorbar else None,
+            hovertemplate="x=%{x:.3f}<br>y=%{y:.3f}<br>ρ=%{z:.4f}<extra></extra>",
+        )
+
+    density_figure = go.Figure(data=[density_trace(0, colorbar=True)])
+    density_figure.frames = [
+        go.Frame(name=f"{times[index]:.2f}", data=[density_trace(index)]) for index in picks
+    ]
+    density_figure.update_layout(
+        title="SPH density in the Beltrami flow",
+        template="plotly_white",
+        margin={"l": 70, "r": 60, "t": 80, "b": 130},
+        updatemenus=[
+            {
+                "type": "buttons",
+                "showactive": False,
+                "x": 0,
+                "y": -0.2,
+                "buttons": [
+                    {
+                        "label": "Play",
+                        "method": "animate",
+                        "args": [
+                            None,
+                            {
+                                "frame": {"duration": 45, "redraw": True},
+                                "transition": {"duration": 0},
+                                "fromcurrent": True,
+                            },
+                        ],
+                    }
+                ],
+            }
+        ],
+        sliders=[
+            {
+                "active": 0,
+                "x": 0.12,
+                "len": 0.88,
+                "y": -0.12,
+                "currentvalue": {"prefix": "t = "},
+                "steps": [
+                    {
+                        "args": [
+                            [frame.name],
+                            {
+                                "frame": {"duration": 0, "redraw": True},
+                                "transition": {"duration": 0},
+                                "mode": "immediate",
+                            },
+                        ],
+                        "label": frame.name,
+                        "method": "animate",
+                    }
+                    for frame in density_figure.frames
+                ],
+            }
+        ],
+    )
+    density_figure.update_xaxes(title_text="x", range=[box_min, box_max], constrain="domain")
+    density_figure.update_yaxes(
+        title_text="y",
+        range=[box_min, box_max],
+        scaleanchor="x",
+        scaleratio=1,
+    )
+    figures = [
+        save_extra_figure(
+            density_figure,
+            "beltrami-sph",
+            "density",
+            alt="Animated SPH density rho in the stationary Beltrami flow",
+            caption=(
+                "Kernel-reconstructed SPH mass density ρ. The exact divergence-free Beltrami flow "
+                "preserves the initially uniform ρ = 1; the visible variation measures finite-particle "
+                "and kernel-reconstruction error. Drag the slider or press Play to follow the evolution."
+            ),
+            static_z=rho_values[-1],
+            static_active=len(density_figure.frames) - 1,
+        )
+    ]
     merge_metadata(
         "beltrami-sph",
         markers=int(x.shape[1]),
         maxVelocityError=max_velocity_error,
         maxHamiltonianDrift=max_energy_error,
+        maxDensityDeviation=max_density_deviation,
+        figures=figures,
         tutorial="https://struphy-hub.github.io/struphy/_collections/tutorials/tutorial_beltrami_sph.html",
         **export_profiling(sim, "beltrami-sph"),
     )
