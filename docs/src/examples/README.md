@@ -8,6 +8,7 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `diocotron-instability.py` — a 2D binned density animated over time (`Heatmap` + frames)
 - `hasegawa-wakatani.py` — 2D drift-wave turbulence, with animated vorticity/density heatmaps and a zonal-flow energy split
 - `dam-break.py` — SPH markers (no grid): a two-panel animation of the markers and their kernel density estimate, built with `make_subplots` and a frame per saved step
+- `beltrami-sph.py` — pressureless SPH markers circulating in a prescribed stationary Beltrami flow, checked against the exact velocity field and particle Hamiltonian
 - `gas-expansion.py` — isothermal SPH rarefaction, with an analytic reference, similarity profiles and error diagnostics
 - `coaxial-waveguide.py` — rotating Maxwell eigenmode, physical-plane field/error animation, probe frequency and energy
 - `guiding-center-orbits.py` — passing and trapped orbits, parallel velocity and per-particle invariants
@@ -130,7 +131,7 @@ Locally: `python cli.py run <example> --mpi 4`, or `mpirun -n 4 python ../../src
   (Orszag–Tang uses 32 × 32 × 1, i.e. 16 × 16 cells per rank).
 - Particle results depend on the rank count (each rank draws its own markers), so measured rates move a little.
 - Saved orbits of tracked markers (`SavingParameters(n_markers=...)`) are empty after the first time step on several ranks, so `guiding-center-orbits` runs on one rank in CI.
-- The SPH examples (`dam-break`, `gas-expansion`, `zeldovich-caustic`, `incompressible-shear-relaxation`) hang under MPI in Struphy, so CI runs them on one rank.
+- The SPH examples (`beltrami-sph`, `dam-break`, `gas-expansion`, `zeldovich-caustic`, `incompressible-shear-relaxation`) hang under MPI in Struphy, so CI runs them on one rank.
 
 ## 4. Add the download route: `docs/src/pages/examples/<script-stem>.py.ts`
 

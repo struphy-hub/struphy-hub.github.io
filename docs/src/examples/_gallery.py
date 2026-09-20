@@ -47,6 +47,29 @@ def barrier() -> None:
         _COMM.Barrier()
 
 
+def _scientific_ticks(figure) -> None:
+    """Label tick values as 1×10⁻⁶ instead of Plotly's default SI prefixes (µ, n, k, M, ...).
+
+    Only fills in `exponentformat` where the example has not chosen one itself.
+    """
+
+    def default(obj) -> None:
+        if obj.exponentformat is None:
+            obj.exponentformat = "power"
+
+    figure.for_each_xaxis(default)
+    figure.for_each_yaxis(default)
+    figure.for_each_scene(lambda scene: [default(axis) for axis in (scene.xaxis, scene.yaxis, scene.zaxis)])
+    figure.for_each_coloraxis(lambda coloraxis: default(coloraxis.colorbar))
+    for trace in figure.data:
+        # Touching `colorbar` on a trace that has none would make Plotly draw an empty one.
+        marker = getattr(trace, "marker", None)
+        if marker is not None and marker.showscale:
+            default(marker.colorbar)
+        if "colorbar" in trace._valid_props and trace.showscale is not False and trace.type != "scatter":
+            default(trace.colorbar)
+
+
 def save_figure(
     figure,
     stem: str,
@@ -68,6 +91,7 @@ def save_figure(
     """
     if not is_root():
         return
+    _scientific_ticks(figure)
     png_path = Path(f"{stem}{suffix}.png")
     json_path = Path(f"{stem}{suffix}.plotly.json")
     if static_data is not None:

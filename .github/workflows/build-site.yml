@@ -278,7 +278,7 @@ jobs:
           export PYTHONUNBUFFERED=1
           ranks=$(( MPI_RANKS < cpus ? MPI_RANKS : cpus ))
           case "${{ matrix.example }}" in
-            dam-break|gas-expansion|zeldovich-caustic|incompressible-shear-relaxation) ranks=1 ;;
+            beltrami-sph|dam-break|gas-expansion|zeldovich-caustic|incompressible-shear-relaxation) ranks=1 ;;
             guiding-center-orbits|gvec-equilibrium) ranks=1 ;;
           esac
           echo "Running ${{ matrix.example }} on $ranks MPI rank(s); $cpus CPU(s) visible"
