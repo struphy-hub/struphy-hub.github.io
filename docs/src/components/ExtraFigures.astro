@@ -24,7 +24,7 @@ const { figures = [] } = Astro.props as { figures?: ExampleFigure[] };
 
 <style>
   .extra{margin:0;padding-block:40px 52px;border-top:1px solid var(--rule)}
-  .plot-frame{width:min(100%,1100px);aspect-ratio:1100/650;margin-inline:auto}
+  .plot-frame{display:grid;width:min(100%,1100px);aspect-ratio:1100/650;margin-inline:auto}
   .extra img{display:block;width:min(100%,1100px);height:auto;margin-inline:auto;border:1px solid var(--rule);background:#fff}
   .extra figcaption{width:min(100%,1100px);margin:10px auto 0;color:var(--muted);font-size:.84rem}
   /* Phones show the rendered PNG instead of the Plotly page; ExamplePage.astro swaps them. */
