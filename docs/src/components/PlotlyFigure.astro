@@ -45,5 +45,6 @@ const { src, title, eager = false } = Astro.props;
   .plotly-figure :global(.plot-replay:hover),.plotly-figure :global(.plot-replay[aria-pressed='true']){border-color:var(--cyan);color:var(--cyan)}
   .plotly-figure :global(.plot-replay[aria-pressed='true']){background:color-mix(in srgb,var(--cyan) 14%,var(--ink))}
   .plotly-figure :global(.plot-replay:focus-visible){outline:3px solid color-mix(in srgb,var(--cyan) 45%,white);outline-offset:3px}
+  .plotly-figure :global(.plot-play[hidden]),.plotly-figure :global(.plot-replay[hidden]){display:none!important}
   @media(max-width:720px){.plotly-figure :global(.plot-play),.plotly-figure :global(.plot-replay){display:none}}
 </style>
