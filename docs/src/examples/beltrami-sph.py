@@ -192,7 +192,15 @@ if __name__ == "__main__":
                 "cmin": 0.0,
                 "cmax": color_limit,
                 "line": {"width": 0},
-                "colorbar": {"title": "initial ψ", "x": 0.47},
+                "colorbar": {
+                    "title": "initial ψ",
+                    "x": 1.03,
+                    "xanchor": "left",
+                    "y": 0.3,
+                    "yanchor": "middle",
+                    "len": 0.5,
+                    "thickness": 14,
+                },
             },
             hovertemplate="x=%{x:.3f}<br>y=%{y:.3f}<extra></extra>",
         )
