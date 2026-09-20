@@ -8,30 +8,29 @@ import { codeToHtml } from 'shiki';
 const modelCount = (rawModels as any[]).length;
 const propagatorCount = (rawPropagators as any[]).length;
 
-// A minimal but real setup: the same calls the gallery examples make, with the
-// analysis and plotting that surrounds them there left out.
+// A minimal simulation configuration, without problem-specific analysis or plotting.
 const SETUP_CODE = `from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time
 from struphy import domains, grids, perturbations
 from struphy.models import Maxwell
 
-# 1. The model brings its own species, variables and propagators.
+# Select the governing system and its time-update algorithm.
 model = Maxwell()
 model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
 
-# 2. Where it lives: a mapped domain and the elements covering it.
+# Define the mapped domain and tensor-product mesh.
 domain = domains.Cuboid(r3=20.0)
 grid = grids.TensorProductGrid(num_elements=(1, 1, 128))
 
-# 3. How the fields are discretized on that grid.
+# Configure the discrete de Rham sequence.
 derham_opts = DerhamOptions(degree=(1, 1, 3))
 
-# 4. Initial conditions, added to the model's variables.
+# Prescribe the initial electric-field perturbation.
 model.em_fields.e_field.add_perturbation(perturbations.Noise(amp=0.1, comp=0, seed=123))
 
-# 5. How it steps.
+# Set the integration interval, step size and splitting method.
 time_opts = Time(dt=0.05, Tend=50.0, split_algo="LieTrotter")
 
-# 6. Everything above, assembled into one object.
+# Assemble the physical, numerical and runtime configuration.
 sim = Simulation(
     model=model,
     name="Maxwell light-wave dispersion",
@@ -42,9 +41,9 @@ sim = Simulation(
     time_opts=time_opts,
 )
 
-sim.run(profiling_activated=True)   # allocate, initialize, step, save
-sim.pproc()                         # evaluate the FEEC fields onto a grid
-sim.load_plotting_data()            # read the result back for analysis`;
+sim.run(profiling_activated=True)   # allocate operators, integrate and write output
+sim.pproc()                         # evaluate FEEC fields on a plotting grid
+sim.load_plotting_data()            # load processed data for analysis`;
 
 const setupHtml = await codeToHtml(SETUP_CODE, {
   lang: 'python',
@@ -55,26 +54,26 @@ const setupHtml = await codeToHtml(SETUP_CODE, {
 
 <Layout
   title="Building a simulation — Struphy"
-  description="How a Struphy simulation is assembled: one Simulation object holding the model, domain, equilibrium, grid, discretization and time stepping, and what happens when you run it."
+  description="Definition and execution of a Struphy simulation, including the physical model, computational domain, FEEC discretization, time integration and output."
 >
   <main>
     <section class="intro" aria-labelledby="page-title">
-      <p class="eyebrow">How it works</p>
+      <p class="eyebrow">Simulation workflow</p>
       <h1 id="page-title">Building a simulation</h1>
       <p>
-        A Struphy run is one <code>Simulation</code> object. You assemble it from a model and the pieces that say
-        where it lives, how it is discretized and how it steps, then call <code>run()</code>. Nothing is hidden in
-        a configuration format: the arguments below are the whole setup, and each one is a Python object you can
-        build, print and reuse.
+        A Struphy calculation is defined by a <code>Simulation</code> instance that couples a physical model to a
+        mapped domain, an equilibrium, a spatial discretization and a time-integration scheme. Runtime and output
+        parameters are specified by the same Python interface, making the complete numerical configuration
+        explicit and reproducible.
       </p>
     </section>
 
     <section class="section" aria-labelledby="anatomy-title">
-      <h2 id="anatomy-title">Anatomy of a run</h2>
+      <h2 id="anatomy-title">Simulation configuration</h2>
       <p class="lead">
-        Every argument <code>Simulation</code> takes, grouped by the question it answers. The ones carrying a
-        browse link have a catalogue on this site — {modelCount} models, {propagatorCount} propagators, and the
-        domains, equilibria, perturbations and backgrounds they are configured with.
+        The constructor arguments are grouped below by their role in the physical and numerical formulation.
+        The associated catalogues document {modelCount} models, {propagatorCount} propagators, and the available
+        domains, equilibria, perturbations and distribution-function backgrounds.
       </p>
 
       <div class="groups">
@@ -115,20 +114,21 @@ const setupHtml = await codeToHtml(SETUP_CODE, {
     </section>
 
     <section class="section" aria-labelledby="code-title">
-      <h2 id="code-title">In code</h2>
+      <h2 id="code-title">Minimal configuration</h2>
       <p class="lead">
-        The same pieces, in the order you usually build them. This is the shape every{' '}
-        <a href="/examples/">gallery example</a> has, with its analysis and plotting removed.
+        The following script defines a periodic Maxwell problem with an implicit field update. It uses the same
+        construction sequence as the <a href="/examples/">gallery examples</a>, omitting problem-specific
+        diagnostics and visualization.
       </p>
       <div class="highlight" set:html={setupHtml}></div>
     </section>
 
     <section class="section" aria-labelledby="run-title">
-      <h2 id="run-title">What <code>run()</code> does</h2>
+      <h2 id="run-title">Execution sequence</h2>
       <p class="lead">
-        Setup happens once — all of it inside one <code>{anatomy.setupRegion}</code> region — and then the time
-        loop advances the model and saves at intervals. Struphy instruments each phase, so these names are exactly
-        the regions you can read off the performance charts on an example page.
+        The initialization stages execute once within the profiling region <code>{anatomy.setupRegion}</code>.
+        The subsequent time loop applies the model propagators and writes diagnostics at the requested output
+        interval. The labels below correspond directly to the regions recorded in Struphy profiling data.
       </p>
       <ol class="phases">
         {anatomy.runPhases.map((phase: string) => (
@@ -136,28 +136,27 @@ const setupHtml = await codeToHtml(SETUP_CODE, {
         ))}
         <li class="loop">
           <code>model.integrate(dt, split_algo)</code>
-          <span>once per step, until <code>Tend</code> — each step composing the model's propagators</span>
+          <span>evaluated once per time step until <code>Tend</code>; the splitting scheme composes the model propagators</span>
         </li>
       </ol>
       <p class="footnote">
-        How that last line composes the propagators is the subject of{' '}
-        <a href="/time-integration/">time integration</a>; what the propagators themselves solve is on the{' '}
-        <a href="/propagators/">propagator pages</a>.
+        The <a href="/time-integration/">time-integration documentation</a> describes the operator composition.
+        The equations and numerical methods implemented by each operator are given in the{' '}
+        <a href="/propagators/">propagator catalogue</a>.
       </p>
     </section>
 
     <section class="section" aria-labelledby="after-title">
-      <h2 id="after-title">After the run</h2>
+      <h2 id="after-title">Output and post-processing</h2>
       <p class="lead">
-        A run writes into <code>out_folders/sim_folder</code>: the field and marker data, the geometry, the
-        parameters it ran with, and — when profiling is on — the timing file behind those performance charts.
-        <code>sim.pproc()</code> evaluates the FEEC coefficients onto a grid and{' '}
-        <code>sim.load_plotting_data()</code> reads them back, so analysis happens against the same objects the run
-        used rather than a re-parsed output format.
+        Numerical fields, particle data, geometry and run parameters are written to
+        <code>out_folders/sim_folder</code>. Profiling data are stored alongside these results when instrumentation
+        is enabled. <code>sim.pproc()</code> evaluates the FEEC representation on a sampling grid, and
+        <code>sim.load_plotting_data()</code> exposes the processed quantities through Struphy's analysis interface.
       </p>
       <p class="links-row">
-        <a href="/examples/">See it end to end in the examples →</a>
-        <a href="https://struphy-hub.github.io/struphy/sections/userguide.html">Full user guide ↗</a>
+        <a href="/examples/">Complete simulation examples →</a>
+        <a href="https://struphy-hub.github.io/struphy/sections/userguide.html">Struphy user guide ↗</a>
       </p>
     </section>
   </main>

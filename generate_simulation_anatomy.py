@@ -45,38 +45,38 @@ CATALOGUE_LINKS = {
     "grid": {"href": "/feec/", "label": "FEEC basics"},
 }
 
-# The order the page presents the arguments in: what the simulation solves,
-# where it lives, how it is discretized, how it steps, and how it runs. The
-# constructor's own order is close to this but mixes identity in with physics.
+# The page groups constructor arguments by their role in the numerical model.
+# The constructor's own order is close to this but mixes metadata and runtime
+# controls with the physical and numerical configuration.
 GROUPS = [
     {
-        "name": "What is solved",
-        "blurb": "The physics: a model, which brings its own species, variables and propagators.",
+        "name": "Physical model",
+        "blurb": "The governing system, including its species, dynamical variables and propagators.",
         "parameters": ["model"],
     },
     {
-        "name": "Where it lives",
-        "blurb": "The mapped geometry, the background it is initialized from, and the element grid covering it.",
+        "name": "Geometry and equilibrium",
+        "blurb": "The mapped computational domain, equilibrium state and tensor-product mesh.",
         "parameters": ["domain", "equil", "grid"],
     },
     {
-        "name": "How it is discretized",
-        "blurb": "Spline degrees and boundary conditions for the de Rham complex the fields live in.",
+        "name": "Spatial discretization",
+        "blurb": "Spline degrees, quadrature rules and boundary conditions for the discrete de Rham complex.",
         "parameters": ["derham_opts"],
     },
     {
-        "name": "How it steps",
-        "blurb": "Step size, end time, and how the model's propagators are composed over a step.",
+        "name": "Temporal discretization",
+        "blurb": "The integration interval, time step and operator-splitting method.",
         "parameters": ["time_opts"],
     },
     {
-        "name": "How it runs",
-        "blurb": "Output folders, restarts, MPI, and what the profiler records — everything around the physics.",
+        "name": "Execution and data management",
+        "blurb": "Output, restart, parallel execution, logging and performance-instrumentation settings.",
         "parameters": ["env", "profiling_opts", "comm", "logging_level"],
     },
     {
-        "name": "How it is labelled",
-        "blurb": "Carried into the run's metadata, so a saved run says what it was.",
+        "name": "Metadata and provenance",
+        "blurb": "Descriptive metadata and the parameter file recorded with the numerical results.",
         "parameters": ["name", "description", "params_path"],
     },
 ]
