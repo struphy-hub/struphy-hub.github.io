@@ -35,4 +35,4 @@ const exampleIndex = examples.findIndex((example) => example.slug === slug);
 const nextExample = exampleIndex >= 0 ? examples[(exampleIndex + 1) % examples.length] : undefined;
 ---
 
-<ExamplePage {slug} {data} {config} {highlightedSource} {equationsHtml} {nextExample} exampleDomain={example?.domainViewer} />
+<ExamplePage {slug} {data} {config} {highlightedSource} {equationsHtml} {nextExample} exampleDomain={example?.domainViewer} allExamples={examples} />
