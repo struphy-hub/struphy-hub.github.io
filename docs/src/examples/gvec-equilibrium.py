@@ -4,8 +4,13 @@ GVEC first minimizes a five-field-period stellarator equilibrium defined entirel
 a Python parameter dictionary. Its newly written final state is passed directly to Struphy's `GVECequilibrium`,
 which supplies both the curved `GVECunit` mapping and the equilibrium magnetic
 field to Struphy's guiding-center model. The figures expose the resulting
-three-dimensional flux geometry and particle orbits, a poloidal cut and the
-radial equilibrium profiles, as well as orbit diagnostics from the Struphy run.
+three-dimensional flux geometry and particle orbits, one panel per marker with its
+orbit projected on the poloidal plane, a poloidal cut with the radial equilibrium
+profiles, and orbit diagnostics from the Struphy run.
+
+The grid covers a single field period, which is what lets it resolve the helical
+magnetic wells: markers launched with a small parallel velocity are mirror-trapped
+in them, the faster ones circulate.
 
 Requires the optional physics dependencies (`pip install -e ".[phys]"`) and
 compiled Struphy kernels (`struphy compile`).
@@ -270,17 +275,14 @@ if __name__ == "__main__":
     ).reshape(logical_positions.shape)
     x, y, z = np.moveaxis(physical_positions, -1, 0)
 
-    # The grid holds one field period, so a marker leaving it re-enters at the other end and its
-    # position comes back mapped into the same wedge. Counting those wraps and rotating by
-    # 2*pi/nfp per wrap — the symmetry of the equilibrium — puts each orbit where it belongs.
+    # The grid holds one field period, so a marker that leaves it re-enters at the other end and comes
+    # back mapped into the same wedge: its toroidal angle jumps by 2*pi/nfp. Unwrapping that angle and
+    # rebuilding the position from (R, phi, Z) continues each orbit into the next period, which the
+    # equilibrium's field-period symmetry makes exact.
     field_periods = int(equilibrium.state.nfp)
-    wraps = np.cumsum(
-        np.vstack((np.zeros((1, len(pitches))), -np.rint(np.diff(logical_positions[:, :, 2], axis=0)))),
-        axis=0,
-    )
-    wrap_angle = 2.0 * np.pi * wraps / field_periods
-    x, y = (x * np.cos(wrap_angle) - y * np.sin(wrap_angle), x * np.sin(wrap_angle) + y * np.cos(wrap_angle))
     major_radius = np.hypot(x, y)
+    toroidal_angle = np.unwrap(np.arctan2(y, x), period=2.0 * np.pi / field_periods, axis=0)
+    x, y = major_radius * np.cos(toroidal_angle), major_radius * np.sin(toroidal_angle)
     v_parallel = marker_history[:, :, 3]
     reflections = np.array(
         [
@@ -386,10 +388,15 @@ if __name__ == "__main__":
     # A poloidal slice reveals the nesting more quantitatively; the adjacent
     # radial profiles come from the very same state file used by Struphy.
     cut_radii = np.linspace(0.1, 1.0, 10)
+    # The cut at zeta = 0 for the flux-surface panel, and a few more across one field period: the
+    # cross-section of a stellarator turns with the toroidal angle, so a projected orbit lives inside
+    # the envelope of all of them rather than on any single cut.
+    panel_angles = np.linspace(0.0, 2.0 * np.pi / int(equilibrium.state.nfp), 5)
     cut_data = equilibrium.state.evaluate(
-        "pos", rho=cut_radii, theta=181, zeta=np.array((0.0,))
+        "pos", rho=cut_radii, theta=181, zeta=np.append(np.array((0.0,)), panel_angles)
     )
-    cut_positions = np.asarray(cut_data["pos"])
+    cut_positions = np.asarray(cut_data["pos"])[..., :1]
+    panel_positions = np.asarray(cut_data["pos"])[..., 1:]
     profile_radii = np.linspace(0.0, 1.0, 101)
     profile_data = equilibrium.state.evaluate(
         "iota", "p", rho=profile_radii, theta=0, zeta=0
@@ -480,21 +487,31 @@ if __name__ == "__main__":
         horizontal_spacing=0.05,
         vertical_spacing=0.13,
     )
-    cut_radial = np.sqrt(cut_positions[0, :, :, 0] ** 2 + cut_positions[1, :, :, 0] ** 2)
-    cut_height = cut_positions[2, :, :, 0]
+    panel_radial = np.sqrt(panel_positions[0] ** 2 + panel_positions[1] ** 2)
+    panel_height = panel_positions[2]
+    radius_range = [
+        min(panel_radial.min(), major_radius.min()) - 0.1,
+        max(panel_radial.max(), major_radius.max()) + 0.1,
+    ]
+    height_range = [
+        min(panel_height.min(), z.min()) - 0.1,
+        max(panel_height.max(), z.max()) + 0.1,
+    ]
     for index, label in enumerate(labels):
         row, column = divmod(index, 3)
         for surface in range(len(cut_radii)):
-            panels.add_scatter(
-                x=np.append(cut_radial[surface], cut_radial[surface][0]),
-                y=np.append(cut_height[surface], cut_height[surface][0]),
-                mode="lines",
-                line={"color": "#b8c4cc", "width": 1},
-                showlegend=False,
-                hoverinfo="skip",
-                row=row + 1,
-                col=column + 1,
-            )
+            for angle in range(panel_radial.shape[-1]):
+                panels.add_scatter(
+                    x=np.append(panel_radial[surface, :, angle], panel_radial[surface, 0, angle]),
+                    y=np.append(panel_height[surface, :, angle], panel_height[surface, 0, angle]),
+                    mode="lines",
+                    line={"color": "#b8c4cc", "width": 1},
+                    opacity=0.35,
+                    showlegend=False,
+                    hoverinfo="skip",
+                    row=row + 1,
+                    col=column + 1,
+                )
         panels.add_scatter(
             x=major_radius[:, index],
             y=z[:, index],
@@ -516,9 +533,12 @@ if __name__ == "__main__":
             col=column + 1,
         )
         axis_index = index + 1
-        panels.update_xaxes(title_text="R" if row == 1 else None, row=row + 1, col=column + 1)
+        panels.update_xaxes(
+            title_text="R" if row == 1 else None, range=radius_range, row=row + 1, col=column + 1
+        )
         panels.update_yaxes(
             title_text="Z" if column == 0 else None,
+            range=height_range,
             scaleanchor="x" if axis_index == 1 else f"x{axis_index}",
             scaleratio=1,
             row=row + 1,
@@ -537,7 +557,9 @@ if __name__ == "__main__":
             "poloidal-orbits",
             alt="One panel per marker showing its guiding-center orbit projected on the poloidal plane",
             caption=(
-                "Each marker's orbit projected on the (R, Z) plane, over the flux-surface cut at zeta = 0. "
+                "Each marker's orbit projected on the (R, Z) plane. The grey curves are the flux surfaces at "
+                "five toroidal angles across one field period, whose envelope is the region the projection "
+                "can reach. "
                 "The trapped markers stay within a narrow band of flux surfaces and retrace it, while the "
                 "passing ones sweep the whole cross-section as they circulate. Unlike a tokamak, the "
                 "stellarator cross-section rotates with the toroidal angle, so these projections are not "
