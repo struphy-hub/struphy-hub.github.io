@@ -16,6 +16,8 @@ Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 
 import numpy as np
 import plotly.graph_objects as go
+import xarray as xr
+from plotly.colors import sample_colorscale
 
 from struphy import (
     BaseUnits,
@@ -150,8 +152,70 @@ sim = Simulation(
     derham_opts=derham_opts,
 )
 
+# Time window of the exponential growth, and the highest poloidal mode shown in the mode-resolved figures.
+GROWTH_WINDOW = (25.0, 175.0)
+MAX_POLOIDAL_MODE = 12
+
+
+def minor_radius(array):
+    """Radius r = a1 + (a2 - a1) * e1 of the `e1` coordinate of `array`."""
+    return a1 + (a2 - a1) * np.asarray(array.e1)
+
+
+def mode_amplitudes(phi):
+    """Fourier amplitudes of a real field in (e2, e3), as a complex array with dimensions (t, e1, m, n).
+
+    m >= 0 is the poloidal and n the axial mode number. The periodic end points e2 = 1 and e3 = 1 repeat the
+    first ones and are dropped. A field `A cos(m*theta + 2*pi*n*z/length)` has |phi_mn| = A.
+    """
+    field = phi.isel(e2=slice(None, -1), e3=slice(None, -1)).transpose("t", "e1", "e2", "e3")
+    n_theta, n_z = field.sizes["e2"], field.sizes["e3"]
+    spectrum = np.fft.fft(np.fft.rfft(field.values, axis=2), axis=3) / (n_theta * n_z)
+    spectrum[:, :, 1:] *= 2.0  # fold the negative m
+    if n_theta % 2 == 0:
+        spectrum[:, :, -1] /= 2.0  # the Nyquist mode has no partner
+    return xr.DataArray(
+        spectrum,
+        dims=("t", "e1", "m", "n"),
+        coords={"t": field.t, "e1": field.e1, "m": np.arange(spectrum.shape[2]), "n": np.fft.fftfreq(n_z, d=1.0 / n_z).astype(int)},
+    )
+
+
+def radial_rms(spectrum):
+    """Radial rms of |phi_mn|, over e1."""
+    return np.sqrt((np.abs(spectrum) ** 2).mean("e1"))
+
+
+def exponential_rate(amplitude, window):
+    """Growth rate of each column m of `amplitude(t, m)` from a log-linear fit on `window`."""
+    selected = amplitude.sel(t=slice(*window))
+    times = selected.t.values
+    rates = []
+    for m in selected.m.values:
+        values = selected.sel(m=m).values
+        positive = values > 0
+        rates.append(np.polyfit(times[positive], np.log(values[positive]), 1)[0] if positive.sum() > 2 else np.nan)
+    return np.asarray(rates)
+
+
+def log10_or_nan(values):
+    values = np.asarray(values, dtype=float)
+    return np.log10(np.where(values > 0, values, np.nan))
+
+
+
 if __name__ == "__main__":
-    from _gallery import export_profiling, merge_metadata, save_figure
+    from plotly.subplots import make_subplots
+
+    from _gallery import (
+        export_profiling,
+        heatmap_figure,
+        heatmap_movie,
+        merge_metadata,
+        save_extra_figure,
+        save_figure,
+        space_time_figure,
+    )
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
@@ -166,7 +230,7 @@ if __name__ == "__main__":
     times = np.asarray(rho.t)
     perturbation_energy = np.asarray(output.norm(rho, squared=True))
 
-    growth_window = (times > 25.0) & (times < 175.0)
+    growth_window = (times > GROWTH_WINDOW[0]) & (times < GROWTH_WINDOW[1])
     growth_rate = float(np.polyfit(times[growth_window], np.log(perturbation_energy[growth_window]), 1)[0] / 2)
     print(f"Measured growth rate: {growth_rate:.5f}")
 
@@ -187,11 +251,212 @@ if __name__ == "__main__":
 
     save_figure(figure, "itg-drift-wave")
 
+    # ---- further figures: the potential and its Fourier modes --------------------------------------------
+    phi = output.evaluate("em_fields/phi")
+    if not np.isfinite(phi.values).all():
+        raise RuntimeError("Non-finite electrostatic potential: refusing to publish the run")
+    radius = minor_radius(phi)
+    spectrum = mode_amplitudes(phi)
+    figures = []
+
+    # The potential on a poloidal cross section (radius against angle) at the start of the axis.
+    potential = phi.isel(e3=0, drop=True)
+    limit = float(np.percentile(np.abs(potential.values), 99.7))
+    still_index = int(0.9 * (potential.sizes["t"] - 1))  # the middle of the run is still too faint on this scale
+    movie, _ = heatmap_movie(
+        potential,
+        x="e1",
+        y="e2",
+        x_values=radius,
+        y_values=2 * np.pi * np.asarray(potential.e2),
+        title="ITG drift wave: electrostatic potential φ",
+        xaxis_title="r [a.u.]",
+        yaxis_title="θ [rad]",
+        colorbar_title="φ [a.u.]",
+        colorscale="RdBu",
+        zmin=-limit,
+        zmax=limit,
+    )
+    figures.append(
+        save_extra_figure(
+            movie,
+            "itg-drift-wave",
+            "potential",
+            alt="Animated electrostatic potential in radius and poloidal angle",
+            caption=(
+                "The electrostatic potential at z = 0 against radius and poloidal angle. The colour scale is "
+                "fixed and symmetric about zero, so growth of the perturbation shows up as deepening colour."
+            ),
+            static_z=potential.transpose("t", "e2", "e1").values[still_index],
+            static_active=still_index,
+        )
+    )
+
+    # Amplitude of each poloidal mode (radial rms at the seeded axial mode number) and its growth rate.
+    amplitude = radial_rms(spectrum.sel(n=mode_toroidal)).sel(m=slice(1, MAX_POLOIDAL_MODE))
+    rates = exponential_rate(amplitude, GROWTH_WINDOW)
+    wavenumber = amplitude.m.values / float(radius.mean())
+    colors = sample_colorscale("Viridis", np.linspace(0, 1, amplitude.sizes["m"]))
+    growth_figure = make_subplots(
+        rows=1,
+        cols=2,
+        horizontal_spacing=0.12,
+        subplot_titles=("Amplitude of each poloidal mode", "Growth rate per mode"),
+    )
+    for color, m in zip(colors, amplitude.m.values):
+        growth_figure.add_scatter(
+            x=amplitude.t.values,
+            y=amplitude.sel(m=m).values,
+            mode="lines",
+            name=f"m = {m}",
+            line={"color": color, "width": 4 if m == mode_poloidal else 2},
+            row=1,
+            col=1,
+        )
+    growth_figure.add_scatter(x=wavenumber, y=rates, mode="lines+markers", name="growth rate", showlegend=False, line={"color": "#168aad"}, row=1, col=2)
+    growth_figure.add_vline(x=mode_poloidal / float(radius.mean()), line={"dash": "dash", "color": "#d1495b"}, annotation_text="seeded mode", row=1, col=2)
+    growth_figure.update_yaxes(type="log", title_text="radial rms of |φ<sub>m,n=1</sub>| [a.u.]", row=1, col=1)
+    growth_figure.update_xaxes(title_text="t [a.u.]", row=1, col=1)
+    growth_figure.update_xaxes(title_text="k<sub>θ</sub> = m / r<sub>mid</sub> [a.u.]", row=1, col=2)
+    growth_figure.update_yaxes(title_text="γ [a.u.]", row=1, col=2)
+    growth_figure.update_xaxes(dtick=0.25, row=1, col=2)
+    growth_figure.update_layout(
+        title="ITG drift wave: growth of the poloidal modes",
+        template="plotly_white",
+        margin={"l": 80, "r": 30, "t": 90, "b": 60},
+        legend={"orientation": "h", "y": -0.22, "x": 0.0, "xanchor": "left"},
+    )
+    figures.append(
+        save_extra_figure(
+            growth_figure,
+            "itg-drift-wave",
+            "mode-growth",
+            alt="Amplitudes of the poloidal Fourier modes against time and their fitted growth rates",
+            caption=(
+                "Left: radial rms amplitude of the potential's poloidal Fourier modes at the seeded axial mode "
+                f"number, with the seeded m = {mode_poloidal} in bold. Right: exponential growth rate of each, "
+                f"fitted for {GROWTH_WINDOW[0]:g} < t < {GROWTH_WINDOW[1]:g}, against the poloidal wavenumber."
+            ),
+        )
+    )
+
+    # The (m, n) spectrum at the first and last saved time.
+    both = radial_rms(spectrum.isel(t=[0, -1])).sel(m=slice(0, MAX_POLOIDAL_MODE))
+    axial = np.sort(both.n.values)
+    both = both.sel(n=axial)
+    z_values = [log10_or_nan(both.isel(t=i).transpose("n", "m").values) for i in (0, 1)]
+    z_max = float(np.nanmax(z_values))
+    z_min = max(float(np.nanmin(z_values)), z_max - 4.0)
+    spectrum_figure = make_subplots(
+        rows=1,
+        cols=2,
+        horizontal_spacing=0.08,
+        shared_yaxes=True,
+        subplot_titles=[f"t = {float(t):g}" for t in both.t.values],
+    )
+    for column, z in enumerate(z_values, start=1):
+        spectrum_figure.add_trace(
+            go.Heatmap(
+                z=z,
+                x=both.m.values,
+                y=axial,
+                zmin=z_min,
+                zmax=z_max,
+                colorscale="Viridis",
+                showscale=column == 2,
+                colorbar={"title": "log₁₀ |φ<sub>mn</sub>|"},
+            ),
+            row=1,
+            col=column,
+        )
+        spectrum_figure.update_xaxes(title_text="poloidal m", row=1, col=column)
+    spectrum_figure.update_yaxes(title_text="axial n", dtick=1, row=1, col=1)
+    spectrum_figure.update_layout(title="ITG drift wave: Fourier spectrum of φ", template="plotly_white", margin={"l": 70, "r": 30, "t": 90, "b": 60})
+    figures.append(
+        save_extra_figure(
+            spectrum_figure,
+            "itg-drift-wave",
+            "spectrum",
+            alt="Poloidal and axial Fourier spectrum of the potential at the first and last time",
+            caption="Radial rms of the potential's Fourier amplitudes in the poloidal (m) and axial (n) mode numbers, on a logarithmic colour scale, at the first and last saved time.",
+        )
+    )
+
+    # Radial structure of the seeded mode.
+    interior = slice(1, -1)  # phi = 0 at the Dirichlet boundaries r = a1, a2, which a log axis cannot show
+    profile = np.abs(spectrum.sel(m=mode_poloidal, n=mode_toroidal)).isel(e1=interior)
+    picks = np.unique(np.linspace(0, profile.sizes["t"] - 1, 6).astype(int))
+    radial_figure = go.Figure()
+    for color, index in zip(sample_colorscale("Plasma", np.linspace(0, 0.9, len(picks))), picks):
+        radial_figure.add_scatter(x=radius[interior], y=profile.isel(t=index).values, mode="lines", name=f"t = {float(profile.t[index]):g}", line={"color": color, "width": 3})
+    radial_figure.update_layout(
+        title=f"ITG drift wave: radial structure of the m = {mode_poloidal} mode",
+        xaxis_title="r [a.u.]",
+        yaxis_title=f"|φ<sub>m={mode_poloidal},n={mode_toroidal}</sub>(r)| [a.u.]",
+        yaxis={"type": "log"},
+        template="plotly_white",
+        margin={"l": 80, "r": 30, "t": 80, "b": 60},
+    )
+    figures.append(
+        save_extra_figure(
+            radial_figure,
+            "itg-drift-wave",
+            "radial-structure",
+            alt="Radial profile of the seeded potential mode at several times",
+            caption="Radial profile of the seeded Fourier mode of the potential at evenly spaced times, on a logarithmic axis.",
+        )
+    )
+
+    # Where and when does the potential grow?
+    rms = np.sqrt((phi**2).mean(("e2", "e3"))).isel(e1=interior)
+    rms_map = heatmap_figure(
+        xr.DataArray(log10_or_nan(rms.values), dims=("t", "e1"), coords={"t": rms.t, "e1": rms.e1}),
+        x="e1",
+        y="t",
+        x_values=radius[interior],
+        title="ITG drift wave: where the potential grows",
+        xaxis_title="r [a.u.]",
+        yaxis_title="t [a.u.]",
+        colorbar_title="log₁₀ φ<sub>rms</sub>",
+    )
+    figures.append(
+        save_extra_figure(
+            rms_map,
+            "itg-drift-wave",
+            "radial-time",
+            alt="Root-mean-square potential over flux surfaces as a function of radius and time",
+            caption="The root-mean-square of the potential over each flux surface (poloidal angle and axis), against radius and time, on a logarithmic colour scale.",
+        )
+    )
+
+    # The flux-surface-averaged (m = n = 0) density change: does the profile flatten?
+    density = output.evaluate("diagnostics/rho")
+    density = density.isel(component=0, drop=True) if "component" in density.dims else density
+    zonal = density.isel(e2=slice(None, -1), e3=slice(None, -1)).mean(("e2", "e3"))
+    zonal = zonal - zonal.isel(t=0)
+    figures.append(
+        save_extra_figure(
+            space_time_figure(
+                zonal,
+                space="e1",
+                x_values=radius,
+                title="ITG drift wave: change of the flux-surface-averaged density",
+                colorbar_title="δ⟨ρ⟩ [a.u.]",
+                xaxis_title="r [a.u.]",
+            ),
+            "itg-drift-wave",
+            "profile-change",
+            alt="Change of the flux-surface-averaged density against radius and time",
+            caption="The density projected on the field grid, averaged over each flux surface, minus its initial value: the change of the radial profile as the wave grows.",
+        )
+    )
+
     profiling = export_profiling(sim, "itg-drift-wave")
 
     merge_metadata(
         "itg-drift-wave",
         measuredGrowthRate=growth_rate,
         modeNumbers=[mode_poloidal, mode_toroidal],
+        figures=figures,
         **profiling,
     )
