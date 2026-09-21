@@ -53,6 +53,18 @@ const examples = [];
 for (const filename of files) {
   const slug = filename.replace(/\.metadata\.json$/, '');
   const data = JSON.parse(await readFile(join(examplesDir, filename), 'utf8'));
+  const statsPath = join(examplesDir, `${slug}-region-stats.json`);
+  const profile = (await exists(statsPath))
+    ? JSON.parse(await readFile(statsPath, 'utf8')).files?.[0]
+    : null;
+  const runSummary = profile ? {
+    totalTimeSeconds: Number.isFinite(profile.total_time_seconds) && profile.total_time_seconds >= 0
+      ? profile.total_time_seconds : null,
+    mpiRanks: Number.isInteger(profile.num_ranks) && profile.num_ranks > 0
+      ? profile.num_ranks : null,
+    hostname: typeof profile.hostname === 'string' && profile.hostname.trim()
+      ? profile.hostname : null,
+  } : null;
   examples.push({
     slug,
     href: `/examples/${slug}/`,
@@ -60,6 +72,7 @@ for (const filename of files) {
     description: data.description,
     model: data.model,
     modelSlug: data.model ? toSlug(data.model) : null,
+    runSummary,
     // Keep the complete record here as well: prerendered detail pages consume
     // this generated index, which avoids resolving generated public files from
     // Astro's emitted server modules.

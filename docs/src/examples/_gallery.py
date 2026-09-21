@@ -412,6 +412,11 @@ def export_profiling(sim, stem: str) -> dict:
         verbose=False,
     )
     write_region_statistics_json([profile_reader], region_stats_path, ranks=[0])
+    # Keep the run's recorded host alongside its time and rank count for the gallery summary.
+    # Read it from the profile, since exports can be regenerated on a different machine.
+    region_stats_payload = json.loads(region_stats_path.read_text())
+    region_stats_payload["files"][0]["hostname"] = profile_reader.metadata.get("hostname")
+    region_stats_path.write_text(json.dumps(region_stats_payload))
 
     gantt_payload = json.loads(gantt_path.read_text())
     if len(gantt_payload["intervals"]) > GANTT_MAX_INTERVALS:
