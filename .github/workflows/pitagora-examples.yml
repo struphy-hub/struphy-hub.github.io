@@ -32,9 +32,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install cache client
-        run: npm install --prefix "$RUNNER_TEMP/example-cache" --no-audit --no-fund --ignore-scripts @actions/cache@4.0.5
-
       - name: Install Struphy and run example
         # A login shell initializes the cluster's module command. Keep setup and
         # execution together so module and virtual-environment settings persist.
@@ -79,19 +76,6 @@ jobs:
             test -f "docs/public/examples/$example.plotly.json"
             test -f "docs/public/examples/$example.html"
           done < <(python -c 'import json, os; print(*json.loads(os.environ["EXAMPLES"]), sep="\n")')
-
-      - name: Save generated examples in cache
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const path = require('node:path');
-            const cache = require(path.join(process.env.RUNNER_TEMP, 'example-cache/node_modules/@actions/cache'));
-            const { exampleCache } = require('./.github/scripts/example-cache.cjs');
-            for (const example of JSON.parse(process.env.EXAMPLES)) {
-              const { key, paths } = await exampleCache(example, 'pitagora-example-v1', '', glob);
-              await cache.saveCache(paths, key);
-              core.info(`Saved ${example} as ${key}`);
-            }
 
       - name: Upload example results
         uses: actions/upload-artifact@v4

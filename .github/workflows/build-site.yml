@@ -197,6 +197,29 @@ jobs:
           path: docs/public
           merge-multiple: true
 
+      # The self-hosted Pitagora runner has no npm command. Save its completed
+      # examples as individual caches here, on the Ubuntu runner, after their
+      # artifact has been downloaded.
+      - name: Install cache client for Pitagora results
+        if: needs.list-examples.outputs.pitagora-examples != '[]'
+        run: npm install --prefix "$RUNNER_TEMP/example-cache" --no-audit --no-fund --ignore-scripts @actions/cache@4.0.5
+
+      - name: Save Pitagora examples in cache
+        if: needs.list-examples.outputs.pitagora-examples != '[]'
+        uses: actions/github-script@v7
+        env:
+          EXAMPLES: ${{ needs.list-examples.outputs.pitagora-examples }}
+        with:
+          script: |
+            const path = require('node:path');
+            const cache = require(path.join(process.env.RUNNER_TEMP, 'example-cache/node_modules/@actions/cache'));
+            const { exampleCache } = require('./.github/scripts/example-cache.cjs');
+            for (const example of JSON.parse(process.env.EXAMPLES)) {
+              const { key, paths } = await exampleCache(example, 'pitagora-example-v1', '', glob);
+              await cache.saveCache(paths, key);
+              core.info(`Saved ${example} as ${key}`);
+            }
+
       - name: Verify and list Pitagora examples
         run: python scripts/pitagora_examples.py --verify-output
 
