@@ -1,0 +1,30 @@
+name: Cache generated Struphy example
+description: Restore and save the generated files for one deterministic example run
+inputs:
+  example:
+    description: Example script stem
+    required: true
+  cache-prefix:
+    description: Prefix used for the cache key
+    required: false
+    default: struphy-example-domain-v1
+  cache-suffix:
+    description: Optional distinguishing suffix, such as an MPI configuration
+    required: false
+    default: ''
+outputs:
+  cache-hit:
+    description: Whether an exact generated-example cache was restored
+    value: ${{ steps.cache.outputs.cache-hit }}
+runs:
+  using: composite
+  steps:
+    - name: Cache generated example
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          docs/public/examples/${{ inputs.example }}*
+          docs/public/images/examples/${{ inputs.example }}*
+          docs/public/example-domains/${{ inputs.example }}*
+        key: ${{ inputs.cache-prefix }}${{ inputs.cache-suffix }}-${{ inputs.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', inputs.example), 'docs/src/examples/_gallery.py', 'docs/src/examples/_profiling_exports.py', 'catalogue_docs.py', 'generate_examples.py', 'generate_example_domain.py', 'generate_domains.py', 'submodules/struphy/src/struphy/**/*.py') }}

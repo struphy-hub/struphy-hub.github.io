@@ -1,9 +1,7 @@
 name: Pitagora Examples
 
 on:
-  pull_request:
-    branches:
-      - main
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -15,13 +13,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  list-examples:
+    runs-on: ubuntu-latest
+    outputs:
+      examples: ${{ steps.list.outputs.examples }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: List Pitagora examples
+        id: list
+        run: echo "examples=$(python scripts/pitagora_examples.py --json)" >> "$GITHUB_OUTPUT"
+
   run-examples:
+    needs: list-examples
     runs-on: [self-hosted, pitagora]
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      # The selected examples share Pitagora's persistent virtual environment.
+      max-parallel: 1
+      matrix:
+        example: ${{ fromJson(needs.list-examples.outputs.examples) }}
     env:
-      # Keep this smoke test small enough for the shared runner. The heavier
-      # Orszag--Tang case can be restored once its memory requirements are known.
-      EXAMPLE: poisson-source
       OMP_NUM_THREADS: 1
     steps:
       - name: Check out repository and Struphy
@@ -29,7 +43,15 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Cache generated example
+        id: cache-example
+        uses: ./.github/actions/cache-example
+        with:
+          example: ${{ matrix.example }}
+          cache-prefix: pitagora-example-v1
+
       - name: Install Struphy and run example
+        if: steps.cache-example.outputs.cache-hit != 'true'
         # A login shell initializes the cluster's module command. Keep setup and
         # execution together so module and virtual-environment settings persist.
         shell: bash -l -e -o pipefail {0}
@@ -55,12 +77,21 @@ jobs:
           python -m pip install 'scope-profiler[pproc]>=0.6.1,<=0.7.0' kaleido
           # Install Chrome into Kaleido's user-accessible location for PNG export.
           kaleido_get_chrome
+          struphy compile --status
           struphy compile -y --language fortran
-          python cli.py run "$EXAMPLE"
+          python cli.py run "${{ matrix.example }}"
+
+      - name: Verify generated example
+        run: |
+          test -f "docs/public/examples/${{ matrix.example }}.plotly.json"
+          test -f "docs/public/examples/${{ matrix.example }}.html"
 
       - name: Upload example results
         uses: actions/upload-artifact@v4
         with:
-          name: pitagora-${{ env.EXAMPLE }}
-          path: docs/public/examples/${{ env.EXAMPLE }}*
+          name: pitagora-${{ matrix.example }}
+          path: |
+            docs/public/examples/${{ matrix.example }}*
+            docs/public/images/examples/${{ matrix.example }}*
+            docs/public/example-domains/${{ matrix.example }}*
           if-no-files-found: error
