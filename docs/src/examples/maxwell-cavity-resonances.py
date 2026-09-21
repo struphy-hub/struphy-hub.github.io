@@ -107,7 +107,7 @@ if __name__ == "__main__":
     figure.update_layout(
         title="Resonances of a rectangular box", template="plotly_white", autosize=True,
         xaxis_title="ω [a.u.]", yaxis_title="power, normalized (log)", yaxis_type="log",
-        legend={"x": 0.98, "xanchor": "right", "y": 0.98, "bgcolor": "rgba(255,255,255,0.82)"},
+        legend={"x": 0.02, "xanchor": "left", "y": 0.6, "bgcolor": "rgba(255,255,255,0.82)"},
         margin={"l": 75, "r": 30, "t": 80, "b": 60},
     )
     figure.update_xaxes(range=[0.0, 14.0])
