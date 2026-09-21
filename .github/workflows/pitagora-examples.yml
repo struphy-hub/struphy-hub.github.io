@@ -1,0 +1,15 @@
+name: Pitagora Examples
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  run-examples:
+    runs-on: [self-hosted, pitagora]
+    steps:
+      - name: Say hello and print hostname
+        run: |
+          echo "hello"
+          hostname
