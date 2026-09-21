@@ -81,53 +81,12 @@ jobs:
           kaleido_get_chrome
           struphy compile --status
           struphy compile -y --language fortran
-          # Generate a self-contained serial Slurm batch script. Loading the
-          # same modules and virtual environment in the job keeps it
-          # independent of which runner submits it.
-          job_name="struphy-${{ matrix.example }}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          script_path="$RUNNER_TEMP/${job_name}.sbatch"
-          generate-slurm-script \
-            --job-name="$job_name" \
+          # The Python API generates a self-contained serial batch script,
+          # submits it, waits for its exact job ID, verifies its final Slurm
+          # state, and prints its batch logs.
+          python .github/scripts/run-pitagora-example.py "${{ matrix.example }}" \
             --account="$SLURM_ACCOUNT" \
-            --partition="$SLURM_PARTITION" \
-            --nodes=1 \
-            --ntasks=1 \
-            --cpus-per-task=1 \
-            --time=110 \
-            --chdir="$GITHUB_WORKSPACE" \
-            --output="$GITHUB_WORKSPACE/slurm-%x-%j.out" \
-            --error="$GITHUB_WORKSPACE/slurm-%x-%j.err" \
-            --output-path="$script_path" \
-            --modules \
-              gcc/12.3.0 \
-              python/3.11.7 \
-              hdf5/1.14.3--gcc--12.3.0 \
-              cmake/3.27.9 \
-              netcdf-fortran/4.6.1--gcc--12.3.0 \
-              netlib-scalapack/2.2.0--openmpi--4.1.6--gcc--12.3.0-ucx1.20 \
-            --custom-commands \
-              'set -euo pipefail' \
-              "source \"$VIRTUAL_ENV/bin/activate\"" \
-              'export STRUPHY_MPI=0' \
-              'python cli.py run "${{ matrix.example }}"'
-
-          # Submit the generated script and wait for precisely this job. The
-          # parsable form is stable even if the scheduler adds extra text.
-          job_id="$(sbatch --parsable "$script_path")"
-          job_id="${job_id%%;*}"
-          [[ "$job_id" =~ ^[0-9]+$ ]]
-          echo "Submitted $job_name as Slurm job $job_id"
-          slurm-wait --job-id="$job_id" --poll-interval=15
-
-          # Surface the batch output in the Actions log before checking its
-          # generated artifacts below.
-          for log in "$GITHUB_WORKSPACE/slurm-$job_name-$job_id.out" "$GITHUB_WORKSPACE/slurm-$job_name-$job_id.err"; do
-            if [[ -f "$log" ]]; then
-              echo "::group::$(basename "$log")"
-              tail -n 200 "$log"
-              echo "::endgroup::"
-            fi
-          done
+            --partition="$SLURM_PARTITION"
 
       - name: Verify generated example
         run: |
