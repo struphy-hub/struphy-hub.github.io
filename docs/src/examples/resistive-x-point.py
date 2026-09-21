@@ -29,7 +29,9 @@ period = 2 * np.pi
 box_min, box_max = -np.pi, np.pi
 flux_asymmetry = 0.7
 resistivity = 0.05
-drive_amplitude = 0.08
+# A clearly visible, but still subsonic, hyperbolic inflow: it compresses the
+# X-point into a current sheet before resistivity reconnects the flux.
+drive_amplitude = 0.20
 
 
 class CompatibleNonlinearSolverParameters(NonlinearSolverParameters):
@@ -50,7 +52,7 @@ model.propagators.variat_resist.options = model.propagators.variat_resist.Option
 domain = domains.Cuboid(l1=box_min, r1=box_max, l2=box_min, r2=box_max, l3=0.0, r3=1.0)
 grid = grids.TensorProductGrid(num_elements=(24, 24, 1))
 derham_opts = DerhamOptions(degree=(2, 2, 1))
-time_opts = Time(dt=0.02, Tend=1.5, split_algo="LieTrotter")
+time_opts = Time(dt=0.02, Tend=2.0, split_algo="LieTrotter")
 equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=2.0)
 
 # Logical 3-forms include det(DF) = (2*pi)^2, giving physical rho = 1 and
@@ -167,7 +169,9 @@ if __name__ == "__main__":
             ),
         ]
 
-    picks = np.unique(np.linspace(0, len(times) - 1, min(81, len(times)), dtype=int))
+    # Contour-heavy Plotly frames are expensive to animate in the browser.
+    # Keep the driven sheet formation readable without making the page lag.
+    picks = np.unique(np.linspace(0, len(times) - 1, min(41, len(times)), dtype=int))
     figure = go.Figure(
         data=field_traces(0),
         frames=[go.Frame(name=f"{times[i]:.2f}", data=field_traces(i), traces=[0, 1, 2]) for i in picks],
@@ -178,14 +182,14 @@ if __name__ == "__main__":
         updatemenus=[{
             "type": "buttons", "showactive": False, "x": 0, "y": -0.2,
             "buttons": [{"label": "Play", "method": "animate", "args": [None, {
-                "frame": {"duration": 55, "redraw": True}, "transition": {"duration": 0}, "fromcurrent": True,
+                "frame": {"duration": 55, "redraw": False}, "transition": {"duration": 0}, "fromcurrent": True,
             }]}],
         }],
         sliders=[{
             "active": 0, "x": 0.12, "len": 0.88, "y": -0.12, "currentvalue": {"prefix": "t = "},
             "steps": [{
                 "args": [[frame.name], {
-                    "frame": {"duration": 0, "redraw": True}, "transition": {"duration": 0}, "mode": "immediate",
+                    "frame": {"duration": 0, "redraw": False}, "transition": {"duration": 0}, "mode": "immediate",
                 }],
                 "label": frame.name, "method": "animate",
             } for frame in figure.frames],
