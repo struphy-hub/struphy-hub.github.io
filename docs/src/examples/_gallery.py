@@ -18,12 +18,19 @@ from pathlib import Path
 import numpy as np
 import plotly.graph_objects as go
 from struphy import set_logging_level
+from struphy.utils.mpi_launch import launched_under_mpi
 
-try:
-    from mpi4py import MPI
+# Importing mpi4py initializes MPI. In particular, a serial command run inside
+# a Slurm allocation must not initialize MPI merely because mpi4py is present.
+# Struphy's launcher detector also supports STRUPHY_MPI=0 for that case.
+if launched_under_mpi():
+    try:
+        from mpi4py import MPI
 
-    _COMM = MPI.COMM_WORLD
-except ImportError:  # a serial install without MPI
+        _COMM = MPI.COMM_WORLD
+    except ImportError:  # a serial install without MPI
+        _COMM = None
+else:
     _COMM = None
 
 # A gantt bar is one call, not an aggregate, and a run with thousands of steps draws tens of

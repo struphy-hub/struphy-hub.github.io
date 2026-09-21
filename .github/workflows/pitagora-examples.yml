@@ -84,13 +84,15 @@ jobs:
           # Run the simulation itself in a Slurm allocation. `--export=ALL`
           # carries the module and virtual-environment settings above into the
           # allocation; setup and incremental kernel checks stay on the runner.
+          # This is one serial task, not an MPI job: prevent inherited Slurm
+          # launcher variables from making Struphy initialize mpi4py.
           srun \
             --account="$SLURM_ACCOUNT" \
             --partition="$SLURM_PARTITION" \
             --nodes=1 \
             --ntasks=1 \
             --cpus-per-task=1 \
-            --export=ALL \
+            --export=ALL,STRUPHY_MPI=0 \
             --kill-on-bad-exit=1 \
             python cli.py run "${{ matrix.example }}"
 
