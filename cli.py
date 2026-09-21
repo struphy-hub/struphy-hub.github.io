@@ -10,7 +10,7 @@ This tool does the same locally for the examples you name, and prints every file
     python cli.py list                      # what examples exist, and which have been run
     python cli.py run orszag-tang-vortex    # metadata + run + clean-up
     python cli.py run orszag dam --open     # unique prefixes work; --open shows their pages
-    python cli.py run orszag --mpi 4        # on 4 MPI ranks, as CI does (rank 0 writes the files)
+    python cli.py run orszag --mpi 4        # optional: run on 4 MPI ranks (rank 0 writes the files)
     python cli.py show orszag-tang-vortex   # paths of the files of an earlier run
     python cli.py clean --all               # remove everything a run generated
 
@@ -314,7 +314,7 @@ def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts
     if args.quiet:
         log = Path(os.environ.get("TMPDIR", "/tmp")) / f"struphy-gallery-{stem}.log"
     run_started = time.time() - 1  # file times can be coarser than the clock
-    # The same flags as CI: hardware threads count as slots, and a machine with fewer of them still runs.
+    # Hardware threads count as slots, and a machine with fewer of them still runs.
     launcher = (
         [
             "mpirun",
@@ -526,7 +526,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=1,
         metavar="N",
-        help="run on N MPI ranks (default 1); CI uses 4",
+        help="run on N MPI ranks (default 1)",
     )
     p.add_argument(
         "--skip-metadata",

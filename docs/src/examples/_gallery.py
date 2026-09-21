@@ -3,7 +3,7 @@
 Every helper writes to the current directory, which is `docs/public/examples/` when a script is
 run as described in README.md, and names its files after the script stem.
 
-The scripts also run under MPI (`mpirun -n 4 python <script>.py`, as CI does): the simulation, the
+The scripts also support MPI (`mpirun -n 4 python <script>.py`): the simulation, the
 post-processing and the analysis run on every rank, and only rank 0 writes files. The helpers
 below take care of that, so a script needs no rank checks of its own.
 """
@@ -412,6 +412,11 @@ def export_profiling(sim, stem: str) -> dict:
         verbose=False,
     )
     write_region_statistics_json([profile_reader], region_stats_path, ranks=[0])
+    # Keep the run's recorded host alongside its time and rank count for the gallery summary.
+    # Read it from the profile, since exports can be regenerated on a different machine.
+    region_stats_payload = json.loads(region_stats_path.read_text())
+    region_stats_payload["files"][0]["hostname"] = profile_reader.metadata.get("hostname")
+    region_stats_path.write_text(json.dumps(region_stats_payload))
 
     gantt_payload = json.loads(gantt_path.read_text())
     if len(gantt_payload["intervals"]) > GANTT_MAX_INTERVALS:

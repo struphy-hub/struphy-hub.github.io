@@ -37,6 +37,8 @@ jobs:
         example: ${{ fromJson(needs.list-examples.outputs.examples) }}
     env:
       OMP_NUM_THREADS: 1
+      SLURM_ACCOUNT: FUSIO_HLST_7
+      SLURM_PARTITION: dcgp_fua_dbg
     steps:
       - name: Check out repository and Struphy
         uses: actions/checkout@v4
@@ -79,7 +81,18 @@ jobs:
           kaleido_get_chrome
           struphy compile --status
           struphy compile -y --language fortran
-          python cli.py run "${{ matrix.example }}"
+          # Run the simulation itself in a Slurm allocation. `--export=ALL`
+          # carries the module and virtual-environment settings above into the
+          # allocation; setup and incremental kernel checks stay on the runner.
+          srun \
+            --account="$SLURM_ACCOUNT" \
+            --partition="$SLURM_PARTITION" \
+            --nodes=1 \
+            --ntasks=1 \
+            --cpus-per-task=1 \
+            --export=ALL \
+            --kill-on-bad-exit=1 \
+            python cli.py run "${{ matrix.example }}"
 
       - name: Verify generated example
         run: |

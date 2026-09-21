@@ -180,7 +180,7 @@
           "fields": [
             {
               "name": "out_folders",
-              "default": "/Users/max/git_repos/struphy-hub.github.io",
+              "default": "/home/maxlinadmin/git_repos/struphy-hub/struphy-hub.github.io",
               "description": "Absolute path to directory for ``sim_folder``."
             },
             {
@@ -251,37 +251,7 @@
               "description": ""
             },
             {
-              "name": "perf_events",
-              "default": "None",
-              "description": ""
-            },
-            {
               "name": "use_line_profiler",
-              "default": "None",
-              "description": ""
-            },
-            {
-              "name": "use_memray",
-              "default": "None",
-              "description": ""
-            },
-            {
-              "name": "memory_profile_path",
-              "default": "None",
-              "description": ""
-            },
-            {
-              "name": "memray_native_traces",
-              "default": "None",
-              "description": ""
-            },
-            {
-              "name": "memray_trace_python_allocators",
-              "default": "None",
-              "description": ""
-            },
-            {
-              "name": "memray_follow_fork",
               "default": "None",
               "description": ""
             },
@@ -294,10 +264,40 @@
               "name": "use_nvtx",
               "default": "None",
               "description": ""
+            },
+            {
+              "name": "use_gpu_timing",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "gpu_timing_backend",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "deactivate_file_output",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "recursive_profile",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "aggregation_mode",
+              "default": "None",
+              "description": ""
+            },
+            {
+              "name": "capture_region_source",
+              "default": "None",
+              "description": ""
             }
           ],
           "fieldsTruncated": true,
-          "fieldCount": 29
+          "fieldCount": 17
         },
         {
           "name": "comm",
