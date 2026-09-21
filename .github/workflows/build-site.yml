@@ -12,10 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  # docs/src/examples/*.py are full Struphy simulations (see docs/src/examples/README.md),
-  # each run independently as its own matrix job below (they don't share state), so this
-  # just discovers the current list for that matrix -- no workflow edit needed to pick up
-  # a newly added example.
+  # Restore cached outputs once and schedule simulation jobs only for misses.
   list-examples:
     runs-on: ubuntu-latest
     outputs:
@@ -23,14 +20,30 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
-      - name: List example scripts
+      - name: Install cache client
+        run: npm install --prefix "$RUNNER_TEMP/example-cache" --no-audit --no-fund --ignore-scripts @actions/cache@4.0.5
+
+      - name: Restore cached examples and list misses
         id: list
-        run: |
-          # Files prefixed with an underscore are shared helper modules, not runnable
-          # examples (for example, _profiling_exports.py). Keep them out of the matrix.
-          examples=$(cd docs/src/examples && find . -maxdepth 1 -type f -name '*.py' ! -name '_*.py' ! -name 'poisson-source.py' -printf '%f\n' | sed 's/\.py$//' | jq -R -s -c 'split("\n")[:-1]')
-          echo "examples=$examples" >> "$GITHUB_OUTPUT"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const path = require('node:path');
+            const cache = require(path.join(process.env.RUNNER_TEMP, 'example-cache/node_modules/@actions/cache'));
+            const listExamples = require('./.github/scripts/list-examples.cjs');
+            await listExamples({ cache, glob, core });
+
+      - name: Upload cached examples
+        if: steps.list.outputs.cached-paths != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-example-cached
+          path: ${{ steps.list.outputs.cached-paths }}
+          if-no-files-found: error
+          retention-days: 1
 
   # Poisson is a small special-case smoke test that runs on the Pitagora runner.
   # Its artifact is produced in this same workflow run and consumed by build below.
@@ -109,9 +122,10 @@ jobs:
         working-directory: docs
         run: npm run build
 
-  # Each example checks its cache before starting a Struphy container.
+  # Only cache misses start a Struphy container.
   run-example:
     needs: list-examples
+    if: needs.list-examples.outputs.examples != '[]'
     strategy:
       fail-fast: false
       matrix:
@@ -124,7 +138,12 @@ jobs:
       packages: read
 
   build:
-    needs: [check-site, pitagora-example, run-example]
+    needs: [list-examples, check-site, pitagora-example, run-example]
+    # An all-cached run skips the simulation matrix but must still build the site.
+    if: >-
+      ${{ !cancelled() && needs.list-examples.result == 'success' &&
+          needs.check-site.result == 'success' && needs.pitagora-example.result == 'success' &&
+          (needs.run-example.result == 'success' || needs.run-example.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

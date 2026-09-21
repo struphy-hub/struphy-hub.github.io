@@ -12,48 +12,9 @@ permissions:
   contents: read
 
 jobs:
-  # Use the hosted runner directly: cache hits never pull the Struphy image.
-  check-cache:
-    runs-on: ubuntu-latest
-    outputs:
-      cache-hit: ${{ steps.cache-example.outputs.cache-hit }}
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Restore generated example
-        id: cache-example
-        uses: ./.github/actions/cache-example
-        with:
-          example: ${{ inputs.example }}
-          cache-prefix: struphy-example-serial-v1
-          restore-only: 'true'
-
-      - name: Verify cached example
-        if: steps.cache-example.outputs.cache-hit == 'true'
-        run: |
-          test -f "docs/public/examples/${{ inputs.example }}.plotly.json"
-          test -f "docs/public/examples/${{ inputs.example }}.html"
-
-      - name: Upload cached example
-        if: steps.cache-example.outputs.cache-hit == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-example-${{ inputs.example }}
-          path: |
-            docs/public/examples/${{ inputs.example }}*
-            docs/public/images/examples/${{ inputs.example }}*
-            docs/public/example-domains/${{ inputs.example }}*
-          if-no-files-found: error
-          retention-days: 1
-
-  # Only cache misses need the precompiled Struphy toolchain and simulation.
-  # Check the cache again here in case another run filled it while this job queued.
+  # The caller schedules only cache misses. Recheck in case another run filled
+  # the cache while this job was queued.
   run-example:
-    needs: check-cache
-    if: needs.check-cache.outputs.cache-hit != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     container:
