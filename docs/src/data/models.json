@@ -226,7 +226,7 @@
     ],
     "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.shear_alfven_b1.ShearAlfvenB1</code></li>\n    <li><code>struphy.propagators.hall.Hall</code></li>\n    <li><code>struphy.propagators.magnetosonic_uniform.MagnetosonicUniform</code></li>\n</ol>",
     "discretizationMath": [],
-    "scalarQuantitiesHtml": "<h3>The following scalars are tracked during simulation:</h3>\n\n\n<ul>\n    <li>Flow kinetic energy: <code>en_U</code></li>\n    <li>Thermal pressure energy: <code>en_p</code></li>\n    <li>Magnetic perturbation energy: <code>en_B</code></li>\n    <li>Background pressure energy: <code>en_p_eq</code></li>\n    <li>Background magnetic energy: <code>en_B_eq</code></li>\n    <li>Total magnetic energy: <code>en_B_tot</code></li>\n    <li>Total perturbation energy: <code>en_tot</code></li>\n    <li>Magnetic helicity-like invariant: <code>helicity</code></li>\n</ul>",
+    "scalarQuantitiesHtml": "<h3>The following scalars are tracked during simulation:</h3>\n\n\n<ul>\n    <li>Flow kinetic energy: <code>en_U</code></li>\n    <li>Mean pressure perturbation (linear diagnostic): <code>en_p</code></li>\n    <li>Thermal perturbation energy: <code>en_thermal</code></li>\n    <li>Magnetic perturbation energy: <code>en_B</code></li>\n    <li>Background pressure energy: <code>en_p_eq</code></li>\n    <li>Background magnetic energy: <code>en_B_eq</code></li>\n    <li>Total magnetic energy: <code>en_B_tot</code></li>\n    <li>Total perturbation energy (kinetic + magnetic + thermal): <code>en_tot</code></li>\n    <li>Magnetic helicity-like invariant: <code>helicity</code></li>\n</ul>",
     "scalarQuantitiesMath": [],
     "useCasesHtml": "This model is appropriate for:\n\n\n<ul>\n    <li>linear Hall-MHD wave studies</li>\n    <li>uniform-equilibrium benchmarks for extended MHD</li>\n    <li>comparison against ideal-MHD dispersion in the Hall-corrected regime</li>\n</ul>",
     "useCasesMath": [],
@@ -321,7 +321,7 @@
     ],
     "discretizationHtml": "Time integration is performed by the following propagators (in sequence):\n\n\n<ol>\n    <li><code>struphy.propagators.shear_alfven_propagator.ShearAlfvenPropagator</code></li>\n    <li><code>struphy.propagators.magnetosonic.Magnetosonic</code></li>\n</ol>",
     "discretizationMath": [],
-    "scalarQuantitiesHtml": "<h3>The following scalars are tracked during simulation:</h3>\n\n\n<ul>\n    <li>Kinetic energy (perturbation): @@MATH0@@</li>\n    <li>Magnetic energy (perturbation): @@MATH1@@</li>\n    <li>Internal energy (perturbation): @@MATH2@@ with @@MATH3@@</li>\n    <li>Total perturbed energy: @@MATH4@@</li>\n    <li>Equilibrium magnetic energy: @@MATH5@@</li>\n    <li>Equilibrium internal energy: @@MATH6@@</li>\n    <li>Total magnetic energy: @@MATH7@@</li>\n</ul>",
+    "scalarQuantitiesHtml": "<h3>The following scalars are tracked during simulation:</h3>\n\n\n<ul>\n    <li>Kinetic energy (perturbation): @@MATH0@@</li>\n    <li>Magnetic energy (perturbation): @@MATH1@@</li>\n    <li>Mean pressure perturbation: @@MATH2@@ (<code>en_p</code>). This is a linear diagnostic, not an energy.</li>\n    <li>Thermal perturbation energy: @@MATH3@@ (<code>en_thermal</code>), with @@MATH4@@</li>\n    <li>Total perturbed energy: @@MATH5@@ (<code>en_tot</code>)</li>\n    <li>Equilibrium magnetic energy: @@MATH6@@</li>\n    <li>Equilibrium internal energy: @@MATH7@@</li>\n    <li>Total magnetic energy: @@MATH8@@</li>\n</ul>",
     "scalarQuantitiesMath": [
       {
         "token": "@@MATH0@@",
@@ -340,26 +340,31 @@
       },
       {
         "token": "@@MATH3@@",
-        "latex": "\\gamma = 5/3",
+        "latex": "E_{\\mathrm{thermal}} = \\frac{1}{2}\\int \\frac{\\tilde{p}^2}{\\gamma p_0} \\, \\mathrm{d}V",
         "display": false
       },
       {
         "token": "@@MATH4@@",
-        "latex": "E_{\\mathrm{tot}} = E_U + E_B + E_p",
+        "latex": "\\gamma = 5/3",
         "display": false
       },
       {
         "token": "@@MATH5@@",
-        "latex": "E_{B0} = \\frac{1}{2} \\int \\frac{|\\mathbf{B}_0|^2}{\\mu_0} \\, \\mathrm{d}V",
+        "latex": "E_{\\mathrm{tot}} = E_U + E_B + E_{\\mathrm{thermal}}",
         "display": false
       },
       {
         "token": "@@MATH6@@",
-        "latex": "E_{p0} = \\int \\frac{p_0}{\\gamma - 1} \\, \\mathrm{d}V",
+        "latex": "E_{B0} = \\frac{1}{2} \\int \\frac{|\\mathbf{B}_0|^2}{\\mu_0} \\, \\mathrm{d}V",
         "display": false
       },
       {
         "token": "@@MATH7@@",
+        "latex": "E_{p0} = \\int \\frac{p_0}{\\gamma - 1} \\, \\mathrm{d}V",
+        "display": false
+      },
+      {
+        "token": "@@MATH8@@",
         "latex": "E_{B,\\mathrm{tot}} = \\frac{1}{2} \\int \\frac{|\\mathbf{B}_0 + \\tilde{\\mathbf{B}}|^2}{\\mu_0} \\, \\mathrm{d}V",
         "display": false
       }
@@ -1682,7 +1687,7 @@
       },
       {
         "token": "@@MATH3@@",
-        "latex": "\\begin{aligned} \\int_{\\Omega} \\nabla \\psi^{\\top} \\cdot \\nabla \\phi \\, \\textrm{d} \\mathbf{x} &= \\frac{\\alpha^2}{\\varepsilon} \\int_{\\Omega} \\int_{\\mathbb{R}^3} \\psi \\, (f - f_0) \\, \\text{d}^3 \\mathbf{v} \\, \\textrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1 \\\\[2mm] \\mathbf{E}(t=0) &= -\\nabla \\phi(t=0) \\end{aligned}",
+        "latex": "\\int_{\\Omega} \\nabla \\psi^{\\top} \\cdot \\nabla \\phi \\, \\textrm{d} \\mathbf{x} = \\frac{\\alpha^2}{\\varepsilon} \\int_{\\Omega} \\int_{\\mathbb{R}^3} \\psi \\, (f - f_0) \\, \\text{d}^3 \\mathbf{v} \\, \\textrm{d} \\mathbf{x} \\qquad \\forall \\ \\psi \\in H^1 \\\\[2mm] \\mathbf{E}(t=0) = -\\nabla \\phi(t=0)",
         "display": true
       },
       {
