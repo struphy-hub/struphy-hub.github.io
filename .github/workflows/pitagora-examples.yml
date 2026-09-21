@@ -19,7 +19,9 @@ jobs:
     runs-on: [self-hosted, pitagora]
     timeout-minutes: 120
     env:
-      EXAMPLE: orszag-tang-vortex
+      # Keep this smoke test small enough for the shared runner. The heavier
+      # Orszag--Tang case can be restored once its memory requirements are known.
+      EXAMPLE: poisson-source
       OMP_NUM_THREADS: 1
     steps:
       - name: Check out repository and Struphy
