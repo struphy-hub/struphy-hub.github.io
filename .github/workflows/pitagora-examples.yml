@@ -29,13 +29,10 @@ jobs:
 
       - name: Cache generated example
         id: cache-example
-        uses: actions/cache@v4
+        uses: ./.github/actions/cache-example
         with:
-          path: |
-            docs/public/examples/${{ env.EXAMPLE }}*
-            docs/public/images/examples/${{ env.EXAMPLE }}*
-            docs/public/example-domains/${{ env.EXAMPLE }}*
-          key: pitagora-example-v1-${{ env.EXAMPLE }}-${{ hashFiles(format('docs/src/examples/{0}.py', env.EXAMPLE), 'docs/src/examples/_gallery.py', 'docs/src/examples/_profiling_exports.py', 'submodules/struphy/src/struphy/**/*.py') }}
+          example: ${{ env.EXAMPLE }}
+          cache-prefix: pitagora-example-v1
 
       - name: Install Struphy and run example
         if: steps.cache-example.outputs.cache-hit != 'true'

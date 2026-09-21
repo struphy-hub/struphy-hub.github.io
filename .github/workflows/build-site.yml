@@ -159,13 +159,11 @@ jobs:
       # glob also covers two-stream-instability's extra "-phasespace" pair.
       - name: Cache generated example
         id: cache-example
-        uses: actions/cache@v4
+        uses: ./.github/actions/cache-example
         with:
-          path: |
-            docs/public/examples/${{ matrix.example }}*
-            docs/public/images/examples/${{ matrix.example }}*
-            docs/public/example-domains/${{ matrix.example }}*
-          key: struphy-example-domain-v1-mpi${{ env.MPI_RANKS }}-${{ matrix.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', matrix.example), 'docs/src/examples/_*.py', 'submodules/struphy/src/struphy/**/*.py') }}
+          example: ${{ matrix.example }}
+          cache-prefix: struphy-example-domain-v1
+          cache-suffix: -mpi${{ env.MPI_RANKS }}
 
       - name: Install Struphy from this repo's pinned submodule commit
         # Same approach as struphy's own CI
