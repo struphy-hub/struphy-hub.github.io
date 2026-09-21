@@ -157,6 +157,11 @@ if __name__ == "__main__":
                 colorscale="RdBu_r", colorbar={"title": "Jz"},
                 hovertemplate="x=%{x:.3f}<br>y=%{y:.3f}<br>Jz=%{z:.4f}<extra></extra>",
             ),
+            go.Heatmap(
+                x=x, y=y, z=flux[index].T, zmin=-flux_limit, zmax=flux_limit,
+                colorscale="Greys", opacity=0.18, showscale=False,
+                hoverinfo="skip", name="magnetic flux",
+            ),
             go.Contour(
                 x=x, y=y, z=flux[index].T, contours={"coloring": "none", **flux_levels},
                 line={"color": "rgba(20,25,35,.72)", "width": 1.2},
@@ -171,10 +176,16 @@ if __name__ == "__main__":
 
     # Contour-heavy Plotly frames are expensive to animate in the browser.
     # Keep the driven sheet formation readable without making the page lag.
+    # Plotly cannot interpolate a Contour trace with redraw=False; leave the
+    # line layer static while animating both physical fields underneath it.
     picks = np.unique(np.linspace(0, len(times) - 1, min(41, len(times)), dtype=int))
+    initial_traces = field_traces(0)
     figure = go.Figure(
-        data=field_traces(0),
-        frames=[go.Frame(name=f"{times[i]:.2f}", data=field_traces(i), traces=[0, 1, 2]) for i in picks],
+        data=initial_traces,
+        frames=[
+            go.Frame(name=f"{times[i]:.2f}", data=field_traces(i)[:2], traces=[0, 1])
+            for i in picks
+        ],
     )
     figure.update_layout(
         title="Resistive X-point: current density and magnetic flux", template="plotly_white",
