@@ -290,12 +290,14 @@ jobs:
           # Do not wrap serial examples in mpirun. In particular, GVEC launches
           # its own native solver with `prun`; nesting it under mpirun can leave
           # inherited PMIx state and intermittently abort before Python starts.
+          set -x
           if [ "$ranks" -eq 1 ]; then
             timeout 90m python "../../src/examples/${{ matrix.example }}.py"
           else
             timeout 90m mpirun --use-hwthread-cpus --oversubscribe --bind-to none -n "$ranks" \
               python "../../src/examples/${{ matrix.example }}.py"
           fi
+          set +x
           # Struphy calls MPI_Abort (with error code 0) when a rank runs out of marker slots, and mpirun
           # then exits with status 0. Without this check that would only show up as a missing figure later.
           if [ ! -f "${{ matrix.example }}.plotly.json" ]; then
