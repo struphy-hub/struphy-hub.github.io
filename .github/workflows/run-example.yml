@@ -78,6 +78,18 @@ jobs:
           # to the version this was actually developed and tested against.
           pip install --upgrade "scope-profiler[pproc]>=0.6.1" kaleido
 
+      - name: Rebuild GVEC for this runner's CPU
+        # The published gvec wheel is built with -march=native. GitHub-hosted
+        # runners can expose an older CPU than the wheel builder, which makes
+        # gvec.run terminate with SIGILL. Build from source here so its native
+        # instructions match the processor that will run the equilibrium.
+        if: inputs.example == 'gvec-equilibrium' && steps.cache-example.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
+          lscpu | grep -E 'Model name|Flags'
+          python -m pip install --no-binary=gvec --no-cache-dir --no-deps --force-reinstall 'gvec==1.5.0'
+
       # Compiled kernels depend only on struphy's own source, not on which example this
       # shard runs -- cache them under their own key (shared across all 10 shards) so that
       # when only an example script changes, the 1-2 min recompile happens once instead of
