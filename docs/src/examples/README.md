@@ -21,6 +21,16 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `incompressible-shear-relaxation.py` — incompressible SPH between no-slip walls: the pressure projection removes a compressive wave, and the shear mode decays at the exact viscous rate
 - `gvec-equilibrium.py` — runs GVEC to create a converged five-field-period stellarator, then follows Struphy guiding-center orbits in its curved geometry and magnetic field (requires the `phys` extra)
 - `strong-landau-damping.py`, `two-stream-instability.py`, `bump-on-tail.py`, `weibel-instability.py` — other Vlasov-Ampère/Maxwell instability benchmarks, all sharing the same field-energy-vs-time diagnostic pattern
+- `cold-plasma-oscillation.py` — a cold electron fluid rings at the plasma frequency: field and flow energy trade places as cos² and sin², and a scan over the density confirms omega = sqrt(n0)
+- `cold-plasma-wave-packet.py` — a Gaussian packet of circularly polarized field splits into a fast L-wave packet and a slow R-wave packet, whose speeds are compared with the analytic group velocities
+- `maxwell-cavity-resonances.py` — noise in E_z in a rectangular periodic box, whose power spectrum has one peak at each exact resonance of the box
+- `maxwell-curved-mesh.py` — a pulse of E_z on the distorted Colella mesh, against its exact Fourier-series solution, with the energy conservation
+- `poisson-convergence.py` — error of the Poisson potential against resolution at spline degrees 1 to 3, on a straight and a distorted mesh, with the measured slopes
+- `gyromotion.py` — four test particles in a uniform field on helices of different Larmor radii, against the exact orbits (Strang splitting; the default Lie-Trotter splitting is only first order in the position)
+- `langmuir-wave-dispersion.py` — oscillation frequency and Landau damping of Langmuir waves at four wavenumbers, against the root of the kinetic dispersion relation and the fluid Bohm-Gross estimate
+- `resistive-diffusion.py` — resistive decay of a sinusoidal magnetic field with its Ohmic heating, for three resistivities (`ViscoResistiveMHD`)
+- `damped-alfven-wave.py` — a standing Alfvén wave in resistive MHD, at the Alfvén frequency and damped at the rate eta k^2 / 2, for three resistivities
+- `acoustic-pulse.py` — a Gaussian density pulse in `VariationalCompressibleFluid` splitting into two pulses at the speed of sound, against d'Alembert's solution and with the energy exchange
 
 To build the assets of existing examples, use the CLI at the repository root (standard library only):
 
