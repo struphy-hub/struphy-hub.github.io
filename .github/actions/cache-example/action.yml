@@ -12,19 +12,42 @@ inputs:
     description: Optional distinguishing suffix, such as an MPI configuration
     required: false
     default: ''
+  restore-only:
+    description: Restore without registering a post-job cache save
+    required: false
+    default: 'false'
 outputs:
   cache-hit:
     description: Whether an exact generated-example cache was restored
-    value: ${{ steps.cache.outputs.cache-hit }}
+    value: ${{ steps.restore.outputs.cache-hit || steps.cache.outputs.cache-hit }}
 runs:
   using: composite
   steps:
+    - name: Resolve cache key
+      id: key
+      shell: bash
+      env:
+        CACHE_KEY: ${{ inputs.cache-prefix }}${{ inputs.cache-suffix }}-${{ inputs.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', inputs.example), 'docs/src/examples/_gallery.py', 'docs/src/examples/_profiling_exports.py', 'catalogue_docs.py', 'generate_examples.py', 'generate_example_domain.py', 'generate_domains.py', 'submodules/struphy/src/struphy/**/*.py') }}
+      run: echo "key=$CACHE_KEY" >> "$GITHUB_OUTPUT"
+
+    - name: Restore generated example
+      id: restore
+      if: inputs.restore-only == 'true'
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          docs/public/examples/${{ inputs.example }}*
+          docs/public/images/examples/${{ inputs.example }}*
+          docs/public/example-domains/${{ inputs.example }}*
+        key: ${{ steps.key.outputs.key }}
+
     - name: Cache generated example
       id: cache
+      if: inputs.restore-only != 'true'
       uses: actions/cache@v4
       with:
         path: |
           docs/public/examples/${{ inputs.example }}*
           docs/public/images/examples/${{ inputs.example }}*
           docs/public/example-domains/${{ inputs.example }}*
-        key: ${{ inputs.cache-prefix }}${{ inputs.cache-suffix }}-${{ inputs.example }}-${{ hashFiles(format('docs/src/examples/{0}.py', inputs.example), 'docs/src/examples/_gallery.py', 'docs/src/examples/_profiling_exports.py', 'catalogue_docs.py', 'generate_examples.py', 'generate_example_domain.py', 'generate_domains.py', 'submodules/struphy/src/struphy/**/*.py') }}
+        key: ${{ steps.key.outputs.key }}

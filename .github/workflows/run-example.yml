@@ -1,0 +1,243 @@
+name: Generate example
+
+on:
+  workflow_call:
+    inputs:
+      example:
+        description: Example script stem
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  # Use the hosted runner directly: cache hits never pull the Struphy image.
+  check-cache:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache-example.outputs.cache-hit }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Restore generated example
+        id: cache-example
+        uses: ./.github/actions/cache-example
+        with:
+          example: ${{ inputs.example }}
+          cache-prefix: struphy-example-serial-v1
+          restore-only: 'true'
+
+      - name: Verify cached example
+        if: steps.cache-example.outputs.cache-hit == 'true'
+        run: |
+          test -f "docs/public/examples/${{ inputs.example }}.plotly.json"
+          test -f "docs/public/examples/${{ inputs.example }}.html"
+
+      - name: Upload cached example
+        if: steps.cache-example.outputs.cache-hit == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-example-${{ inputs.example }}
+          path: |
+            docs/public/examples/${{ inputs.example }}*
+            docs/public/images/examples/${{ inputs.example }}*
+            docs/public/example-domains/${{ inputs.example }}*
+          if-no-files-found: error
+          retention-days: 1
+
+  # Only cache misses need the precompiled Struphy toolchain and simulation.
+  # Check the cache again here in case another run filled it while this job queued.
+  run-example:
+    needs: check-cache
+    if: needs.check-cache.outputs.cache-hit != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    container:
+      image: ghcr.io/struphy-hub/struphy/ubuntu-with-struphy:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Trust the checked-out worktree
+        # Actions containers run as root; git refuses to touch a worktree owned by another
+        # UID ("detected dubious ownership") unless told to trust it -- struphy's own
+        # editable install below shells out to git (setuptools-scm) and would hit this.
+        run: git config --global --add safe.directory '*'
+
+      # Each run is deterministic (fixed seeds), so cache on this example script's and
+      # Struphy's own source, and skip the expensive rebuild when neither changed. Every
+      # file an example writes is named after its script stem (the metadata JSON, the
+      # figures, their thumbnails); no example's stem is a prefix of another's, and the
+      # glob also covers two-stream-instability's extra "-phasespace" pair.
+      - name: Cache generated example
+        id: cache-example
+        uses: ./.github/actions/cache-example
+        with:
+          example: ${{ inputs.example }}
+          cache-prefix: struphy-example-serial-v1
+
+      - name: Install Struphy from this repo's pinned submodule commit
+        # Same approach as struphy's own CI
+        # (submodules/struphy/.github/actions/install/struphy_in_container/action.yml):
+        # the image bakes in whatever struphy commit was HEAD when it was last built, so
+        # move /struphy_fortran_'s own checkout to the exact commit our submodule pins
+        # (rather than reinstalling editable from a second copy of the source) and
+        # reinstall there, reusing the image's already-installed venv and already-built
+        # gvec/desc-opt.
+        #
+        # scope-profiler[pproc] and kaleido aren't pulled in by the phys/mpi extras (only by
+        # struphy's own dev/doc extras) but the example scripts need both: scope-profiler's
+        # pproc submodule for the durations/gantt/flame plot-data export, kaleido for
+        # figure.write_image(...)'s static PNG export.
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          STRUPHY_SHA=$(git -C submodules/struphy rev-parse HEAD)
+          cd /struphy_fortran_
+          git fetch origin --tags
+          git checkout "$STRUPHY_SHA"
+          source env_fortran_/bin/activate
+          pip install -U --upgrade-strategy eager -e ".[phys,mpi]"
+          # Struphy pins scope-profiler <=0.5.0 as a hard dependency, but the example
+          # scripts use plot_durations(metrics=(...)), a plural-metrics API that only
+          # exists from 0.6.1 onward -- --upgrade forces past struphy's conservative pin
+          # to the version this was actually developed and tested against.
+          pip install --upgrade "scope-profiler[pproc]>=0.6.1" kaleido
+
+      # Compiled kernels depend only on struphy's own source, not on which example this
+      # shard runs -- cache them under their own key (shared across all 10 shards) so that
+      # when only an example script changes, the 1-2 min recompile happens once instead of
+      # once per shard. Keyed independently of cache-example above; checked out to the
+      # right commit by the (fast, still-unconditional) install step regardless of hit/miss.
+      - name: Cache compiled Struphy kernels
+        id: cache-kernels
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /struphy_fortran_/src/struphy/**/__pyccel__
+            /struphy_fortran_/src/struphy/**/*.so
+          key: struphy-kernels-${{ hashFiles('submodules/struphy/src/struphy/**/*.py') }}
+
+      # Chrome doesn't depend on the struphy commit or example scripts, so cache it under
+      # its own static key instead of the cache-example key above -- otherwise every
+      # cache-miss shard redundantly re-downloads ~150-200MB from Google plus its apt
+      # dependencies for no reason.
+      - name: Cache Chrome
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt/archives/*.deb
+            /tmp/chrome.deb
+          key: chrome-for-kaleido-v1
+
+      - name: Install Chrome for kaleido
+        # kaleido>=1.0 drives Chrome via choreographer instead of bundling a binary, and
+        # doesn't auto-download it -- without this, figure.write_image(...) fails with
+        # ChromeNotFoundError on a bare container that has no browser installed.
+        #
+        # Deliberately *not* `kaleido_get_chrome`: it downloads a standalone Chrome build
+        # with no shared libraries installed, which crashes on startup on a bare Ubuntu
+        # image ("browser closed immediately after starting") -- and choreographer always
+        # prefers that self-managed download over a system browser, so it has to not exist
+        # in the first place. Installing Google Chrome via apt instead lets apt resolve the
+        # actual runtime dependencies (libnss3, libatk-bridge, libgbm, ...) correctly for
+        # whatever Ubuntu version this image uses.
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          apt-get update
+          if [ ! -f /tmp/chrome.deb ]; then
+            apt-get install -y wget
+            wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          fi
+          apt-get install -y /tmp/chrome.deb
+
+      - name: Compile Struphy kernels
+        if: steps.cache-example.outputs.cache-hit != 'true' && steps.cache-kernels.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
+          struphy compile -y --language fortran
+
+      - name: Generate example metadata
+        # Cheap (imports the script's module-level Simulation(...) without running it) and
+        # runs for every script regardless of which example this shard is -- harmless, and
+        # this shard's own cache above only retains its own example's metadata JSON anyway.
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
+          python generate_examples.py
+
+      - name: Run example
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        working-directory: docs/public/examples
+        shell: bash
+        run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
+          export OMP_NUM_THREADS=1
+          # Stream Python output to the job log as it is produced.
+          export PYTHONUNBUFFERED=1
+          set -x
+          timeout 90m python "../../src/examples/${{ inputs.example }}.py"
+          set +x
+          if [ ! -f "${{ inputs.example }}.plotly.json" ]; then
+            echo "::error::${{ inputs.example }}: the run did not write the Plotly figure."
+            exit 1
+          fi
+          if [ ! -f "${{ inputs.example }}.html" ]; then
+            echo "::error::${{ inputs.example }}: the run did not write the standalone HTML figure."
+            exit 1
+          fi
+
+      - name: Copy example thumbnails
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        run: |
+          for f in docs/public/examples/${{ inputs.example }}*.png; do
+            if [ -e "$f" ]; then
+              cp "$f" docs/public/images/examples/
+            fi
+          done
+
+      - name: Export the domain used by this example
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          source /struphy_fortran_/env_fortran_/bin/activate
+          python generate_example_domain.py "${{ inputs.example }}" \
+            --metadata-root docs/public/examples/struphy_gallery_runs \
+            --output-dir docs/public/example-domains
+
+      - name: Clean up simulation scratch output
+        if: steps.cache-example.outputs.cache-hit != 'true'
+        run: rm -rf docs/public/examples/struphy_gallery_runs docs/public/examples/struphy.log
+
+      - name: Verify generated example
+        run: |
+          test -f "docs/public/examples/${{ inputs.example }}.plotly.json"
+          test -f "docs/public/examples/${{ inputs.example }}.html"
+
+      - name: Upload generated example
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-example-${{ inputs.example }}
+          path: |
+            docs/public/examples/${{ inputs.example }}*
+            docs/public/images/examples/${{ inputs.example }}*
+            docs/public/example-domains/${{ inputs.example }}*
+          retention-days: 1
+
