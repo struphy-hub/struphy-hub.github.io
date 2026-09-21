@@ -55,6 +55,7 @@ def main() -> int:
         nodes=1,
         ntasks=1,
         cpus_per_task=1,
+        time="00:30:00",
         chdir=str(workspace),
         output=str(stdout),
         error=str(stderr),
