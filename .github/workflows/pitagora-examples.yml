@@ -2,7 +2,11 @@ name: Pitagora Examples
 
 on:
   workflow_call:
-  workflow_dispatch:
+    inputs:
+      examples:
+        description: JSON array of Pitagora cache misses
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -13,47 +17,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  list-examples:
-    runs-on: ubuntu-latest
-    outputs:
-      examples: ${{ steps.list.outputs.examples }}
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: List Pitagora examples
-        id: list
-        run: echo "examples=$(python scripts/pitagora_examples.py --json)" >> "$GITHUB_OUTPUT"
-
   run-examples:
-    needs: list-examples
+    if: inputs.examples != '[]'
     runs-on: [self-hosted, pitagora]
     timeout-minutes: 120
-    strategy:
-      fail-fast: false
-      # The selected examples share Pitagora's persistent virtual environment.
-      max-parallel: 1
-      matrix:
-        example: ${{ fromJson(needs.list-examples.outputs.examples) }}
     env:
       OMP_NUM_THREADS: 1
       SLURM_ACCOUNT: FUSIO_HLST_7
       SLURM_PARTITION: dcgp_fua_dbg
+      EXAMPLES: ${{ inputs.examples }}
     steps:
       - name: Check out repository and Struphy
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Cache generated example
-        id: cache-example
-        uses: ./.github/actions/cache-example
-        with:
-          example: ${{ matrix.example }}
-          cache-prefix: pitagora-example-v1
+      - name: Install cache client
+        run: npm install --prefix "$RUNNER_TEMP/example-cache" --no-audit --no-fund --ignore-scripts @actions/cache@4.0.5
 
       - name: Install Struphy and run example
-        if: steps.cache-example.outputs.cache-hit != 'true'
         # A login shell initializes the cluster's module command. Keep setup and
         # execution together so module and virtual-environment settings persist.
         shell: bash -l -e -o pipefail {0}
@@ -83,22 +65,40 @@ jobs:
           # struphy compile -y --language fortran
           # The Python API generates a self-contained serial batch script,
           # submits it, waits for its exact job ID, verifies its final Slurm
-          # state, and prints its batch logs.
-          python .github/scripts/run-pitagora-example.py "${{ matrix.example }}" \
-            --account="$SLURM_ACCOUNT" \
-            --partition="$SLURM_PARTITION"
+          # state, and prints its batch logs. Submit exactly one job at a time
+          # because the runner shares one persistent virtual environment.
+          while IFS= read -r example; do
+            python .github/scripts/run-pitagora-example.py "$example" \
+              --account="$SLURM_ACCOUNT" \
+              --partition="$SLURM_PARTITION"
+          done < <(python -c 'import json, os; print(*json.loads(os.environ["EXAMPLES"]), sep="\n")')
 
-      - name: Verify generated example
+      - name: Verify generated examples
         run: |
-          test -f "docs/public/examples/${{ matrix.example }}.plotly.json"
-          test -f "docs/public/examples/${{ matrix.example }}.html"
+          while IFS= read -r example; do
+            test -f "docs/public/examples/$example.plotly.json"
+            test -f "docs/public/examples/$example.html"
+          done < <(python -c 'import json, os; print(*json.loads(os.environ["EXAMPLES"]), sep="\n")')
+
+      - name: Save generated examples in cache
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const path = require('node:path');
+            const cache = require(path.join(process.env.RUNNER_TEMP, 'example-cache/node_modules/@actions/cache'));
+            const { exampleCache } = require('./.github/scripts/example-cache.cjs');
+            for (const example of JSON.parse(process.env.EXAMPLES)) {
+              const { key, paths } = await exampleCache(example, 'pitagora-example-v1', '', glob);
+              await cache.saveCache(paths, key);
+              core.info(`Saved ${example} as ${key}`);
+            }
 
       - name: Upload example results
         uses: actions/upload-artifact@v4
         with:
-          name: pitagora-${{ matrix.example }}
+          name: pitagora-examples
           path: |
-            docs/public/examples/${{ matrix.example }}*
-            docs/public/images/examples/${{ matrix.example }}*
-            docs/public/example-domains/${{ matrix.example }}*
+            docs/public/examples/*
+            docs/public/images/examples/*
+            docs/public/example-domains/*
           if-no-files-found: error
