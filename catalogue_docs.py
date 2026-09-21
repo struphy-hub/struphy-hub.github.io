@@ -107,5 +107,8 @@ def equation_html(markdown: str) -> tuple[str, list[dict]]:
     stripped = re.sub(r":math:`([^`]+)`", save_inline, stripped)
     bold = re.compile(r"\*\*(.+?)\*\*")
     paragraphs = [p.strip() for p in stripped.split("\n\n") if p.strip()]
-    html = "".join(f"<p>{bold.sub(r'<strong>\1</strong>', p)}</p>" for p in paragraphs)
+    # Keep the replacement string outside the f-string expression: Python 3.11
+    # rejects backslashes in f-string expressions (3.12 relaxed that grammar).
+    rendered_paragraphs = [bold.sub(r"<strong>\1</strong>", p) for p in paragraphs]
+    html = "".join(f"<p>{paragraph}</p>" for paragraph in rendered_paragraphs)
     return html, math_items
