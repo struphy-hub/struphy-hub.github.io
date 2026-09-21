@@ -124,6 +124,7 @@ jobs:
 
   # Only cache misses start a Struphy container.
   run-example:
+    name: ${{ matrix.example }}
     needs: list-examples
     if: needs.list-examples.outputs.examples != '[]'
     strategy:

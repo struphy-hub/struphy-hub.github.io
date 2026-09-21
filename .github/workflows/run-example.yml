@@ -15,6 +15,7 @@ jobs:
   # The caller schedules only cache misses. Recheck in case another run filled
   # the cache while this job was queued.
   run-example:
+    name: ${{ inputs.example }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     container:
@@ -201,4 +202,3 @@ jobs:
             docs/public/images/examples/${{ inputs.example }}*
             docs/public/example-domains/${{ inputs.example }}*
           retention-days: 1
-
