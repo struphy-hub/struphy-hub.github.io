@@ -50,7 +50,7 @@ jobs:
           source /pitagora_scratch/userexternal/mlindqvi/github_runner_builds/.venv/bin/activate
 
           git -C submodules/struphy rev-parse HEAD
-          python -m pip install -e './submodules/struphy[phys,mpi]'
+          python -m pip install './submodules/struphy[phys,mpi]'
           python -m pip install 'scope-profiler[pproc]>=0.6.1,<=0.7.0' kaleido
           # Install Chrome into Kaleido's user-accessible location for PNG export.
           kaleido_get_chrome
