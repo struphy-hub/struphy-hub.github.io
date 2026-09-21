@@ -1,3 +1,4 @@
 # One runnable gallery example stem per line. This file is the source of truth
-# for the self-hosted Pitagora matrix and its final artifact verification.
+# for the self-hosted Pitagora workflow and its final artifact verification.
 poisson-source
+orszag-tang-vortex

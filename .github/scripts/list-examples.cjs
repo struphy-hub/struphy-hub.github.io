@@ -1,9 +1,10 @@
 const fs = require('node:fs/promises');
 const { exampleCache } = require('./example-cache.cjs');
 
-module.exports = async function listExamples({ cache, glob, core }) {
+module.exports = async function listExamples({ cache, glob, core, exclude = ['poisson-source'] }) {
+  const excluded = new Set(exclude);
   const examples = (await fs.readdir('docs/src/examples'))
-    .filter(name => name.endsWith('.py') && !name.startsWith('_') && name !== 'poisson-source.py')
+    .filter(name => name.endsWith('.py') && !name.startsWith('_') && !excluded.has(name.slice(0, -3)))
     .map(name => name.slice(0, -3)).sort();
   const misses = [];
   const cachedPaths = [];
@@ -24,4 +25,5 @@ module.exports = async function listExamples({ cache, glob, core }) {
   core.setOutput('examples', JSON.stringify(misses));
   core.setOutput('cached-paths', cachedPaths.join('\n'));
   core.info(`${examples.length - misses.length} cached; ${misses.length} examples to run`);
+  return { misses, cachedPaths };
 };
