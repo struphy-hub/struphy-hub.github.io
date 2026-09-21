@@ -61,6 +61,7 @@ jobs:
           python -m pip install 'scope-profiler[pproc]>=0.6.1,<=0.7.0' kaleido
           # Install Chrome into Kaleido's user-accessible location for PNG export.
           kaleido_get_chrome
+          struphy compile --status
           struphy compile -y --language fortran
           python cli.py run "$EXAMPLE"
 
