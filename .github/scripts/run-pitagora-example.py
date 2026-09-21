@@ -24,7 +24,7 @@ MODULES = [
 # Orszag--Tang writes 401 field snapshots and post-processing loads them all
 # before evaluating the output grid. It exceeds the debug partition's default
 # memory allocation; the small gallery examples do not need this request.
-MEMORY_BY_EXAMPLE = {"orszag-tang-vortex": "16G"}
+MEMORY_BY_EXAMPLE = {"orszag-tang-vortex": "64GB"}
 MPI_RANKS_BY_EXAMPLE = {"orszag-tang-vortex": 4}
 
 
