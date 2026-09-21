@@ -89,29 +89,30 @@ if __name__ == "__main__":
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")
 
     # Resample the values on the distorted mesh onto a regular grid, for the heatmap.
-    x_plot, y_plot = np.linspace(0, lx, 120), np.linspace(0, ly, 180)
+    x_plot, y_plot = np.linspace(0, lx, 64), np.linspace(0, ly, 96)
     xx, yy = np.meshgrid(x_plot, y_plot)
     points = np.column_stack([mesh_x.ravel(), mesh_y.ravel()])
 
     def resample(values):
-        return griddata(points, values.ravel(), (xx, yy), method="linear")
+        # Rounded, to keep the frames of the page small.
+        return np.round(griddata(points, values.ravel(), (xx, yy), method="linear") / scale, 3)
 
-    picks = np.unique(np.linspace(0, len(times) - 1, 60, dtype=int))
+    picks = np.unique(np.linspace(0, len(times) - 1, 45, dtype=int))
     mesh_lines = [
-        go.Scatter(x=mesh_x[i, :], y=mesh_y[i, :], mode="lines", line={"color": "rgba(255,255,255,0.5)", "width": 0.6},
+        go.Scatter(x=mesh_x[i, :], y=mesh_y[i, :], mode="lines", line={"color": "rgba(0,0,0,0.35)", "width": 0.7},
                    showlegend=False, hoverinfo="skip")
         for i in range(0, mesh_x.shape[0], 3)
     ] + [
-        go.Scatter(x=mesh_x[:, j], y=mesh_y[:, j], mode="lines", line={"color": "rgba(255,255,255,0.5)", "width": 0.6},
+        go.Scatter(x=mesh_x[:, j], y=mesh_y[:, j], mode="lines", line={"color": "rgba(0,0,0,0.35)", "width": 0.7},
                    showlegend=False, hoverinfo="skip")
         for j in range(0, mesh_x.shape[1], 3)
     ]
     frames_numeric = {i: resample(numeric[i]) for i in picks}
     figure = go.Figure(
-        data=[go.Heatmap(z=frames_numeric[picks[0]], x=x_plot, y=y_plot, colorscale="RdBu", zmid=0.0, zmin=-scale, zmax=scale,
-                         colorbar={"title": "E_z"})] + mesh_lines,
+        data=[go.Heatmap(z=frames_numeric[picks[0]], x=x_plot, y=y_plot, colorscale="RdBu", zmid=0.0, zmin=-0.5, zmax=0.5,
+                         colorbar={"title": "E_z / initial peak"})] + mesh_lines,
         frames=[go.Frame(name=f"{times[i]:.2f}", data=[go.Heatmap(z=frames_numeric[i], x=x_plot, y=y_plot, colorscale="RdBu",
-                                                                 zmid=0.0, zmin=-scale, zmax=scale)], traces=[0])
+                                                                 zmid=0.0, zmin=-0.5, zmax=0.5)], traces=[0])
                 for i in picks],
     )
     figure.update_layout(
@@ -124,7 +125,7 @@ if __name__ == "__main__":
     )
     figure.update_xaxes(range=[0, lx], constrain="domain")
     figure.update_yaxes(range=[0, ly], scaleanchor="x")
-    save_figure(figure, "maxwell-curved-mesh", width=750, height=1000, static_z=resample(numeric[len(times) // 3]))
+    save_figure(figure, "maxwell-curved-mesh", width=750, height=1000, static_z=resample(numeric[len(times) // 5]))
 
     diagnostics = make_subplots(rows=2, cols=1, vertical_spacing=0.18,
                                 subplot_titles=("Error of E_z against the exact solution", "Total energy"))
