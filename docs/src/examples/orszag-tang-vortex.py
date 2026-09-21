@@ -57,7 +57,9 @@ if __name__ == "__main__":
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.run(profiling_activated=True)
-    output.pproc(physical=True, celldivide=2)
+    # The Slurm gallery job runs this example on four MPI ranks. Parallel
+    # post-processing distributes the 401 saved snapshots across those ranks.
+    output.pproc(parallel=True, physical=True, celldivide=2)
     if not all(bool(np.isfinite(value).all()) for value in output.scalars.values()):
         raise RuntimeError("Non-finite MHD diagnostics: refusing to publish the run")
     b = output.evaluate("em_fields/b_field_xyz").isel(e3=0)

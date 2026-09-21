@@ -21,6 +21,12 @@ MODULES = [
     "netlib-scalapack/2.2.0--openmpi--4.1.6--gcc--12.3.0-ucx1.20",
 ]
 
+# Orszag--Tang writes 401 field snapshots and post-processing loads them all
+# before evaluating the output grid. It exceeds the debug partition's default
+# memory allocation; the small gallery examples do not need this request.
+MEMORY_BY_EXAMPLE = {"orszag-tang-vortex": "16G"}
+MPI_RANKS_BY_EXAMPLE = {"orszag-tang-vortex": 4}
+
 
 def tail_log(path: Path, lines: int = 200) -> None:
     """Print a bounded batch log in a collapsible GitHub Actions group."""
@@ -47,25 +53,35 @@ def main() -> int:
     script_path = runner_temp / f"{job_name}.sbatch"
     stdout = workspace / f"slurm-{job_name}-%j.out"
     stderr = workspace / f"slurm-{job_name}-%j.err"
+    mpi_ranks = MPI_RANKS_BY_EXAMPLE.get(args.example, 1)
+    commands = [
+        "set -euo pipefail",
+        f"source {shlex.quote(str(virtual_env / 'bin' / 'activate'))}",
+    ]
+    if mpi_ranks == 1:
+        # A one-task Slurm allocation is not an MPI launch.
+        commands.append("export STRUPHY_MPI=0")
+    else:
+        # mpi4py must see the Open MPI environment that `cli.py --mpi` creates.
+        commands.append("unset STRUPHY_MPI")
+    commands.append(
+        f"python cli.py run {shlex.quote(args.example)} --mpi {mpi_ranks}"
+    )
 
     script = SlurmScript(
         job_name=job_name,
         account=args.account,
         partition=args.partition,
         nodes=1,
-        ntasks=1,
+        ntasks=mpi_ranks,
         cpus_per_task=1,
         time="00:30:00",
+        mem=MEMORY_BY_EXAMPLE.get(args.example),
         chdir=str(workspace),
         output=str(stdout),
         error=str(stderr),
         modules=MODULES,
-        custom_commands=[
-            "set -euo pipefail",
-            f"source {shlex.quote(str(virtual_env / 'bin' / 'activate'))}",
-            "export STRUPHY_MPI=0",
-            f"python cli.py run {shlex.quote(args.example)}",
-        ],
+        custom_commands=commands,
     )
     job_id = script.submit_job(path=str(script_path), verbose=True)
     print(f"Submitted {job_name} as Slurm job {job_id}")
