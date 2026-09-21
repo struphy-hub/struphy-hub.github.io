@@ -27,7 +27,18 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Cache generated example
+        id: cache-example
+        uses: actions/cache@v4
+        with:
+          path: |
+            docs/public/examples/${{ env.EXAMPLE }}*
+            docs/public/images/examples/${{ env.EXAMPLE }}*
+            docs/public/example-domains/${{ env.EXAMPLE }}*
+          key: pitagora-example-v1-${{ env.EXAMPLE }}-${{ hashFiles(format('docs/src/examples/{0}.py', env.EXAMPLE), 'docs/src/examples/_gallery.py', 'docs/src/examples/_profiling_exports.py', 'submodules/struphy/src/struphy/**/*.py') }}
+
       - name: Install Struphy and run example
+        if: steps.cache-example.outputs.cache-hit != 'true'
         # A login shell initializes the cluster's module command. Keep setup and
         # execution together so module and virtual-environment settings persist.
         shell: bash -l -e -o pipefail {0}
@@ -55,6 +66,11 @@ jobs:
           kaleido_get_chrome
           struphy compile -y --language fortran
           python cli.py run "$EXAMPLE"
+
+      - name: Verify generated example
+        run: |
+          test -f "docs/public/examples/${{ env.EXAMPLE }}.plotly.json"
+          test -f "docs/public/examples/${{ env.EXAMPLE }}.html"
 
       - name: Upload example results
         uses: actions/upload-artifact@v4
