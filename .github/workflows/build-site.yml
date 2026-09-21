@@ -383,7 +383,7 @@ jobs:
           path: docs/public
           merge-multiple: true
 
-      - name: Verify Pitagora examples
+      - name: Verify and list Pitagora examples
         run: python scripts/pitagora_examples.py --verify-output
 
       - name: Verify generated examples
