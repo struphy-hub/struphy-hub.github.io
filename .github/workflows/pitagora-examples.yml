@@ -1,9 +1,7 @@
 name: Pitagora Examples
 
 on:
-  pull_request:
-    branches:
-      - main
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -62,5 +60,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pitagora-${{ env.EXAMPLE }}
-          path: docs/public/examples/${{ env.EXAMPLE }}*
+          path: |
+            docs/public/examples/${{ env.EXAMPLE }}*
+            docs/public/images/examples/${{ env.EXAMPLE }}*
+            docs/public/example-domains/${{ env.EXAMPLE }}*
           if-no-files-found: error

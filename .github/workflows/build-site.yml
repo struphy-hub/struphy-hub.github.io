@@ -29,8 +29,15 @@ jobs:
         run: |
           # Files prefixed with an underscore are shared helper modules, not runnable
           # examples (for example, _profiling_exports.py). Keep them out of the matrix.
-          examples=$(cd docs/src/examples && find . -maxdepth 1 -type f -name '*.py' ! -name '_*.py' -printf '%f\n' | sed 's/\.py$//' | jq -R -s -c 'split("\n")[:-1]')
+          examples=$(cd docs/src/examples && find . -maxdepth 1 -type f -name '*.py' ! -name '_*.py' ! -name 'poisson-source.py' -printf '%f\n' | sed 's/\.py$//' | jq -R -s -c 'split("\n")[:-1]')
           echo "examples=$examples" >> "$GITHUB_OUTPUT"
+
+  # Poisson is a small special-case smoke test that runs on the Pitagora runner.
+  # Its artifact is produced in this same workflow run and consumed by build below.
+  pitagora-example:
+    uses: ./.github/workflows/pitagora-examples.yml
+    permissions:
+      contents: read
 
   # A fast test of the site itself, before the examples are run. The Astro build needs the metadata of
   # every example but none of their results, and `generate_examples.py` writes that metadata by importing
@@ -333,7 +340,7 @@ jobs:
           retention-days: 1
 
   build:
-    needs: [check-site, run-example]
+    needs: [check-site, pitagora-example, run-example]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -370,6 +377,12 @@ jobs:
           pattern: generated-example-*
           path: docs/public
           merge-multiple: true
+
+      - name: Download Pitagora examples
+        uses: actions/download-artifact@v4
+        with:
+          name: pitagora-poisson-source
+          path: docs/public
 
       - name: Verify generated examples
         run: |
