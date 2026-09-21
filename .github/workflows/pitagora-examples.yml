@@ -7,13 +7,59 @@ on:
       - main
   workflow_dispatch:
 
-permissions: {}
+permissions:
+  contents: read
+
+# All branches share the same virtual environment on Pitagora.
+concurrency:
+  group: pitagora-examples
+  cancel-in-progress: false
 
 jobs:
   run-examples:
     runs-on: [self-hosted, pitagora]
+    timeout-minutes: 120
+    env:
+      EXAMPLE: orszag-tang-vortex
+      OMP_NUM_THREADS: 1
     steps:
-      - name: Say hello and print hostname
+      - name: Check out repository and Struphy
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Struphy and run example
+        # A login shell initializes the cluster's module command. Keep setup and
+        # execution together so module and virtual-environment settings persist.
+        shell: bash -l -e -o pipefail {0}
         run: |
-          echo "hello"
           hostname
+          module load \
+            gcc/12.3.0 \
+            python/3.11.7 \
+            hdf5/1.14.3--gcc--12.3.0 \
+            cmake/3.27.9 \
+            netcdf-fortran/4.6.1--gcc--12.3.0 \
+            netlib-scalapack/2.2.0--openmpi--4.1.6--gcc--12.3.0-ucx1.20
+
+          # GVEC currently needs explicit compiler paths for this GCC stack.
+          # Revisit these selections when adding an Intel module stack.
+          export FC="$(command -v gfortran)"
+          export CC="$(command -v gcc)"
+          export CXX="$(command -v g++)"
+          source /pitagora_scratch/userexternal/mlindqvi/github_runner_builds/.venv/bin/activate
+
+          git -C submodules/struphy rev-parse HEAD
+          python -m pip install -e './submodules/struphy[phys,mpi]'
+          python -m pip install 'scope-profiler[pproc]>=0.6.1,<=0.7.0' kaleido
+          # Install Chrome into Kaleido's user-accessible location for PNG export.
+          kaleido_get_chrome
+          struphy compile -y --language fortran
+          python cli.py run "$EXAMPLE"
+
+      - name: Upload example results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pitagora-${{ env.EXAMPLE }}
+          path: docs/public/examples/${{ env.EXAMPLE }}*
+          if-no-files-found: error
