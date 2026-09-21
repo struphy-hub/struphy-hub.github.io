@@ -121,9 +121,10 @@ makes that example's figures.
 
 ### Running on several MPI ranks
 
-CI runs every example with `mpirun -n 4` (see `run-example` in `.github/workflows/build-site.yml`), so
-a script can afford a finer grid, more markers or more time steps than one process would allow.
-Locally: `python cli.py run <example> --mpi 4`, or `mpirun -n 4 python ../../src/examples/<script-stem>.py`.
+GitHub-hosted runners execute each example directly with Python in a single process
+(see `run-example` in `.github/workflows/build-site.yml`).
+For optional local MPI runs: `python cli.py run <example> --mpi 4`, or
+`mpirun -n 4 python ../../src/examples/<script-stem>.py`.
 
 - The simulation, `output.pproc(...)` and the analysis run on every rank; the `_gallery.py` helpers
   (`save_figure`, `save_extra_figure`, `merge_metadata`, `export_profiling`) write on rank 0 only. Write
@@ -131,8 +132,8 @@ Locally: `python cli.py run <example> --mpi 4`, or `mpirun -n 4 python ../../src
 - The grid must split over the ranks: with four ranks, keep at least a few cells per rank and direction
   (Orszag–Tang uses 32 × 32 × 1, i.e. 16 × 16 cells per rank).
 - Particle results depend on the rank count (each rank draws its own markers), so measured rates move a little.
-- Saved orbits of tracked markers (`SavingParameters(n_markers=...)`) are empty after the first time step on several ranks, so `guiding-center-orbits` runs on one rank in CI.
-- The SPH examples (`beltrami-sph`, `dam-break`, `gas-expansion`, `zeldovich-caustic`, `incompressible-shear-relaxation`) hang under MPI in Struphy, so CI runs them on one rank.
+- Saved orbits of tracked markers (`SavingParameters(n_markers=...)`) are empty after the first time step on several ranks, so run `guiding-center-orbits` on one rank.
+- The SPH examples (`beltrami-sph`, `dam-break`, `gas-expansion`, `zeldovich-caustic`, `incompressible-shear-relaxation`) hang under MPI in Struphy, so run them on one rank.
 
 ## 4. Add the download route: `docs/src/pages/examples/<script-stem>.py.ts`
 

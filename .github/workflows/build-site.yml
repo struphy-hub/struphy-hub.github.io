@@ -12,10 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  # docs/src/examples/*.py are full Struphy simulations (see docs/src/examples/README.md),
-  # each run independently as its own matrix job below (they don't share state), so this
-  # just discovers the current list for that matrix -- no workflow edit needed to pick up
-  # a newly added example.
+  # Restore cached outputs once and schedule simulation jobs only for misses.
   list-examples:
     runs-on: ubuntu-latest
     outputs:
@@ -23,14 +20,30 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
-      - name: List example scripts
+      - name: Install cache client
+        run: npm install --prefix "$RUNNER_TEMP/example-cache" --no-audit --no-fund --ignore-scripts @actions/cache@4.0.5
+
+      - name: Restore cached examples and list misses
         id: list
-        run: |
-          # Files prefixed with an underscore are shared helper modules, not runnable
-          # examples (for example, _profiling_exports.py). Keep them out of the matrix.
-          examples=$(cd docs/src/examples && find . -maxdepth 1 -type f -name '*.py' ! -name '_*.py' ! -name 'poisson-source.py' -printf '%f\n' | sed 's/\.py$//' | jq -R -s -c 'split("\n")[:-1]')
-          echo "examples=$examples" >> "$GITHUB_OUTPUT"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const path = require('node:path');
+            const cache = require(path.join(process.env.RUNNER_TEMP, 'example-cache/node_modules/@actions/cache'));
+            const listExamples = require('./.github/scripts/list-examples.cjs');
+            await listExamples({ cache, glob, core });
+
+      - name: Upload cached examples
+        if: steps.list.outputs.cached-paths != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-example-cached
+          path: ${{ steps.list.outputs.cached-paths }}
+          if-no-files-found: error
+          retention-days: 1
 
   # Poisson is a small special-case smoke test that runs on the Pitagora runner.
   # Its artifact is produced in this same workflow run and consumed by build below.
@@ -109,236 +122,29 @@ jobs:
         working-directory: docs
         run: npm run build
 
-  # Their outputs are gitignored (see .gitignore), so every deploy regenerates them here
-  # instead of pushing multi-MB Plotly JSON/HDF5 files to the repo. Runs in struphy's own
-  # precompiled image (see submodules/struphy/docker/ubuntu-latest-with-struphy.dockerfile
-  # and .github/workflows/ghcr.yml in that repo) so we skip installing the system toolchain
-  # (gfortran, MPI, BLAS/LAPACK, netCDF, ...) needed to build gvec/desc-opt from source.
-  # struphy-hub.github.io has been granted read access to that (otherwise private) package,
-  # so the default GITHUB_TOKEN is enough to pull it -- no extra secret needed.
-  #
-  # One job per example (rather than one job looping over all of them) so a ~20 minute
-  # sequential run becomes ~however long the single slowest example takes, in parallel.
-  # Each shard redundantly reinstalls/recompiles Struphy (~1-2 min) since there's no cheap
-  # way to share compiled kernels across separate container instances -- worth it since
-  # that's small next to the simulation run times this is meant to parallelize away.
+  # Only cache misses start a Struphy container.
   run-example:
+    name: ${{ matrix.example }}
     needs: list-examples
+    if: needs.list-examples.outputs.examples != '[]'
     strategy:
       fail-fast: false
       matrix:
         example: ${{ fromJson(needs.list-examples.outputs.examples) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    env:
-      MPI_RANKS: 4
-    container:
-      image: ghcr.io/struphy-hub/struphy/ubuntu-with-struphy:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+    uses: ./.github/workflows/run-example.yml
+    with:
+      example: ${{ matrix.example }}
     permissions:
       contents: read
       packages: read
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Trust the checked-out worktree
-        # Actions containers run as root; git refuses to touch a worktree owned by another
-        # UID ("detected dubious ownership") unless told to trust it -- struphy's own
-        # editable install below shells out to git (setuptools-scm) and would hit this.
-        run: git config --global --add safe.directory '*'
-
-      # Each run is deterministic (fixed seeds), so cache on this example script's and
-      # Struphy's own source, and skip the expensive rebuild when neither changed. Every
-      # file an example writes is named after its script stem (the metadata JSON, the
-      # figures, their thumbnails); no example's stem is a prefix of another's, and the
-      # glob also covers two-stream-instability's extra "-phasespace" pair.
-      - name: Cache generated example
-        id: cache-example
-        uses: ./.github/actions/cache-example
-        with:
-          example: ${{ matrix.example }}
-          cache-prefix: struphy-example-domain-v1
-          cache-suffix: -mpi${{ env.MPI_RANKS }}
-
-      - name: Install Struphy from this repo's pinned submodule commit
-        # Same approach as struphy's own CI
-        # (submodules/struphy/.github/actions/install/struphy_in_container/action.yml):
-        # the image bakes in whatever struphy commit was HEAD when it was last built, so
-        # move /struphy_fortran_'s own checkout to the exact commit our submodule pins
-        # (rather than reinstalling editable from a second copy of the source) and
-        # reinstall there, reusing the image's already-installed venv and already-built
-        # gvec/desc-opt.
-        #
-        # scope-profiler[pproc] and kaleido aren't pulled in by the phys/mpi extras (only by
-        # struphy's own dev/doc extras) but the example scripts need both: scope-profiler's
-        # pproc submodule for the durations/gantt/flame plot-data export, kaleido for
-        # figure.write_image(...)'s static PNG export.
-        if: steps.cache-example.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          STRUPHY_SHA=$(git -C submodules/struphy rev-parse HEAD)
-          cd /struphy_fortran_
-          git fetch origin --tags
-          git checkout "$STRUPHY_SHA"
-          source env_fortran_/bin/activate
-          pip install -U --upgrade-strategy eager -e ".[phys,mpi]"
-          # Struphy pins scope-profiler <=0.5.0 as a hard dependency, but the example
-          # scripts use plot_durations(metrics=(...)), a plural-metrics API that only
-          # exists from 0.6.1 onward -- --upgrade forces past struphy's conservative pin
-          # to the version this was actually developed and tested against.
-          pip install --upgrade "scope-profiler[pproc]>=0.6.1" kaleido
-
-      # Compiled kernels depend only on struphy's own source, not on which example this
-      # shard runs -- cache them under their own key (shared across all 10 shards) so that
-      # when only an example script changes, the 1-2 min recompile happens once instead of
-      # once per shard. Keyed independently of cache-example above; checked out to the
-      # right commit by the (fast, still-unconditional) install step regardless of hit/miss.
-      - name: Cache compiled Struphy kernels
-        id: cache-kernels
-        if: steps.cache-example.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
-        with:
-          path: |
-            /struphy_fortran_/src/struphy/**/__pyccel__
-            /struphy_fortran_/src/struphy/**/*.so
-          key: struphy-kernels-${{ hashFiles('submodules/struphy/src/struphy/**/*.py') }}
-
-      # Chrome doesn't depend on the struphy commit or example scripts, so cache it under
-      # its own static key instead of the cache-example key above -- otherwise every
-      # cache-miss shard redundantly re-downloads ~150-200MB from Google plus its apt
-      # dependencies for no reason.
-      - name: Cache Chrome
-        if: steps.cache-example.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
-        with:
-          path: |
-            /var/cache/apt/archives/*.deb
-            /tmp/chrome.deb
-          key: chrome-for-kaleido-v1
-
-      - name: Install Chrome for kaleido
-        # kaleido>=1.0 drives Chrome via choreographer instead of bundling a binary, and
-        # doesn't auto-download it -- without this, figure.write_image(...) fails with
-        # ChromeNotFoundError on a bare container that has no browser installed.
-        #
-        # Deliberately *not* `kaleido_get_chrome`: it downloads a standalone Chrome build
-        # with no shared libraries installed, which crashes on startup on a bare Ubuntu
-        # image ("browser closed immediately after starting") -- and choreographer always
-        # prefers that self-managed download over a system browser, so it has to not exist
-        # in the first place. Installing Google Chrome via apt instead lets apt resolve the
-        # actual runtime dependencies (libnss3, libatk-bridge, libgbm, ...) correctly for
-        # whatever Ubuntu version this image uses.
-        if: steps.cache-example.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          apt-get update
-          if [ ! -f /tmp/chrome.deb ]; then
-            apt-get install -y wget
-            wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          fi
-          apt-get install -y /tmp/chrome.deb
-
-      - name: Compile Struphy kernels
-        if: steps.cache-example.outputs.cache-hit != 'true' && steps.cache-kernels.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          source /struphy_fortran_/env_fortran_/bin/activate
-          struphy compile -y --language fortran
-
-      - name: Generate example metadata
-        # Cheap (imports the script's module-level Simulation(...) without running it) and
-        # runs for every script regardless of which example this shard is -- harmless, and
-        # this shard's own cache above only retains its own example's metadata JSON anyway.
-        if: steps.cache-example.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          source /struphy_fortran_/env_fortran_/bin/activate
-          python generate_examples.py
-
-      - name: Run example
-        if: steps.cache-example.outputs.cache-hit != 'true'
-        working-directory: docs/public/examples
-        shell: bash
-        run: |
-          source /struphy_fortran_/env_fortran_/bin/activate
-          # The scripts run on up to four MPI ranks (they write their files on rank 0 only; see
-          # docs/src/examples/_gallery.py), one per visible CPU, hence a single OpenMP thread each.
-          # OpenMPI counts physical cores as slots and refuses to start on more ranks than that, but
-          # a hosted runner's vCPUs are hyperthreads (4 vCPUs = 2 cores), hence --use-hwthread-cpus;
-          # --oversubscribe keeps a smaller runner from failing and --bind-to none from pinning ranks.
-          # guiding-center-orbits tracks a few markers, and their saved orbits are empty after the first row on
-          # several ranks (NaN drifts), so it runs serially too.
-          # The SPH examples hang under MPI in Struphy (ranks disagree on the box communication in
-          # `update_distr_functions`), so they run serially until that is fixed. `timeout` keeps any
-          # other hang from holding the runner.
-          # Count the CPUs first: nproc honours OMP_NUM_THREADS and would report 1 after the export.
-          cpus=$(nproc)
-          export OMP_NUM_THREADS=1
-          # Output that goes through mpirun's pipe is block-buffered otherwise, and would only show at the end.
-          export PYTHONUNBUFFERED=1
-          ranks=$(( MPI_RANKS < cpus ? MPI_RANKS : cpus ))
-          case "${{ matrix.example }}" in
-            beltrami-sph|dam-break|gas-expansion|zeldovich-caustic|incompressible-shear-relaxation) ranks=1 ;;
-            guiding-center-orbits|gvec-equilibrium) ranks=1 ;;
-          esac
-          echo "Running ${{ matrix.example }} on $ranks MPI rank(s); $cpus CPU(s) visible"
-          timeout 90m mpirun --use-hwthread-cpus --oversubscribe --bind-to none -n "$ranks" \
-            python "../../src/examples/${{ matrix.example }}.py"
-          # Struphy calls MPI_Abort (with error code 0) when a rank runs out of marker slots, and mpirun
-          # then exits with status 0. Without this check that would only show up as a missing figure later.
-          if [ ! -f "${{ matrix.example }}.plotly.json" ]; then
-            echo "::error::${{ matrix.example }}: mpirun finished without writing ${{ matrix.example }}.plotly.json; look for MPI_ABORT or a load imbalance warning above (raise bufsize in set_markers)."
-            exit 1
-          fi
-          if [ ! -f "${{ matrix.example }}.html" ]; then
-            echo "::error::${{ matrix.example }}: the run did not write the standalone HTML figure."
-            exit 1
-          fi
-
-      - name: Copy example thumbnails
-        if: steps.cache-example.outputs.cache-hit != 'true'
-        run: |
-          for f in docs/public/examples/${{ matrix.example }}*.png; do
-            if [ -e "$f" ]; then
-              cp "$f" docs/public/images/examples/
-            fi
-          done
-
-      - name: Export the domain used by this example
-        if: steps.cache-example.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          source /struphy_fortran_/env_fortran_/bin/activate
-          python generate_example_domain.py "${{ matrix.example }}" \
-            --metadata-root docs/public/examples/struphy_gallery_runs \
-            --output-dir docs/public/example-domains
-
-      - name: Clean up simulation scratch output
-        if: steps.cache-example.outputs.cache-hit != 'true'
-        run: rm -rf docs/public/examples/struphy_gallery_runs docs/public/examples/struphy.log
-
-      - name: Verify generated example
-        run: |
-          test -f "docs/public/examples/${{ matrix.example }}.plotly.json"
-          test -f "docs/public/examples/${{ matrix.example }}.html"
-
-      - name: Upload generated example
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-example-${{ matrix.example }}
-          path: |
-            docs/public/examples/${{ matrix.example }}*
-            docs/public/images/examples/${{ matrix.example }}*
-            docs/public/example-domains/${{ matrix.example }}*
-          retention-days: 1
 
   build:
-    needs: [check-site, pitagora-example, run-example]
+    needs: [list-examples, check-site, pitagora-example, run-example]
+    # An all-cached run skips the simulation matrix but must still build the site.
+    if: >-
+      ${{ !cancelled() && needs.list-examples.result == 'success' &&
+          needs.check-site.result == 'success' && needs.pitagora-example.result == 'success' &&
+          (needs.run-example.result == 'success' || needs.run-example.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -383,7 +189,7 @@ jobs:
           path: docs/public
           merge-multiple: true
 
-      - name: Verify Pitagora examples
+      - name: Verify and list Pitagora examples
         run: python scripts/pitagora_examples.py --verify-output
 
       - name: Verify generated examples

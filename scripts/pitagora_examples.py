@@ -13,6 +13,11 @@ ROOT = Path(__file__).resolve().parent.parent
 SELECTION_FILE = ROOT / ".github" / "pitagora-examples.txt"
 SCRIPTS_DIR = ROOT / "docs" / "src" / "examples"
 OUTPUT_DIR = ROOT / "docs" / "public" / "examples"
+ARTIFACT_DIRS = (
+    OUTPUT_DIR,
+    ROOT / "docs" / "public" / "images" / "examples",
+    ROOT / "docs" / "public" / "example-domains",
+)
 
 
 def selected_examples() -> list[str]:
@@ -34,6 +39,16 @@ def selected_examples() -> list[str]:
     return examples
 
 
+def artifact_files(example: str) -> list[Path]:
+    return sorted(
+        path
+        for directory in ARTIFACT_DIRS
+        if directory.is_dir()
+        for path in directory.glob(f"{example}*")
+        if path.is_file()
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="print the selection as a JSON array")
@@ -46,15 +61,21 @@ def main() -> int:
         return 1
 
     if args.verify_output:
-        missing = [
-            f"{example}.{suffix}"
+        expected_outputs = [
+            OUTPUT_DIR / f"{example}.{suffix}"
             for example in examples
             for suffix in ("plotly.json", "html")
-            if not (OUTPUT_DIR / f"{example}.{suffix}").is_file()
         ]
+        missing = [path.name for path in expected_outputs if not path.is_file()]
         if missing:
             print(f"error: missing Pitagora output: {', '.join(missing)}", file=sys.stderr)
             return 1
+        print("Downloaded Pitagora artifacts:")
+        for example in examples:
+            print(f"  {example}")
+            for path in artifact_files(example):
+                print(f"    {path.relative_to(ROOT)}")
+        return 0
 
     print(json.dumps(examples) if args.json else "\n".join(examples))
     return 0

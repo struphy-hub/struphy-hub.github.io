@@ -83,7 +83,7 @@
       "propagators": [
         "PoissonSolve",
         "PushEta",
-        "PushVinEfield",
+        "PushVinForceField",
         "PushVinViscousPotential",
         "PushVxB"
       ],
@@ -203,7 +203,7 @@
       ],
       "propagators": [
         "PushEta",
-        "PushVinEfield"
+        "PushVinForceField"
       ],
       "degree": 9,
       "x": 72.22,
@@ -767,7 +767,7 @@
       "propagators": [
         "EfieldWeightsCoupling",
         "PushEta",
-        "PushVinEfield",
+        "PushVinForceField",
         "PushVxB"
       ],
       "degree": 10,
@@ -915,7 +915,7 @@
         "EfieldWeightsCoupling",
         "MaxwellWeakAmpere",
         "PushEta",
-        "PushVinEfield",
+        "PushVinForceField",
         "PushVxB"
       ],
       "degree": 12,
@@ -1232,7 +1232,7 @@
       "target": "PressureLessSPH",
       "shared": [
         "PushEta",
-        "PushVinEfield"
+        "PushVinForceField"
       ],
       "weight": 2
     },
@@ -1251,7 +1251,7 @@
       "target": "LinearVlasovAmpereOneSpecies",
       "shared": [
         "PushEta",
-        "PushVinEfield",
+        "PushVinForceField",
         "PushVxB"
       ],
       "weight": 3
@@ -1288,7 +1288,7 @@
       "target": "LinearVlasovMaxwellOneSpecies",
       "shared": [
         "PushEta",
-        "PushVinEfield",
+        "PushVinForceField",
         "PushVxB"
       ],
       "weight": 3
@@ -1382,7 +1382,7 @@
       "target": "LinearVlasovAmpereOneSpecies",
       "shared": [
         "PushEta",
-        "PushVinEfield"
+        "PushVinForceField"
       ],
       "weight": 2
     },
@@ -1415,7 +1415,7 @@
       "target": "LinearVlasovMaxwellOneSpecies",
       "shared": [
         "PushEta",
-        "PushVinEfield"
+        "PushVinForceField"
       ],
       "weight": 2
     },
@@ -2132,7 +2132,7 @@
       "shared": [
         "EfieldWeightsCoupling",
         "PushEta",
-        "PushVinEfield",
+        "PushVinForceField",
         "PushVxB"
       ],
       "weight": 4
