@@ -379,8 +379,12 @@ jobs:
       - name: Download Pitagora examples
         uses: actions/download-artifact@v4
         with:
-          name: pitagora-poisson-source
+          pattern: pitagora-*
           path: docs/public
+          merge-multiple: true
+
+      - name: Verify Pitagora examples
+        run: python scripts/pitagora_examples.py --verify-output
 
       - name: Verify generated examples
         run: |
