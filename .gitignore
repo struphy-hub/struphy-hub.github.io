@@ -1,6 +1,7 @@
 # Python
 .venv/
 __pycache__/
+.cache/
 *.py[cod]
 
 # Generated data and logs
