@@ -37,6 +37,9 @@ sim = Simulation(
         "Noise in the electric field excites every electromagnetic mode of a rectangular periodic box. The "
         "power spectrum of the field over time has one peak per resonance, at the exact frequencies "
         "ω = c |k| of the box."
+        r" The launch uses :math:`E_z` coefficient noise of amplitude :math:`0.1` and :math:`\mathbf{B}(x,y,0)=0`."
+        r" The periodic box selects $$\mathbf{k}_{mn}=2\pi\left(\frac{m}{L_x},\frac{n}{L_y}\right),\qquad (L_x,L_y)=(1,1.5),$$"
+        r" for integer mode numbers :math:`m,n`."
     ),
     env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="maxwell_cavity_resonances"),
     time_opts=time_opts,

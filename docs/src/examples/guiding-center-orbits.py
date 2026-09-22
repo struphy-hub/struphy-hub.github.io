@@ -76,6 +76,8 @@ sim = Simulation(
         "Guiding centers with different pitch angles follow the field of a circular tokamak: "
         "particles with large parallel velocity circle the magnetic axis; others are reflected on the high-field "
         "side and bounce in banana-shaped orbits."
+        r" At the logical launch point :math:`\boldsymbol{\eta}_0=(0.5,0,0)`, the markers have $$v_{\parallel,0}=3\xi,\qquad \mu=\frac{9(1-\xi^2)}{2B_{\mathrm{start}}},$$"
+        r" with pitch :math:`\xi\in\{\pm0.25,\pm0.5,\pm0.75,\pm0.9\}` and :math:`B_{\mathrm{start}}=|\mathbf{B}(\boldsymbol{\eta}_0)|`."
     ),
     env=env,
     time_opts=Time(dt=0.05, Tend=100.0, split_algo="Strang"),

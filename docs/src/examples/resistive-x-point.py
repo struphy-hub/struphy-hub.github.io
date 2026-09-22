@@ -96,6 +96,9 @@ sim = Simulation(
         "with Struphy's nonlinear visco-resistive MHD model. Finite resistivity supports an out-of-plane "
         "electric field at the null, changes the flux connecting the X- and O-points, and converts magnetic "
         "energy into internal energy while the compatible FEEC discretization controls div B."
+        r" The initial magnetic field and strain are $$\mathbf{B}(x,y,0)=(0.7\sin y,\sin x,0),$$"
+        r" $$\mathbf{u}(x,y,0)=0.2(-\sin x\cos y,\cos x\sin y,0),$$"
+        r" on :math:`[-\pi,\pi)^2`, with resistivity :math:`\eta=0.05`."
     ),
     env=env,
     time_opts=time_opts,

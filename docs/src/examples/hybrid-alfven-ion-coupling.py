@@ -78,6 +78,9 @@ sim = Simulation(
         "Energetic ions drifting near the Alfvén speed exchange energy with a "
         "shear-Alfvén wave through Struphy’s pressure-coupling scheme, while "
         "the total energy stays conserved."
+        r" The energetic-ion Maxwellian is specified by $$n_h=0.1,\qquad u_{z,h}=1,\qquad v_{\mathrm{th},z,h}=0.3,$$"
+        r" with transverse thermal speeds :math:`v_{\mathrm{th},x,h}=v_{\mathrm{th},y,h}=1`."
+        r" The bulk has :math:`\mathbf{B}_0=\mathbf{e}_z`, :math:`n_0=1` and transverse velocity coefficient-noise amplitude :math:`10^{-3}`."
     ),
     env=env,
     time_opts=time_opts,

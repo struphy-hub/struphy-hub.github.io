@@ -54,6 +54,8 @@ sim = Simulation(
         "Broadband noise excites the shear Alfvén wave and the slow and fast magnetosonic waves of a "
         "uniform, obliquely magnetized plasma. The power spectra of the velocity and the pressure show "
         "the three branches, and their fitted speeds are compared with the exact ideal-MHD values."
+        r" The equilibrium parameters are $$\mathbf{B}_0=(0,1,1),\qquad n_0=0.7,\qquad p_0=\frac{\beta|\mathbf{B}_0|^2}{2}=3,$$"
+        r" with :math:`\beta=3` and :math:`\gamma=5/3`. All three velocity components receive coefficient noise of amplitude :math:`0.1` in a periodic interval :math:`L_z=60`."
     ),
     env=env,
     time_opts=time_opts,

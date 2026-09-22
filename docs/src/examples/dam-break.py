@@ -89,6 +89,8 @@ sim = Simulation(
         "A dense fluid column collapses under gravity in a closed box. Smoothed "
         "particle hydrodynamics follows the collapse, the wave across the box and "
         "the settling of the fluid, using markers alone."
+        r" The column starts at rest with $$n(x,y,0)=\begin{cases}0.1,&0\le x<0.25,\ 0\le y<1,\\0,&\text{elsewhere},\end{cases}$$"
+        r" in the unit square, under gravity :math:`\mathbf{g}=(0,-10,0)`."
     ),
     env=env,
     time_opts=Time(dt=0.02, Tend=3.0, split_algo="Strang"),

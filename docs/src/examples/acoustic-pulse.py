@@ -79,6 +79,8 @@ sim = Simulation(
         "A Gaussian bump in the density of a compressible gas splits into two half-height pulses that travel in "
         "opposite directions at the speed of sound. Struphy's variational discretization follows them around the "
         "periodic box, conserving energy, and they agree with d'Alembert's solution."
+        r" The periodic initial density uses ten Gaussian-weighted modes: $$n(x,0)=1+\sum_{j=1}^{10}a_j\cos(jx),\qquad a_j=\frac{0.02\sqrt{2\pi}}{2\pi}e^{-j^2/8},$$"
+        r" with :math:`\mathbf{u}(x,0)=0` on :math:`0\le x<2\pi`. The pulse has width :math:`\sigma=0.5` and sound speed :math:`c_s=1`."
     ),
     env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="acoustic_pulse"),
     time_opts=time_opts,

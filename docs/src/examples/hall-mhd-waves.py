@@ -56,6 +56,8 @@ sim = Simulation(
         "the Hall term splits the shear Alfvén wave: the whistler, whose frequency grows like k², and the "
         "ion-cyclotron wave, which saturates at the ion cyclotron frequency. Their power spectra and phase "
         "velocities are compared with the analytic Hall-MHD dispersion relation."
+        r" The initial background has $$\mathbf{B}_0=\mathbf{e}_z,\qquad n_0=1,\qquad p_0=0.25,\qquad \epsilon=1,$$"
+        r" with coefficient-noise amplitude :math:`0.1` in all three velocity components and periodic length :math:`L_z=60`."
     ),
     env=env,
     time_opts=time_opts,

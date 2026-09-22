@@ -72,6 +72,8 @@ sim = Simulation(
         "A Gaussian packet of circularly polarized electric field splits, in a magnetized cold plasma, into a fast L-wave packet "
         "and a slow, spreading R-wave packet that leave the launch point in opposite directions. Their speeds are the group "
         "velocities of the cold-plasma dispersion relation."
+        r" The launch field is $$\mathbf{E}(z,0)=0.05e^{-(z-40)^2/(2\cdot7^2)}(\cos(k_0z),-\sin(k_0z),0),$$"
+        r" with :math:`k_0=2\pi\cdot14/80`, :math:`\mathbf{B}_0=\mathbf{e}_z` and :math:`n_0=1`."
     ),
     env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="cold_plasma_wave_packet"),
     time_opts=time_opts,

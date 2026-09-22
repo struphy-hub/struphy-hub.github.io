@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import MathDescription from './MathDescription.astro';
 import ExtraFigures from './ExtraFigures.astro';
 import PlotlyFigure from './PlotlyFigure.astro';
 import VtkDomainViewer from './VtkDomainViewer.astro';
@@ -24,7 +25,7 @@ const hasProfiling = Boolean(data.profilingRegionStats);
     <header class="intro">
       <p class="eyebrow"><a href={`/models/${toSlug(model)}/`}>{model}</a> · {config.category}</p>
       <h1>{data.name}</h1>
-      <p>{data.description}</p>
+      <p><MathDescription text={data.description} /></p>
       <nav class="example-navigation" aria-label="Example navigation">
         <a class="back" href="/examples/">← All examples</a>
         <a class="source-shortcut" href="#source-title">Simulation script ↓</a>

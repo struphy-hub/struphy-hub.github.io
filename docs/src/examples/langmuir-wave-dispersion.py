@@ -90,6 +90,8 @@ sim = make_simulation(
         "A density perturbation in a uniform Maxwellian plasma oscillates as a Langmuir wave and is Landau damped. "
         "Runs at four wavenumbers give the oscillation frequency and the damping rate against k, and are compared with "
         "the root of the kinetic dispersion relation and with the fluid Bohm–Gross estimate."
+        r" Each run starts from a zero-drift, unit-thermal-speed Maxwellian with $$n(x,0)=1+10^{-3}\cos(kx),\qquad L_x=2\pi/k,$$"
+        r" for :math:`k\in\{0.3,0.4,0.5,0.6\}`."
     ),
 )
 

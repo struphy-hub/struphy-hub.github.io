@@ -70,7 +70,10 @@ sim = Simulation(
     description=(
         "A tiny electrostatic perturbation phase-mixes away in a collisionless "
         "plasma — the classic Landau-damping benchmark, compared here against "
-        "its analytically known damping rate."
+        r"the linear damping rate :math:`\gamma \approx -0.1533` at "
+        r"wavenumber :math:`k \approx 0.5` in normalized units."
+        r" The initial Maxwellian has density $$n(x,0)=1+10^{-3}\cos(2\pi x/L),\qquad L=12.56,$$"
+        r" zero mean velocity and thermal speed :math:`v_{\mathrm{th}}=1`."
     ),
     env=env,
     time_opts=time_opts,

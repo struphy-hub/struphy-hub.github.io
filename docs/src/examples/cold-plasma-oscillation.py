@@ -54,6 +54,8 @@ sim = make_simulation(
         "A cosine electric field along the magnetic field displaces a cold electron fluid, which oscillates "
         "at the plasma frequency. The field and flow energies trade places as cos² and sin² of the frequency, "
         "and the measured frequency follows the square root of the density."
+        r" The initial electric field is $$E_z(z,0)=0.1\cos(2\pi z/10),\qquad \mathbf{u}(z,0)=0,$$"
+        r" along :math:`\mathbf{B}_0=\mathbf{e}_z`. The density scan uses :math:`n_0\in\{0.5,1,2,4\}` with :math:`\omega_p=\sqrt{n_0}`."
     ),
 )
 

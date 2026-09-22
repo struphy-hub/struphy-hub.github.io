@@ -77,6 +77,8 @@ sim = Simulation(
         "the vacuum. Smoothed particle hydrodynamics follows the rarefaction wave "
         "and the gas streaming into the vacuum, and the result is compared with the "
         "exact self-similar solution."
+        r" The initial state is $$n(x,0)=\begin{cases}1,&0\le x<1.5,\\0,&1.5<x\le8,\end{cases}\qquad u_x(x,0)=0,$$"
+        r" with isothermal sound speed :math:`c_s=\sqrt{\kappa}=1`."
     ),
     env=env,
     time_opts=Time(dt=0.01, Tend=1.2, split_algo="Strang"),

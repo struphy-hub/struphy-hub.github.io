@@ -78,6 +78,8 @@ sim = Simulation(
         "Two counter-streaming Maxwellian beams are kinetically unstable — a "
         "tiny perturbation grows exponentially, drawing energy from the beams, "
         "until particle trapping saturates the growth."
+        r" The two beams start with $$n_\pm(x,0)=0.5+10^{-3}\cos(2\pi x/L),\qquad u_{x,\pm}=\pm3,$$"
+        r" where :math:`L=31.42` and each beam has thermal speed :math:`v_{\mathrm{th}}=1`."
     ),
     env=env,
     time_opts=time_opts,

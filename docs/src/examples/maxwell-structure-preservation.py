@@ -71,6 +71,8 @@ sim = build_simulation(
         "time step. The symplectic implicit scheme keeps the energy error bounded for the whole run, while "
         "the explicit schemes do not: RK4 loses energy steadily, and Heun's method is unstable for this "
         "operator."
+        r" All three runs start from $$\mathbf{E}(z,0)=(0.1\sin(\pi z/5),0,0),\qquad \mathbf{B}(z,0)=0,$$"
+        r" with periodic length :math:`L_z=20` and time step :math:`\Delta t=0.25` in units where :math:`c=1`."
     ),
 )
 

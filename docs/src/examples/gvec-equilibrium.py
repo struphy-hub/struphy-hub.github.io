@@ -226,6 +226,8 @@ simulation_details = {
     "description": (
         "GVEC creates a five-field-period stellarator equilibrium, then Struphy follows passing and "
         "mirror-trapped guiding centers in its three-dimensional magnetic field."
+        r" At logical position :math:`\boldsymbol{\eta}_0=(0.55,0,0)`, each marker starts with $$v_{\parallel,0}=1.5\xi,\qquad \mu=\frac{1.5^2(1-\xi^2)}{2B_{\mathrm{start}}},$$"
+        r" using pitches :math:`\xi\in\{-0.85,-0.5,-0.2,0.1,0.2,0.5\}` and the local field strength :math:`B_{\mathrm{start}}`."
     ),
 }
 sim = make_simulation(

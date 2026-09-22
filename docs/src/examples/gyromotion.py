@@ -44,6 +44,8 @@ sim = Simulation(
         "Test particles with different perpendicular speeds circle a uniform magnetic field at the same gyrofrequency, "
         "on circles whose Larmor radius grows with the perpendicular speed, while they stream freely along the field. "
         "Struphy's full-orbit pusher is compared with the exact helices."
+        r" All four particles start at :math:`\mathbf{x}_0=(10,10,2)` in :math:`\mathbf{B}_0=\mathbf{e}_z`, with $$\mathbf{v}_{0,j}=(0.4j,0,0.2j),\qquad j=1,2,3,4.$$"
+        r" Their Larmor radii are :math:`r_{L,j}=v_{\perp,j}/\Omega_c`, with normalized gyrofrequency :math:`\Omega_c=1`."
     ),
     env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="gyromotion"),
     time_opts=time_opts,

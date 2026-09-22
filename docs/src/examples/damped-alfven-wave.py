@@ -85,6 +85,8 @@ sim = make_simulation(
         "A standing Alfvén wave in a resistive plasma oscillates at the Alfvén frequency while its amplitude decays "
         "at the rate η k² / 2. Struphy's nonlinear resistive MHD is run at three resistivities and compared with "
         "the exact rate."
+        r" The initial fields are $$\mathbf{u}(x,0)=(0,0.05\sin x,0),\qquad \mathbf{B}(x,0)=(1,0,0),$$"
+        r" with :math:`n(x,0)=1` on :math:`0\le x<2\pi`; the scan uses :math:`\eta\in\{0.05,0.1,0.2\}`."
     ),
 )
 

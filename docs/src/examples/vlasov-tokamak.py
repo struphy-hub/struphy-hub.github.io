@@ -65,6 +65,8 @@ sim = Simulation(
         "Trace full-orbit test particles through a tokamak’s magnetic field "
         "and watch them gyrate around field lines while circulating -- or "
         "bouncing -- through the torus."
+        r" Velocities are drawn from the unit-thermal-speed Maxwellian $$f_0(\mathbf{v})=(2\pi)^{-3/2}e^{-|\mathbf{v}|^2/2}.$$"
+        r" The five tracked particles start at logical radius :math:`\eta_1=0.35`, with random angles, in an equilibrium with field parameter :math:`B_0=8`."
     ),
     env=env,
     time_opts=time_opts,

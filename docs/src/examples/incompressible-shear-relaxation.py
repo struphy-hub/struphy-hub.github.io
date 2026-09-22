@@ -89,6 +89,8 @@ sim = Simulation(
         "A viscous fluid between no-slip walls starts with a shear flow and a compressive wave. "
         "Incompressible SPH with a pressure projection removes the wave at once and lets the shear decay "
         "viscously, at the exact rate."
+        r" Before the pressure projection, $$u_x(x,y,0)=0.5\sin(\pi y)+0.2\sin(2\pi x),\qquad u_y(x,y,0)=0,$$"
+        r" with :math:`n=1`, viscosity :math:`\nu=0.1`, and no-slip walls at :math:`y=0,1`."
     ),
     env=env,
     time_opts=Time(dt=0.01, Tend=3.0, split_algo="LieTrotter"),

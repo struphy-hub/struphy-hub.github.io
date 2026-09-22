@@ -69,6 +69,8 @@ sim = Simulation(
     description=(
         "A sinusoidal velocity field diffuses on a periodic interval. The binned SPH current "
         "is compared with the exact viscous decay of the mode."
+        r" The initial state is $$u_x(x,0)=0.5\sin(2\pi x),\qquad n(x,0)=1,$$"
+        r" on :math:`0\le x<1`, with viscosity :math:`\mu=0.05`. The reference decay rate is :math:`\Gamma=\tfrac43\mu(2\pi)^2`."
     ),
     env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="sph_velocity_diffusion"),
     time_opts=Time(dt=0.0025, Tend=0.3, split_algo="Strang"),

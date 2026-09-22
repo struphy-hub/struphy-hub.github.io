@@ -60,6 +60,8 @@ sim = make_simulation(
         "A cosine source on a periodic box, solved with splines of degree 1 to 3 on a mesh that the Colella mapping has "
         "bent. The error of the potential against the exact solution falls with the mesh width h at least as fast as "
         "h^(p+1) for a spline degree p, on the curved mesh as well as on the straight one."
+        r" The prescribed source and reference potential are $$\rho(x,y)=\cos(\pi x)\cos(2\pi y/3),\qquad \phi_{\mathrm{exact}}=\frac{\rho(x,y)}{\pi^2+(2\pi/3)^2},$$"
+        r" on :math:`[0,2)\times[0,3)`."
     ),
 )
 

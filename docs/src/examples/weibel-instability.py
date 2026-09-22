@@ -88,6 +88,8 @@ sim = Simulation(
         "A temperature-anisotropic plasma spontaneously generates a magnetic "
         "field: a tiny seed perturbation grows exponentially, tapping the "
         "excess perpendicular thermal energy."
+        r" The initial thermal speeds satisfy $$v_{\mathrm{th},x}=0.02/\sqrt{2},\qquad v_{\mathrm{th},y}=\sqrt{12}\,v_{\mathrm{th},x},$$"
+        r" giving :math:`T_y/T_x=12`. A cosine seed in the third magnetic component has amplitude :math:`-10^{-4}` and wavenumber :math:`k=1.25`."
     ),
     env=env,
     time_opts=time_opts,

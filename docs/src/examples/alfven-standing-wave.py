@@ -51,6 +51,8 @@ sim = Simulation(
         "A single transverse velocity mode splits into two counter-propagating Alfvén waves, i.e. a standing "
         "wave. Its energy oscillates between the kinetic and the magnetic channel at twice the wave frequency, "
         "while the structure-preserving discretization keeps the sum constant."
+        r" The launch condition is $$u_x(z,0)=0.01\sin(\pi z/5),\qquad \delta\mathbf{B}(z,0)=0,$$"
+        r" in a periodic interval of length :math:`L_z=20`, with :math:`\mathbf{B}_0=\mathbf{e}_z` and :math:`n_0=1`."
     ),
     env=env,
     time_opts=time_opts,

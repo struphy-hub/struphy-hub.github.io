@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import MathDescription from '../../components/MathDescription.astro';
 import examples from '../../data/examples-index.json';
 
 function formatTotalTime(seconds: unknown): string {
@@ -38,7 +39,7 @@ function formatTotalTime(seconds: unknown): string {
               <div class="thumbnail">{example.thumbnail && <img src={example.thumbnail} alt={`Figure from the ${example.name} example`} loading="eager" />}</div>
               <div class="caption">
                 <h3>{example.name}</h3>
-                <span>{example.description}</span>
+                <span><MathDescription text={example.description} compact /></span>
               </div>
             </a>
           </article>

@@ -90,6 +90,8 @@ sim = Simulation(
         "A sheared E×B ring of charge is unstable: a tiny azimuthal "
         "perturbation grows, rippling the ring's edges — the onset of a "
         "rotating pattern of vortices."
+        r" The charge ring starts from $$n(r,\theta,0)=\mathbf{1}_{[4,5)}(r)\,[1+10^{-6}\cos(4\theta)],$$"
+        r" inside conducting cylinders at :math:`r=1` and :math:`r=10`; the indicator is one inside the ring and zero outside."
     ),
     env=env,
     time_opts=time_opts,

@@ -59,6 +59,11 @@ filename.
   to read this setup, so it must be constructible without a compiled Struphy install.
 - Pass `name=` and `description=` to `Simulation(...)`. These become the page's title and
   intro text — don't duplicate them anywhere else.
+- Descriptions support inline LaTeX with `` :math:`\gamma \approx -0.1533` `` and
+  display equations with `$$...$$` or an indented `.. math::` block. Use Python raw
+  strings (`r"..."`) to preserve LaTeX backslashes; see `weak-landau-damping.py`.
+  Equations render on the example page and inline in gallery/model cards. Ordinary
+  text is escaped, so descriptions do not accept raw HTML.
 - Put `sim.run()`, post-processing, plotting, and file output behind
   `if __name__ == "__main__":`. That's the part that needs `struphy compile` and actually
   takes time to run.

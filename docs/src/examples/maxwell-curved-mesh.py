@@ -56,6 +56,9 @@ sim = Simulation(
         "A Gaussian pulse of the electric field spreads as a ring across a periodic box, on a mesh that the Colella "
         "mapping has bent. The structure-preserving Maxwell solver keeps the energy constant and follows the exact "
         "solution, which is a sum of cosine modes."
+        r" The initial pulse is a truncated, zero-mean Gaussian Fourier expansion: $$E_z(x,y,0)=\sum_{\substack{0\le l,m\le6\\(l,m)\ne(0,0)}}a_{lm}\cos[k_l(x-1)]\cos[q_m(y-1.5)],$$"
+        r" where :math:`k_l=\pi l`, :math:`q_m=2\pi m/3` and :math:`a_{lm}=(2-\delta_{l0})(2-\delta_{m0})(2\pi\sigma^2/6)e^{-\sigma^2(k_l^2+q_m^2)/2}`."
+        r" The width is :math:`\sigma=0.25`, :math:`\delta_{ij}` is the Kronecker delta, and the magnetic field starts at zero."
     ),
     env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="maxwell_curved_mesh"),
     time_opts=time_opts,

@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import MathDescription from '../../components/MathDescription.astro';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import rawCatalogue from '../../data/models.json';
@@ -48,7 +49,7 @@ model.discretizationHtml = model.discretizationHtml.replace(
               {example.thumbnail && <div class="example-thumb"><img src={example.thumbnail} alt={`Figure from the ${example.name} example`} loading="lazy" /></div>}
               <div class="example-body">
                 <h3>{example.name}</h3>
-                <p>{example.description}</p>
+                <p><MathDescription text={example.description} compact /></p>
               </div>
             </a>
           ))}

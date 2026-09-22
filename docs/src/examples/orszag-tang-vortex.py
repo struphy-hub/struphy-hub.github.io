@@ -42,7 +42,11 @@ env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="orszag_
 sim = Simulation(
     model=model,
     name="Orszag–Tang vortex",
-    description="Nonlinear evolution of crossed velocity and magnetic vortices in ideal MHD, with density, magnetic field lines, pressure and conservation diagnostics.",
+    description=(
+        "Nonlinear evolution of crossed velocity and magnetic vortices in ideal MHD, with density, magnetic field lines, pressure and conservation diagnostics."
+        r" The initial vortices are $$\mathbf{u}(x,y,0)=(-\sin y,\sin x,0),\qquad \mathbf{B}(x,y,0)=(-\sin y,\sin(2x),0),$$"
+        r" with uniform density :math:`n(x,y,0)=1` on the periodic square :math:`[0,2\pi)^2`."
+    ),
     env=env,
     time_opts=time_opts,
     domain=domain,

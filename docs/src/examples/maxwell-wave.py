@@ -52,6 +52,8 @@ sim = Simulation(
     description=(
         "Excite a broadband electric field and recover the vacuum dispersion "
         "relation ω = ck with Struphy’s FEEC Maxwell solver."
+        r" The two transverse electric components start with coefficient-noise amplitude :math:`A=0.1`, while :math:`\mathbf{B}(z,0)=0`."
+        r" On the periodic interval :math:`L_z=20`, the allowed wavenumbers are $$k_n=\frac{2\pi n}{20},\qquad n\in\mathbb{Z}.$$"
     ),
     env=env,
     time_opts=time_opts,

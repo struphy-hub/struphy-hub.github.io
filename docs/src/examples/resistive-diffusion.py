@@ -83,6 +83,8 @@ sim = make_simulation(
         "A sinusoidal magnetic field in a resistive plasma at rest decays without changing shape, at the rate "
         "η k². Struphy's variational discretization converts the lost magnetic energy into thermal energy and keeps "
         "the total energy constant."
+        r" The initial state is $$\mathbf{B}(x,0)=(0,0,0.1\sin(2x)),\qquad \mathbf{u}(x,0)=0,\qquad n(x,0)=1,$$"
+        r" on :math:`0\le x<2\pi`, with resistivities :math:`\eta\in\{0.05,0.1,0.2\}`."
     ),
 )
 

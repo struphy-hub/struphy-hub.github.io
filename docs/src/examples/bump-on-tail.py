@@ -74,6 +74,9 @@ sim = Simulation(
         "A minority “bump” of fast particles on the tail of an otherwise "
         "Maxwellian distribution drives Langmuir waves unstable, feeding "
         "energy into the field until particle trapping saturates it."
+        r" The bulk has :math:`n_b=0.9`, :math:`u_{x,b}=3` and :math:`v_{\mathrm{th},x,b}=1`."
+        r" Only the fast population is perturbed: $$n_h(x,0)=0.1+0.05\cos(2\pi x/L),\qquad u_{x,h}=-4.5,\qquad v_{\mathrm{th},x,h}=0.5,$$"
+        r" with :math:`L=62.83`."
     ),
     env=env,
     time_opts=time_opts,

@@ -119,6 +119,8 @@ sim = Simulation(
         "Pressureless SPH markers circulate through a stationary cellular flow driven by a prescribed "
         "Beltrami potential. The computed marker velocity is compared with the exact Eulerian velocity "
         "field, while conservation of each marker's kinetic-plus-potential energy checks the orbit integration."
+        r" Initially :math:`n=1` and $$\mathbf{u}(x,y,0)=(-\cos(\pi x)\sin(\pi y),\sin(\pi x)\cos(\pi y),0).$$"
+        r" The prescribed potential is :math:`V(x,y)=\tfrac12[\sin^2(\pi x)+\sin^2(\pi y)]` on :math:`[-0.5,0.5]^2`."
     ),
     env=env,
     time_opts=Time(dt=0.02, Tend=4.0, split_algo="Strang"),

@@ -56,6 +56,8 @@ sim = Simulation(
         "An exact electromagnetic mode between two concentric conducting cylinders "
         "rotates around the annulus. Struphy's structure-preserving Maxwell solver "
         "reproduces its shape, its frequency and the conservation of its energy."
+        r" With :math:`F(r)=J_3(r)-0.28Y_3(r)`, the initial mode is $$E_r=-\frac{3F(r)}{r}\cos(3\theta),\qquad E_\theta=F\prime(r)\sin(3\theta),\qquad B_z=F(r)\cos(3\theta),$$"
+        r" between :math:`r=2.326744` and :math:`r=3.686839`; :math:`J_3` and :math:`Y_3` are Bessel functions."
     ),
     env=env,
     time_opts=Time(dt=0.05, Tend=20.0),

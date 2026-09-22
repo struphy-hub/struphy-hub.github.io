@@ -50,6 +50,8 @@ sim = Simulation(
         "Drive a 1D Poisson solve with an oscillating cosine-mode charge "
         "density and compare Struphy’s FEEC potential against the exact "
         "solution, at every time step."
+        r" The prescribed source is $$\rho(x,t)=0.1\cos(2\pi x/5)\cos(2\pi t),$$"
+        r" on the periodic interval :math:`-5\le x<5`."
     ),
     env=env,
     time_opts=time_opts,

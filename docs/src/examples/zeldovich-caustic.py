@@ -75,6 +75,8 @@ sim = Simulation(
         "diverges at a caustic, after which the fluid streams through itself. Smoothed particle "
         "hydrodynamics follows the collapse and the multi-stream phase space, and is compared with the "
         "exact solution of the Lagrangian map."
+        r" Initially $$n(x,0)=1,\qquad u_x(x,0)=0.5\sin(2\pi x),$$"
+        r" on :math:`0\le x<1`. The exact particle map is :math:`x(q,t)=q+0.5t\sin(2\pi q)` (modulo one), with first caustic at :math:`t_c=1/\pi`."
     ),
     env=env,
     time_opts=Time(dt=0.005, Tend=0.6, split_algo="Strang"),

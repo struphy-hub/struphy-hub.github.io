@@ -95,6 +95,8 @@ sim = make_simulation(
     description=(
         "A cosine density relaxes by diffusion. Struphy's random-walk and deterministic particle methods "
         "both follow it, and their density and decay of the mode are compared with the exact solution."
+        r" Both methods use $$n(x,0)=1+0.5\cos(2\pi x),\qquad D=0.05,$$"
+        r" on :math:`0\le x<1`. The reference mode amplitude is :math:`A(t)=0.5e^{-D(2\pi)^2t}`."
     ),
     grid=None,
     derham_opts=None,

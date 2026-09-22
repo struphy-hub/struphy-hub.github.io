@@ -72,6 +72,8 @@ sim = Simulation(
         "A large-amplitude perturbation drives a Vlasov-Ampère plasma into "
         "the nonlinear regime — particles trap in the field's potential "
         "wells, and the field energy bounces instead of decaying smoothly."
+        r" The initial Maxwellian has density $$n(x,0)=1+0.5\cos(2\pi x/L),\qquad L=12.56,$$"
+        r" zero mean velocity and thermal speed :math:`v_{\mathrm{th}}=1`."
     ),
     env=env,
     time_opts=time_opts,

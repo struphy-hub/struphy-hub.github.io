@@ -1,0 +1,17 @@
+---
+import 'katex/dist/katex.min.css';
+import { renderDescription } from '../lib/description-math';
+
+interface Props {
+  text: string;
+  compact?: boolean;
+}
+const { text, compact = false } = Astro.props;
+---
+
+<span class="math-description" set:html={renderDescription(text, { compact })}></span>
+
+<style>
+  .math-description :global(.katex){display:inline-block;max-width:100%;overflow-x:auto;overflow-y:hidden;vertical-align:middle;padding-block:2px}
+  .math-description :global(.katex-display){max-width:100%;overflow-x:auto;overflow-y:hidden;padding-block:2px}
+</style>

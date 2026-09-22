@@ -143,6 +143,8 @@ sim = Simulation(
         "A magnetized plasma column with radial density and temperature "
         "gradients drives a helical drift wave unstable — the basic "
         "mechanism behind ion-temperature-gradient (ITG) turbulence."
+        r" The initial helical density seed is $$\frac{\delta n}{n_0(r)}=10^{-6}\exp\!\left[-\frac{(r-7.3)^2}{2^2}\right]\cos\!\left(5\theta+\frac{2\pi z}{L_z}\right),$$"
+        r" with :math:`L_z=1506.759067`. The background temperature is :math:`T_0(r)=\exp[-0.27586\cdot1.45\tanh((r-7.3)/1.45)]`."
     ),
     env=env,
     time_opts=time_opts,

@@ -91,6 +91,9 @@ sim = Simulation(
         "Broadband fluctuations break into interacting density and vorticity "
         "eddies in a periodic plasma slab, while nonlinear E×B transport "
         "moves part of the kinetic energy into a banded zonal flow."
+        r" The initial density and vorticity fluctuations use the same phases: $$n(x,y,0)=0.12\sum_{\mathbf{k}}w_{\mathbf{k}}\cos(\mathbf{k}\cdot\mathbf{x}+\theta_{\mathbf{k}}),$$"
+        r" $$\omega(x,y,0)=0.12\sum_{\mathbf{k}}|\mathbf{k}|^2w_{\mathbf{k}}\cos(\mathbf{k}\cdot\mathbf{x}+\theta_{\mathbf{k}}).$$"
+        r" Here :math:`k_x,k_y\in\{1,\ldots,6\}`, :math:`2\le|\mathbf{k}|^2\le36` and :math:`\sum_{\mathbf{k}}w_{\mathbf{k}}^2=1`; random phases and weights use seed 1701."
     ),
     env=env,
     time_opts=time_opts,

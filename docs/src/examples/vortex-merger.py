@@ -92,6 +92,8 @@ sim = Simulation(
         "Two blobs of charge of the same sign circle each other under E×B drift "
         "and merge into one, the guiding-centre analogue of the merger of two "
         "like-signed vortices."
+        r" The initial density is $$n(x,y,0)=3\sum_{s=\pm1}\exp\!\left[-\frac{(x-x_s)^2+(y-y_s)^2}{2(0.55)^2}\right],$$"
+        r" with blob centres :math:`(x_s,y_s)=(\sqrt{3.5^2-1},s)`, separated by two length units."
     ),
     env=env,
     time_opts=time_opts,

@@ -59,6 +59,9 @@ sim = Simulation(
         "Excite a broadband transverse velocity perturbation and recover the "
         "shear-Alfvén dispersion relation ω = v_A k with Struphy’s linearized "
         "MHD solver."
+        r" Both transverse velocity components are seeded with coefficient-noise amplitude :math:`A=0.05`."
+        r" The background is $$\mathbf{B}_0=\mathbf{e}_z,\qquad n_0=1,\qquad L_z=20,$$"
+        r" so the reference Alfvén speed is :math:`v_A=B_0/\sqrt{n_0}=1`."
     ),
     env=env,
     time_opts=time_opts,

@@ -66,6 +66,8 @@ sim = Simulation(
         "Broadband noise excites the right- and left-hand circularly polarized waves of a cold, magnetized "
         "electron plasma. The power spectrum of the transverse electric field shows the whistler branch below "
         "the cyclotron frequency and the two cutoffs, on top of the analytic cold-plasma dispersion relation."
+        r" The background parameters are $$\mathbf{B}_0=\mathbf{e}_z,\qquad n_0=1,\qquad \alpha=\epsilon=1,$$"
+        r" with transverse electric coefficient-noise amplitude :math:`0.1`, :math:`E_z(z,0)=0` and periodic length :math:`L_z=40`."
     ),
     env=env,
     time_opts=time_opts,
