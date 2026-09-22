@@ -7,6 +7,12 @@ name: Build site
 
 on:
   workflow_call:
+    inputs:
+      use_pitagora:
+        description: Run the selected large examples on Pitagora instead of GitHub-hosted runners
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -36,8 +42,18 @@ jobs:
             const cache = require(path.join(process.env.RUNNER_TEMP, 'example-cache/node_modules/@actions/cache'));
             const listExamples = require('./.github/scripts/list-examples.cjs');
             const { listPitagoraExamples } = require('./.github/scripts/list-pitagora-examples.cjs');
-            const pitagora = await listPitagoraExamples({ cache, glob, core });
-            const standard = await listExamples({ cache, glob, core, exclude: pitagora.examples });
+            const usePitagora = '${{ inputs.use_pitagora }}' === 'true';
+            const pitagora = usePitagora
+              ? await listPitagoraExamples({ cache, glob, core })
+              : { examples: [], misses: [], cachedPaths: [] };
+            const standard = await listExamples({
+              cache,
+              glob,
+              core,
+              // In fallback mode, use the normal GitHub cache namespace and matrix
+              // for every example, including the examples normally assigned to Pitagora.
+              exclude: usePitagora ? pitagora.examples : [],
+            });
             core.setOutput('examples', JSON.stringify(standard.misses));
             core.setOutput('pitagora-examples', JSON.stringify(pitagora.misses));
             core.setOutput('cached-paths', [...standard.cachedPaths, ...pitagora.cachedPaths].join('\n'));
@@ -54,6 +70,7 @@ jobs:
   # Pitagora receives just its cache misses and runs them serially in one job.
   pitagora-examples:
     needs: list-examples
+    if: inputs.use_pitagora && needs.list-examples.outputs.pitagora-examples != '[]'
     uses: ./.github/workflows/pitagora-examples.yml
     with:
       examples: ${{ needs.list-examples.outputs.pitagora-examples }}
@@ -151,7 +168,8 @@ jobs:
     # An all-cached run skips the simulation matrix but must still build the site.
     if: >-
       ${{ !cancelled() && needs.list-examples.result == 'success' &&
-          needs.check-site.result == 'success' && needs.pitagora-examples.result == 'success' &&
+          needs.check-site.result == 'success' &&
+          (needs.pitagora-examples.result == 'success' || needs.pitagora-examples.result == 'skipped') &&
           (needs.run-example.result == 'success' || needs.run-example.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:

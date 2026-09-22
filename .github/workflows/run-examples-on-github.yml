@@ -1,0 +1,27 @@
+name: Run examples on GitHub runners
+
+# Manual fallback for periods when the Pitagora runner is unavailable.  The reusable
+# build workflow discovers every docs/src/examples/*.py script and fans them out as
+# independent GitHub-hosted jobs; each job uses the same per-example Actions cache as
+# the normal site build.
+on:
+  workflow_dispatch:
+    inputs:
+      use_pitagora:
+        description: Use Pitagora for the selected large examples
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-site.yml
+    with:
+      use_pitagora: ${{ inputs.use_pitagora }}
+    permissions:
+      contents: read
+      packages: read

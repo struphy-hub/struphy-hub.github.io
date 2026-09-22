@@ -15,6 +15,10 @@ concurrency:
 jobs:
   build:
     uses: ./.github/workflows/build-site.yml
+    # Pitagora is currently unavailable; run every example on GitHub-hosted runners.
+    # Change to true when the Pitagora runner is available again.
+    with:
+      use_pitagora: false
     permissions:
       contents: read
       packages: read
