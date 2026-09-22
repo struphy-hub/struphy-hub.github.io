@@ -27,6 +27,9 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `maxwell-curved-mesh.py` — a pulse of E_z on the distorted Colella mesh, against its exact Fourier-series solution, with the energy conservation
 - `poisson-convergence.py` — error of the Poisson potential against resolution at spline degrees 1 to 3, on a straight and a distorted mesh, with the measured slopes
 - `gyromotion.py` — four test particles in a uniform field on helices of different Larmor radii, against the exact orbits (Strang splitting; the default Lie-Trotter splitting is only first order in the position)
+- `grad-b-drift.py` — three full-orbit test ions in a straight, periodic magnetic-field gradient, with the transverse drift compared against the guiding-center prediction and its perpendicular-energy scaling (run on one rank)
+- `ordinary-mode-dispersion.py` — four ordinary electromagnetic modes in `ColdPlasma`, with independently measured frequencies, exact oscillations, and the plasma-frequency cutoff of the dispersion curve
+- `faraday-rotation.py` — two circular cold-plasma eigenmodes at the same frequency form a wave train whose linear polarization rotates in space, with an animated field, measured polarization angle, and local polarization traces
 - `langmuir-wave-dispersion.py` — oscillation frequency and Landau damping of Langmuir waves at four wavenumbers, against the root of the kinetic dispersion relation and the fluid Bohm-Gross estimate
 - `resistive-diffusion.py` — resistive decay of a sinusoidal magnetic field with its Ohmic heating, for three resistivities (`ViscoResistiveMHD`)
 - `damped-alfven-wave.py` — a standing Alfvén wave in resistive MHD, at the Alfvén frequency and damped at the rate eta k^2 / 2, for three resistivities

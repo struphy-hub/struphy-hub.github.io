@@ -3,6 +3,9 @@ import Layout from '../layouts/Layout.astro';
 import VtkHeroViewer from '../components/VtkHeroViewer.astro';
 import rawModels from '../data/models.json';
 import catalogueIndex from '../data/catalogue-index.json';
+import allExamples from '../data/examples-index.json';
+import { exampleConfig } from '../data/example-config';
+
 const projectStats = [
   { value: rawModels.length, label: 'simulation models' },
   { value: 14, label: 'mapped domains' },
@@ -18,6 +21,10 @@ const links = {
   tutorials: 'https://github.com/struphy-hub/struphy-tutorials',
   publications: 'https://nmpp.pages.mpcdf.de/codes/struphy/',
 };
+
+const featuredExamples = ['weak-landau-damping', 'orszag-tang-vortex', 'acoustic-pulse', 'vlasov-tokamak']
+  .map((slug) => (allExamples as any[]).find((example) => example.slug === slug))
+  .filter(Boolean) as any[];
 
 const publications = [
   {
@@ -204,6 +211,25 @@ const publications = [
       </div>
     </section>
 
+    <section class="featured-examples" aria-labelledby="featured-examples-title">
+      <div class="section-heading">
+        <h2 id="featured-examples-title">Featured examples</h2>
+        <p>Several end-to-end runs illustrate the kinds of problems Struphy is built to solve.</p>
+      </div>
+      <div class="example-grid">
+        {featuredExamples.map((example: any) => (
+          <a class="example-card" href={example.href}>
+            {example.thumbnail && <div class="example-thumb"><img src={example.thumbnail} alt={`Figure from the ${example.name} example`} loading="lazy" /></div>}
+            <div class="example-body">
+              <span class="example-tag">{example.model}</span>
+              <h3>{example.name}</h3>
+              <p>{exampleConfig[example.slug]?.category ?? 'Example'}</p>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+
     <section class="publications" aria-labelledby="publications-title">
       <h2 id="publications-title">Publications</h2>
       <p class="intro">
@@ -328,6 +354,7 @@ const publications = [
   .explainer,
   .overview,
   .quick-start,
+  .featured-examples,
   .publications {
     border-top: 1px solid var(--rule);
     padding-block: clamp(48px, 7vw, 76px);
@@ -419,6 +446,65 @@ const publications = [
 
   .derham figcaption {
     margin-top: 4px;
+  }
+
+  .example-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 30px;
+  }
+
+  .example-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    color: var(--paper);
+    text-decoration: none;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .example-card:hover {
+    border-color: var(--cyan);
+    transform: translateY(-2px);
+  }
+
+  .example-thumb {
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .example-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .example-body {
+    display: grid;
+    gap: 8px;
+    padding: 16px 18px 18px;
+  }
+
+  .example-tag {
+    color: var(--cyan);
+    font: 600 0.7rem/1.4 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .example-body h3 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  .example-body p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.82rem;
   }
 
   .publication-list {
@@ -554,7 +640,8 @@ const publications = [
     }
 
     .model-list,
-    .quick-start {
+    .quick-start,
+    .example-grid {
       grid-template-columns: 1fr;
     }
 

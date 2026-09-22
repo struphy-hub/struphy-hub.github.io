@@ -32,7 +32,7 @@ model.propagators.maxwell.options = model.propagators.maxwell.Options(
 domain = domains.Cuboid(r3=20.0)
 grid = grids.TensorProductGrid(num_elements=(1, 1, 128))
 derham_opts = DerhamOptions(degree=(1, 1, 3))
-time_opts = Time(dt=0.05, Tend=50.0)
+time_opts = Time(dt=0.01, Tend=50.0)
 
 # Broadband noise excites several light-wave modes at once.
 model.em_fields.e_field.add_perturbation(
