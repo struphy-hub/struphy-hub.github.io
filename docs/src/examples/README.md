@@ -31,6 +31,8 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `resistive-diffusion.py` — resistive decay of a sinusoidal magnetic field with its Ohmic heating, for three resistivities (`ViscoResistiveMHD`)
 - `damped-alfven-wave.py` — a standing Alfvén wave in resistive MHD, at the Alfvén frequency and damped at the rate eta k^2 / 2, for three resistivities
 - `acoustic-pulse.py` — a Gaussian density pulse in `VariationalCompressibleFluid` splitting into two pulses at the speed of sound, against d'Alembert's solution and with the energy exchange
+- `linear-dissipative-alfven-wave.py` — a standing wave in `ViscoResistiveLinearMHD`, with equal viscosity and resistivity, compared with the exact damped field profiles and wave-energy decay
+- `pressureless-transport.py` — a density ripple carried around a periodic box by `VariationalPressurelessFluid`, compared with exact nonlinear transport and checked for profile, velocity, sampled-mass and kinetic-energy errors
 - `hybrid-current-coupling.py` — an Alfvén wave coupled to full-orbit energetic ions with `LinearMHDVlasovCC`, showing energy exchange, conservation error on the wave-energy scale, and a velocity space-time map
 
 To build the assets of existing examples, use the CLI at the repository root (standard library only):

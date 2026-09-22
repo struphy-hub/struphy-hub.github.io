@@ -7,6 +7,8 @@ export interface ExamplePageConfig {
 
 /** Small, hand-written presentation layer for the generated example results. */
 export const exampleConfig: Record<string, ExamplePageConfig> = {
+  'linear-dissipative-alfven-wave': { category: 'Dissipative MHD', setupTitle: 'A standing wave with viscosity and resistivity', plotTitle: 'Damped Alfvén modes and wave-energy decay', plotAlt: 'Velocity and magnetic modes oscillating inside an exponential envelope with the expected decay of wave energy' },
+  'pressureless-transport': { category: 'Pressureless flow', setupTitle: 'A density ripple carried at constant speed', plotTitle: 'Exact transport around a periodic box', plotAlt: 'Transported density profiles compared with the exact solution, with profile, mass and kinetic-energy errors' },
   'beltrami-sph': { category: 'Pressureless particle flow', setupTitle: 'Markers following a stationary cellular flow', plotTitle: 'SPH markers circulating on Beltrami streamlines', plotAlt: 'Pressureless SPH markers circulating along exact streamlines beside velocity and energy error histories' },
   'bump-on-tail': { category: 'Kinetic electrostatics', setupTitle: 'A minority beam driving Langmuir waves', plotTitle: 'Electric field energy growth in the bump-on-tail instability', plotAlt: 'Electric field energy growing unsteadily over time as the bump-on-tail instability develops' },
   'coaxial-waveguide': { category: 'Electromagnetism', setupTitle: 'A rotating mode between conducting cylinders', plotTitle: 'Axial magnetic field and error against the exact coaxial waveguide mode', plotAlt: 'Axial magnetic field and error against the exact coaxial waveguide mode' },
