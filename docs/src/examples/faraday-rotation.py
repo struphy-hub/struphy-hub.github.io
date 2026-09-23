@@ -10,8 +10,6 @@ Reference: https://farside.ph.utexas.edu/teaching/315/Waveshtml/node76.html
 Requires the pinned Struphy with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
@@ -21,52 +19,50 @@ from struphy.linear_algebra.solver import SolverParameters
 stem = "faraday-rotation"
 length, amplitude, omega, density = 2.0 * np.pi, 0.05, 2.5, 3.15
 period = 2.0 * np.pi / omega
+model = ColdPlasma(alpha=1.0, epsilon=1.0)
+for propagator in (model.propagators.maxwell, model.propagators.ohm, model.propagators.jxb):
+    propagator.options = propagator.Options(solver_params=SolverParameters(tol=1e-12))
 
 # With exp(i(kz - omega*t)), E = (1, i*s), j = i*n0*E/(omega+s).
 # The corresponding dispersion law is k² = omega² - n0*omega/(omega+s).
+for k, helicity in ((1, -1), (2, 1)):
+    half = amplitude / 2.0
+    for variable, component, mode, value in (
+        (model.em_fields.e_field, 0, perturbations.ModesCos, half),
+        (model.em_fields.e_field, 1, perturbations.ModesSin, -helicity * half),
+        (model.em_fields.b_field, 0, perturbations.ModesSin, helicity * k / omega * half),
+        (model.em_fields.b_field, 1, perturbations.ModesCos, k / omega * half),
+        (model.electrons.current, 0, perturbations.ModesSin, -density / (omega + helicity) * half),
+        (model.electrons.current, 1, perturbations.ModesCos, -helicity * density / (omega + helicity) * half),
+    ):
+        variable.add_perturbation(mode(ns=(k,), amps=(value,), comp=component, Lz=length, given_in_basis="physical"))
 
-def create_simulation() -> Simulation:
-    model = ColdPlasma(alpha=1.0, epsilon=1.0)
-    for propagator in (model.propagators.maxwell, model.propagators.ohm, model.propagators.jxb):
-        propagator.options = propagator.Options(solver_params=SolverParameters(tol=1e-12))
-    for k, helicity in ((1, -1), (2, 1)):
-        half = amplitude / 2.0
-        for variable, component, mode, value in (
-            (model.em_fields.e_field, 0, perturbations.ModesCos, half),
-            (model.em_fields.e_field, 1, perturbations.ModesSin, -helicity * half),
-            (model.em_fields.b_field, 0, perturbations.ModesSin, helicity * k / omega * half),
-            (model.em_fields.b_field, 1, perturbations.ModesCos, k / omega * half),
-            (model.electrons.current, 0, perturbations.ModesSin, -density / (omega + helicity) * half),
-            (model.electrons.current, 1, perturbations.ModesCos, -helicity * density / (omega + helicity) * half),
-        ):
-            variable.add_perturbation(mode(ns=(k,), amps=(value,), comp=component, Lz=length, given_in_basis="physical"))
-    domain = domains.Cuboid(r3=length)
-    grid = grids.TensorProductGrid(num_elements=(1, 1, 64))
-    derham_opts = DerhamOptions(degree=(1, 1, 3))
-    time_opts = Time(dt=period / 250.0, Tend=4.0 * period, split_algo="Strang")
-    simulation = Simulation(
-        model=model, name="Faraday rotation in a magnetized plasma",
-        description=(
-            "Two circularly polarized waves of equal frequency and amplitude travel along the magnetic field. "
-            "Their different wavelengths rotate the plane of their combined, linearly polarized electric field: "
-            "the Faraday effect. This periodic example starts with the complete wave train, including its current and magnetic field."
-            r" With :math:`\omega=2.5`, :math:`B_0=1` and :math:`n_0=3.15`, the wavenumbers are :math:`k_1=1` and :math:`k_2=2`."
-            r" The electric field is $$\mathbf{E}_\perp(z,t)=0.05\cos(1.5z-2.5t)(\cos(z/2),-\sin(z/2)),$$"
-            r" so the polarization axis rotates by :math:`\theta(z)=-z/2`, modulo :math:`\pi`, in this sign convention."
-        ),
-        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="faraday_rotation"),
-        time_opts=time_opts, domain=domain, grid=grid, derham_opts=derham_opts,
-        equil=equils.HomogenSlab(B0z=1.0, n0=density),
-    )
-    return simulation
+domain = domains.Cuboid(r3=length)
+grid = grids.TensorProductGrid(num_elements=(1, 1, 64))
+derham_opts = DerhamOptions(degree=(1, 1, 3))
+time_opts = Time(dt=period / 250.0, Tend=4.0 * period, split_algo="Strang")
+sim = Simulation(
+    model=model, name="Faraday rotation in a magnetized plasma",
+    description=(
+        "Two circularly polarized waves of equal frequency and amplitude travel along the magnetic field. "
+        "Their different wavelengths rotate the plane of their combined, linearly polarized electric field: "
+        "the Faraday effect. This periodic example starts with the complete wave train, including its current and magnetic field."
+        r" With :math:`\omega=2.5`, :math:`B_0=1` and :math:`n_0=3.15`, the wavenumbers are :math:`k_1=1` and :math:`k_2=2`."
+        r" The electric field is $$\mathbf{E}_\perp(z,t)=0.05\cos(1.5z-2.5t)(\cos(z/2),-\sin(z/2)),$$"
+        r" so the polarization axis rotates by :math:`\theta(z)=-z/2`, modulo :math:`\pi`, in this sign convention."
+    ),
+    env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="faraday_rotation"),
+    time_opts=time_opts, domain=domain, grid=grid, derham_opts=derham_opts,
+    equil=equils.HomogenSlab(B0z=1.0, n0=density),
+)
 
-def pproc(sim: Simulation):
 
+if __name__ == "__main__":
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.output
+    output = sim.run(profiling_activated=True)
     output.pproc(physical=True)
     field = output.evaluate("em_fields/e_field_xyz").isel(e1=0, e2=0)
     ex, ey = (field.isel(component=i).values for i in (0, 1))
@@ -132,15 +128,3 @@ def pproc(sim: Simulation):
     merge_metadata(stem, measuredRotationRate=rotation_rate, exactRotationRate=-0.5,
                    maxRelativeFieldError=error, maxAngleErrorRadians=angle_error, maxEnergyDrift=energy_drift,
                    figures=figures, **export_profiling(sim, stem))
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

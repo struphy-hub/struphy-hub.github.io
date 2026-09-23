@@ -9,8 +9,6 @@ the pressure gradient it produces sets only a negligible flow. A scan over three
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -33,6 +31,11 @@ mode_number = 2
 wavenumber = 2 * np.pi * mode_number / length
 amplitude = 0.1
 resistivities = (0.05, 0.1, 0.2)  # the scan; the example itself is the eta = 0.1 run
+time_opts = Time(dt=0.05, Tend=8.0, split_algo="LieTrotter")
+grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
+derham_opts = DerhamOptions(degree=(3, 1, 1))
+domain = domains.Cuboid(l1=0.0, r1=length, l2=0.0, r2=1.0, l3=0.0, r3=1.0)
+equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=2.0)
 
 
 class CompatibleNonlinearSolverParameters(NonlinearSolverParameters):
@@ -42,7 +45,7 @@ class CompatibleNonlinearSolverParameters(NonlinearSolverParameters):
         return getattr(self, key)
 
 
-def make_simulation(eta, folder, *, time_opts, domain, equil, grid, derham_opts, **extra):
+def make_simulation(eta, folder, **extra):
     """The resistive-MHD model with resistivity eta and a sine mode in the out-of-plane field B_z."""
     model = ViscoResistiveMHD(with_viscosity=False, with_resistivity=True)
     model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="full")
@@ -72,49 +75,40 @@ def make_simulation(eta, folder, *, time_opts, domain, equil, grid, derham_opts,
     )
 
 
-def create_simulation() -> Simulation:
-    time_opts = Time(dt=0.05, Tend=8.0, split_algo="LieTrotter")
-    grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
-    derham_opts = DerhamOptions(degree=(3, 1, 1))
-    domain = domains.Cuboid(l1=0.0, r1=length, l2=0.0, r2=1.0, l3=0.0, r3=1.0)
-    equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=2.0)
-    simulation = make_simulation(
-        0.1,
-        "resistive_diffusion",
-        time_opts=time_opts,
-        domain=domain,
-        equil=equil,
-        grid=grid,
-        derham_opts=derham_opts,
-        name="Resistive diffusion of a magnetic field",
-        description=(
-            "A sinusoidal magnetic field in a resistive plasma at rest decays without changing shape, at the rate "
-            "η k². Struphy's variational discretization converts the lost magnetic energy into thermal energy and keeps "
-            "the total energy constant."
-            r" The initial state is $$\mathbf{B}(x,0)=(0,0,0.1\sin(2x)),\qquad \mathbf{u}(x,0)=0,\qquad n(x,0)=1,$$"
-            r" on :math:`0\le x<2\pi`, with resistivities :math:`\eta\in\{0.05,0.1,0.2\}`."
-        ),
-    )
-    return simulation
+sim = make_simulation(
+    0.1,
+    "resistive_diffusion",
+    name="Resistive diffusion of a magnetic field",
+    description=(
+        "A sinusoidal magnetic field in a resistive plasma at rest decays without changing shape, at the rate "
+        "η k². Struphy's variational discretization converts the lost magnetic energy into thermal energy and keeps "
+        "the total energy constant."
+        r" The initial state is $$\mathbf{B}(x,0)=(0,0,0.1\sin(2x)),\qquad \mathbf{u}(x,0)=0,\qquad n(x,0)=1,$$"
+        r" on :math:`0\le x<2\pi`, with resistivities :math:`\eta\in\{0.05,0.1,0.2\}`."
+    ),
+)
 
-def pproc(sim: Simulation):
 
+def field_profile(run):
+    """Time, position and B_z(t, x) of a post-processed run."""
+    b_z = run.evaluate("em_fields/b_field_xyz").isel(component=2, e2=0, e3=0)
+    return b_z.t.values, b_z.e1.values * length, b_z.values
+
+
+def mode_amplitude(x, values):
+    """Amplitude of the sin(k x) mode, from the periodic grid points (the last repeats the first)."""
+    return 2.0 * np.mean(values[:, :-1] * np.sin(wavenumber * x[:-1]), axis=1)
+
+
+if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
-    runs = {0.1: sim.output}
+    runs = {0.1: sim.run(profiling_activated=True)}
     for eta in resistivities:
         if eta != 0.1:
-            runs[eta] = make_simulation(
-                eta,
-                f"resistive_diffusion_eta{eta}",
-                time_opts=sim.time_opts,
-                domain=sim.domain,
-                equil=sim.equil,
-                grid=sim.grid,
-                derham_opts=sim.derham_opts,
-            ).output
+            runs[eta] = make_simulation(eta, f"resistive_diffusion_eta{eta}").run()
     for run in runs.values():
         run.pproc(physical=True)
 
@@ -207,15 +201,3 @@ def pproc(sim: Simulation):
         figures=figures,
         **export_profiling(sim, "resistive-diffusion"),
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

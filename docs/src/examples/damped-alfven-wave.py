@@ -9,8 +9,6 @@ configuration.) A scan over three resistivities compares the decay with the exac
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -35,6 +33,11 @@ alfven_speed = b0  # the density is 1
 frequency = alfven_speed * wavenumber
 amplitude = 0.05
 resistivities = (0.05, 0.1, 0.2)  # the scan; the example itself is the eta = 0.1 run
+time_opts = Time(dt=0.05, Tend=20.0, split_algo="Strang")
+grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
+derham_opts = DerhamOptions(degree=(3, 1, 1))
+domain = domains.Cuboid(l1=0.0, r1=length, l2=0.0, r2=1.0, l3=0.0, r3=1.0)
+equil = equils.HomogenSlab(B0x=b0, n0=1.0, beta=2.0)
 
 
 class CompatibleNonlinearSolverParameters(NonlinearSolverParameters):
@@ -44,7 +47,7 @@ class CompatibleNonlinearSolverParameters(NonlinearSolverParameters):
         return getattr(self, key)
 
 
-def make_simulation(eta, folder, *, time_opts, domain, equil, grid, derham_opts, **extra):
+def make_simulation(eta, folder, **extra):
     """Resistive MHD with resistivity eta, a uniform field along x and a transverse velocity mode."""
     model = ViscoResistiveMHD(with_viscosity=False, with_resistivity=True)
     model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="full")
@@ -74,49 +77,47 @@ def make_simulation(eta, folder, *, time_opts, domain, equil, grid, derham_opts,
     )
 
 
-def create_simulation() -> Simulation:
-    time_opts = Time(dt=0.05, Tend=20.0, split_algo="Strang")
-    grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
-    derham_opts = DerhamOptions(degree=(3, 1, 1))
-    domain = domains.Cuboid(l1=0.0, r1=length, l2=0.0, r2=1.0, l3=0.0, r3=1.0)
-    equil = equils.HomogenSlab(B0x=b0, n0=1.0, beta=2.0)
-    simulation = make_simulation(
-        0.1,
-        "damped_alfven_wave",
-        time_opts=time_opts,
-        domain=domain,
-        equil=equil,
-        grid=grid,
-        derham_opts=derham_opts,
-        name="Resistively damped Alfvén wave",
-        description=(
-            "A standing Alfvén wave in a resistive plasma oscillates at the Alfvén frequency while its amplitude decays "
-            "at the rate η k² / 2. Struphy's nonlinear resistive MHD is run at three resistivities and compared with "
-            "the exact rate."
-            r" The initial fields are $$\mathbf{u}(x,0)=(0,0.05\sin x,0),\qquad \mathbf{B}(x,0)=(1,0,0),$$"
-            r" with :math:`n(x,0)=1` on :math:`0\le x<2\pi`; the scan uses :math:`\eta\in\{0.05,0.1,0.2\}`."
-        ),
-    )
-    return simulation
+sim = make_simulation(
+    0.1,
+    "damped_alfven_wave",
+    name="Resistively damped Alfvén wave",
+    description=(
+        "A standing Alfvén wave in a resistive plasma oscillates at the Alfvén frequency while its amplitude decays "
+        "at the rate η k² / 2. Struphy's nonlinear resistive MHD is run at three resistivities and compared with "
+        "the exact rate."
+        r" The initial fields are $$\mathbf{u}(x,0)=(0,0.05\sin x,0),\qquad \mathbf{B}(x,0)=(1,0,0),$$"
+        r" with :math:`n(x,0)=1` on :math:`0\le x<2\pi`; the scan uses :math:`\eta\in\{0.05,0.1,0.2\}`."
+    ),
+)
 
-def pproc(sim: Simulation):
 
+def velocity_profile(run):
+    """Time, position and u_y(t, x) of a post-processed run."""
+    u_y = run.evaluate("mhd/velocity_xyz").isel(component=1, e2=0, e3=0)
+    return u_y.t.values, u_y.e1.values * length, u_y.values
+
+
+def mode_amplitude(x, values):
+    """Amplitude of the sin(k x) mode, from the periodic grid points (the last repeats the first)."""
+    return 2.0 * np.mean(values[:, :-1] * np.sin(wavenumber * x[:-1]), axis=1)
+
+
+def envelope_peaks(times, values):
+    """The times and heights of the local maxima of |values|, which follow the decaying envelope."""
+    magnitude = np.abs(values)
+    peaks = np.where((magnitude[1:-1] >= magnitude[:-2]) & (magnitude[1:-1] >= magnitude[2:]))[0] + 1
+    return times[peaks], magnitude[peaks]
+
+
+if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
-    runs = {0.1: sim.output}
+    runs = {0.1: sim.run(profiling_activated=True)}
     for eta in resistivities:
         if eta != 0.1:
-            runs[eta] = make_simulation(
-                eta,
-                f"damped_alfven_wave_eta{eta}",
-                time_opts=sim.time_opts,
-                domain=sim.domain,
-                equil=sim.equil,
-                grid=sim.grid,
-                derham_opts=sim.derham_opts,
-            ).output
+            runs[eta] = make_simulation(eta, f"damped_alfven_wave_eta{eta}").run()
     for run in runs.values():
         run.pproc(physical=True)
 
@@ -213,15 +214,3 @@ def pproc(sim: Simulation):
         figures=figures,
         **export_profiling(sim, "damped-alfven-wave"),
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

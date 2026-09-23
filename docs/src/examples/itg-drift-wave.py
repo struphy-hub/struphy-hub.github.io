@@ -14,8 +14,6 @@ resolution and run length to keep it a quick gallery run.
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 import xarray as xr
@@ -42,11 +40,30 @@ from struphy.initial.base import GenericPerturbation
 from struphy.models import DriftKineticElectrostaticAdiabatic
 from struphy.propagators import implicit_diffusion
 
+model = DriftKineticElectrostaticAdiabatic(base_units=BaseUnits(kBT=1.0), epsilon=1.0, use_diagnostic_poisson=True)
+model.em_fields.phi.save_data = True
 
 # A magnetized annular column: radius in [a1, a2], periodic in angle and length.
 a1, a2, length = 0.1, 14.5, 1506.759067
+domain = domains.HollowCylinder(a1=a1, a2=a2, Lz=length)
+equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=1.0)
+grid = grids.TensorProductGrid(num_elements=(12, 20, 4), mpi_dims_mask=(True, True, True))
+derham_opts = DerhamOptions(degree=(3, 3, 3), bcs=(("dirichlet", "dirichlet"), None, None))
+time_opts = Time(dt=5.0, Tend=250.0, split_algo="LieTrotter")
 
+density_bins = BinningPlot(slice="e1_e2", n_bins=(32, 64), ranges=((0.0, 1.0), (0.0, 1.0)))
+model.kinetic_ions.set_markers(
+    loading_params=LoadingParameters(ppc=15, loading="sobol_standard", spatial="uniform", moments=(0.0, 0.0, 2.0, 2.0)),
+    weights_params=WeightsParameters(control_variate=True),
+    boundary_params=BoundaryParameters(bc=("remove", "periodic", "periodic")),
+    sorting_params=SortingParameters(do_sort=True, boxes_per_dim=(6, 6, 2), sorting_frequency=0),
+    saving_params=SavingParameters(binning_plots=(density_bins,)),
+    bufsize=2.0,
+)
 
+model.propagators.gc_poisson.options.solver_params = implicit_diffusion.SolverParameters(maxiter=3000, tol=1e-14)
+model.propagators.push_gc_bxe.options = model.propagators.push_gc_bxe.Options(algo="explicit", evaluate_e_field=True)
+model.propagators.push_gc_para.options = model.propagators.push_gc_para.Options(algo="explicit", evaluate_e_field=True)
 
 # Radial density and temperature profiles, each decaying smoothly across the
 # annulus, plus a tiny helical (m = 5, n = 1) seed perturbation in density.
@@ -105,61 +122,91 @@ def pressure_xyz(x, y, z):
     return density_profile(r) * temperature_profile(r)
 
 
+equil.n_xyz = density_xyz
+equil.p_xyz = pressure_xyz
+
+background = maxwellians.GyroMaxwellian2D(n=(density_init, None), vth_para=(thermal_velocity_init, None), vth_perp=(thermal_velocity_init, None))
+model.kinetic_ions.var.add_background(background)
+perturbation = GenericPerturbation(perturbation_func)
+model.kinetic_ions.var.add_initial_condition(
+    maxwellians.GyroMaxwellian2D(n=(density_init, perturbation), vth_para=(thermal_velocity_init, None), vth_perp=(thermal_velocity_init, None)),
+)
+
+env = EnvironmentOptions(
+    out_folders="struphy_gallery_runs",
+    sim_folder="itg_drift_wave",
+)
+sim = Simulation(
+    model=model,
+    name="ITG drift wave",
+    description=(
+        "A magnetized plasma column with radial density and temperature "
+        "gradients drives a helical drift wave unstable — the basic "
+        "mechanism behind ion-temperature-gradient (ITG) turbulence."
+        r" The initial helical density seed is $$\frac{\delta n}{n_0(r)}=10^{-6}\exp\!\left[-\frac{(r-7.3)^2}{2^2}\right]\cos\!\left(5\theta+\frac{2\pi z}{L_z}\right),$$"
+        r" with :math:`L_z=1506.759067`. The background temperature is :math:`T_0(r)=\exp[-0.27586\cdot1.45\tanh((r-7.3)/1.45)]`."
+    ),
+    env=env,
+    time_opts=time_opts,
+    domain=domain,
+    equil=equil,
+    grid=grid,
+    derham_opts=derham_opts,
+)
+
+# Time window of the exponential growth, and the highest poloidal mode shown in the mode-resolved figures.
+GROWTH_WINDOW = (25.0, 175.0)
+MAX_POLOIDAL_MODE = 12
 
 
-def create_simulation() -> Simulation:
-    model = DriftKineticElectrostaticAdiabatic(base_units=BaseUnits(kBT=1.0), epsilon=1.0, use_diagnostic_poisson=True)
-    model.em_fields.phi.save_data = True
-    domain = domains.HollowCylinder(a1=a1, a2=a2, Lz=length)
-    equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=1.0)
-    grid = grids.TensorProductGrid(num_elements=(12, 20, 4), mpi_dims_mask=(True, True, True))
-    derham_opts = DerhamOptions(degree=(3, 3, 3), bcs=(("dirichlet", "dirichlet"), None, None))
-    time_opts = Time(dt=5.0, Tend=250.0, split_algo="LieTrotter")
-    density_bins = BinningPlot(slice="e1_e2", n_bins=(32, 64), ranges=((0.0, 1.0), (0.0, 1.0)))
-    model.kinetic_ions.set_markers(
-        loading_params=LoadingParameters(ppc=15, loading="sobol_standard", spatial="uniform", moments=(0.0, 0.0, 2.0, 2.0)),
-        weights_params=WeightsParameters(control_variate=True),
-        boundary_params=BoundaryParameters(bc=("remove", "periodic", "periodic")),
-        sorting_params=SortingParameters(do_sort=True, boxes_per_dim=(6, 6, 2), sorting_frequency=0),
-        saving_params=SavingParameters(binning_plots=(density_bins,)),
-        bufsize=2.0,
-    )
-    model.propagators.gc_poisson.options.solver_params = implicit_diffusion.SolverParameters(maxiter=3000, tol=1e-14)
-    model.propagators.push_gc_bxe.options = model.propagators.push_gc_bxe.Options(algo="explicit", evaluate_e_field=True)
-    model.propagators.push_gc_para.options = model.propagators.push_gc_para.Options(algo="explicit", evaluate_e_field=True)
-    equil.n_xyz = density_xyz
-    equil.p_xyz = pressure_xyz
-    background = maxwellians.GyroMaxwellian2D(n=(density_init, None), vth_para=(thermal_velocity_init, None), vth_perp=(thermal_velocity_init, None))
-    model.kinetic_ions.var.add_background(background)
-    perturbation = GenericPerturbation(perturbation_func)
-    model.kinetic_ions.var.add_initial_condition(
-        maxwellians.GyroMaxwellian2D(n=(density_init, perturbation), vth_para=(thermal_velocity_init, None), vth_perp=(thermal_velocity_init, None)),
-    )
-    env = EnvironmentOptions(
-        out_folders="struphy_gallery_runs",
-        sim_folder="itg_drift_wave",
-    )
-    simulation = Simulation(
-        model=model,
-        name="ITG drift wave",
-        description=(
-            "A magnetized plasma column with radial density and temperature "
-            "gradients drives a helical drift wave unstable — the basic "
-            "mechanism behind ion-temperature-gradient (ITG) turbulence."
-            r" The initial helical density seed is $$\frac{\delta n}{n_0(r)}=10^{-6}\exp\!\left[-\frac{(r-7.3)^2}{2^2}\right]\cos\!\left(5\theta+\frac{2\pi z}{L_z}\right),$$"
-            r" with :math:`L_z=1506.759067`. The background temperature is :math:`T_0(r)=\exp[-0.27586\cdot1.45\tanh((r-7.3)/1.45)]`."
-        ),
-        env=env,
-        time_opts=time_opts,
-        domain=domain,
-        equil=equil,
-        grid=grid,
-        derham_opts=derham_opts,
-    )
-    return simulation
+def minor_radius(array):
+    """Radius r = a1 + (a2 - a1) * e1 of the `e1` coordinate of `array`."""
+    return a1 + (a2 - a1) * np.asarray(array.e1)
 
-def pproc(sim: Simulation):
 
+def mode_amplitudes(phi):
+    """Fourier amplitudes of a real field in (e2, e3), as a complex array with dimensions (t, e1, m, n).
+
+    m >= 0 is the poloidal and n the axial mode number. The periodic end points e2 = 1 and e3 = 1 repeat the
+    first ones and are dropped. A field `A cos(m*theta + 2*pi*n*z/length)` has |phi_mn| = A.
+    """
+    field = phi.isel(e2=slice(None, -1), e3=slice(None, -1)).transpose("t", "e1", "e2", "e3")
+    n_theta, n_z = field.sizes["e2"], field.sizes["e3"]
+    spectrum = np.fft.fft(np.fft.rfft(field.values, axis=2), axis=3) / (n_theta * n_z)
+    spectrum[:, :, 1:] *= 2.0  # fold the negative m
+    if n_theta % 2 == 0:
+        spectrum[:, :, -1] /= 2.0  # the Nyquist mode has no partner
+    return xr.DataArray(
+        spectrum,
+        dims=("t", "e1", "m", "n"),
+        coords={"t": field.t, "e1": field.e1, "m": np.arange(spectrum.shape[2]), "n": np.fft.fftfreq(n_z, d=1.0 / n_z).astype(int)},
+    )
+
+
+def radial_rms(spectrum):
+    """Radial rms of |phi_mn|, over e1."""
+    return np.sqrt((np.abs(spectrum) ** 2).mean("e1"))
+
+
+def exponential_rate(amplitude, window):
+    """Growth rate of each column m of `amplitude(t, m)` from a log-linear fit on `window`."""
+    selected = amplitude.sel(t=slice(*window))
+    times = selected.t.values
+    rates = []
+    for m in selected.m.values:
+        values = selected.sel(m=m).values
+        positive = values > 0
+        rates.append(np.polyfit(times[positive], np.log(values[positive]), 1)[0] if positive.sum() > 2 else np.nan)
+    return np.asarray(rates)
+
+
+def log10_or_nan(values):
+    values = np.asarray(values, dtype=float)
+    return np.log10(np.where(values > 0, values, np.nan))
+
+
+
+if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     from _gallery import (
@@ -174,6 +221,7 @@ def pproc(sim: Simulation):
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
+    sim.run(profiling_activated=True)
     output = sim.output.process(create_vtk=False)
 
     # The field-projected density perturbation (cleaner than the raw,
@@ -414,15 +462,3 @@ def pproc(sim: Simulation):
         figures=figures,
         **profiling,
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

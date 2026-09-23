@@ -9,8 +9,6 @@ v_A = B0 / sqrt(n0) = 1.
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -29,54 +27,51 @@ from struphy.diagnostics.diagn_tools import power_spectrum_2d
 from struphy.models import ShearAlfven
 
 # Model and its single (linear) propagator.
+model = ShearAlfven()
+model.propagators.shear_alf.options = model.propagators.shear_alf.Options()
 
 # A periodic one-dimensional domain embedded in 3D, aligned with the
 # background field so waves can propagate along B0.
+domain = domains.Cuboid(r3=20.0)
+equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=0.1)
+grid = grids.TensorProductGrid(num_elements=(1, 1, 128))
+derham_opts = DerhamOptions(degree=(1, 1, 3))
+time_opts = Time(dt=0.05, Tend=50.0)
 
 # Broadband noise in the two components transverse to B0 excites several
 # shear-Alfvén modes at once, same trick as the Maxwell light-wave example.
+model.mhd.velocity.add_background(FieldsBackground())
+model.mhd.velocity.add_perturbation(
+    perturbations.Noise(amp=0.05, comp=0, seed=123),
+)
+model.mhd.velocity.add_perturbation(
+    perturbations.Noise(amp=0.05, comp=1, seed=123),
+)
 
-def create_simulation() -> Simulation:
-    model = ShearAlfven()
-    model.propagators.shear_alf.options = model.propagators.shear_alf.Options()
-    domain = domains.Cuboid(r3=20.0)
-    equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=0.1)
-    grid = grids.TensorProductGrid(num_elements=(1, 1, 128))
-    derham_opts = DerhamOptions(degree=(1, 1, 3))
-    time_opts = Time(dt=0.05, Tend=50.0)
-    model.mhd.velocity.add_background(FieldsBackground())
-    model.mhd.velocity.add_perturbation(
-        perturbations.Noise(amp=0.05, comp=0, seed=123),
-    )
-    model.mhd.velocity.add_perturbation(
-        perturbations.Noise(amp=0.05, comp=1, seed=123),
-    )
-    env = EnvironmentOptions(
-        out_folders="struphy_gallery_runs",
-        sim_folder="shear_alfven_wave",
-    )
-    simulation = Simulation(
-        model=model,
-        name="Shear-Alfvén wave dispersion",
-        description=(
-            "Excite a broadband transverse velocity perturbation and recover the "
-            "shear-Alfvén dispersion relation ω = v_A k with Struphy’s linearized "
-            "MHD solver."
-            r" Both transverse velocity components are seeded with coefficient-noise amplitude :math:`A=0.05`."
-            r" The background is $$\mathbf{B}_0=\mathbf{e}_z,\qquad n_0=1,\qquad L_z=20,$$"
-            r" so the reference Alfvén speed is :math:`v_A=B_0/\sqrt{n_0}=1`."
-        ),
-        env=env,
-        time_opts=time_opts,
-        domain=domain,
-        equil=equil,
-        grid=grid,
-        derham_opts=derham_opts,
-    )
-    return simulation
+env = EnvironmentOptions(
+    out_folders="struphy_gallery_runs",
+    sim_folder="shear_alfven_wave",
+)
+sim = Simulation(
+    model=model,
+    name="Shear-Alfvén wave dispersion",
+    description=(
+        "Excite a broadband transverse velocity perturbation and recover the "
+        "shear-Alfvén dispersion relation ω = v_A k with Struphy’s linearized "
+        "MHD solver."
+        r" Both transverse velocity components are seeded with coefficient-noise amplitude :math:`A=0.05`."
+        r" The background is $$\mathbf{B}_0=\mathbf{e}_z,\qquad n_0=1,\qquad L_z=20,$$"
+        r" so the reference Alfvén speed is :math:`v_A=B_0/\sqrt{n_0}=1`."
+    ),
+    env=env,
+    time_opts=time_opts,
+    domain=domain,
+    equil=equil,
+    grid=grid,
+    derham_opts=derham_opts,
+)
 
-def pproc(sim: Simulation):
-
+if __name__ == "__main__":
     from _gallery import (
         export_profiling,
         merge_metadata,
@@ -88,6 +83,7 @@ def pproc(sim: Simulation):
     # Run, evaluate the FEEC fields on a grid, and load the result.
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
+    sim.run(profiling_activated=True)
     output = sim.output.process(create_vtk=False)
 
     # Struphy's diagnostic computes the (k, omega) spectrum and fits its branch.
@@ -197,15 +193,3 @@ def pproc(sim: Simulation):
         figures=figures,
         **profiling,
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

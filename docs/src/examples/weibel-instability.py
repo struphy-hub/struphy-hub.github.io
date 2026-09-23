@@ -12,8 +12,6 @@ count and run length to keep it a quick gallery run.
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -35,75 +33,72 @@ from struphy import (
 )
 from struphy.models import VlasovMaxwellOneSpecies
 
+model = VlasovMaxwellOneSpecies(alpha=1.0, epsilon=-1.0, measure_gauss_law=True)
+model.em_fields.e_field.save_data = True
 
 wavenumber = 1.25
+domain = domains.Cuboid(r1=2 * np.pi / wavenumber)
+grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
+derham_opts = DerhamOptions(degree=(3, 1, 1))
+time_opts = Time(dt=0.1, Tend=200.0, split_algo="LieTrotter")
 
 # A colder parallel (vth1) than perpendicular (vth2) thermal spread -- the
 # temperature anisotropy that Weibel feeds on.
 vth1 = 0.02 / np.sqrt(2)
 vth2 = vth1 * np.sqrt(12)
 # A binned (v1, v2) distribution at every step, to follow the temperature anisotropy.
+velocity_bins = BinningPlot(slice="v1_v2", n_bins=(48, 48), ranges=((-0.12, 0.12), (-0.3, 0.3)))
+model.kinetic_ions.set_markers(
+    loading_params=LoadingParameters(
+        Np=20_000,
+        set_zero_velocity=(False, False, True),
+        moments=(0.0, 0.0, 0.0, vth1, vth2, 1.0),
+        seed=1234,
+    ),
+    # The control-variate weighting violates Gauss's law for this setup, so it's disabled here.
+    weights_params=WeightsParameters(control_variate=False),
+    boundary_params=BoundaryParameters(),
+    sorting_params=SortingParameters(boxes_per_dim=(16, 1, 1), do_sort=True),
+    saving_params=SavingParameters(binning_plots=(velocity_bins,)),
+    bufsize=2.0,
+)
 
+model.propagators.maxwell.options = model.propagators.maxwell.Options()
+model.propagators.push_eta.options = model.propagators.push_eta.Options()
+model.propagators.push_vxb.options = model.propagators.push_vxb.Options()
+model.propagators.coupling_va.options = model.propagators.coupling_va.Options()
+model.initial_poisson.options = model.initial_poisson.Options(stab_mat="M0")
 
+model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D(vth1=(vth1, None), vth2=(vth2, None)))
 
 # A tiny seed perturbation in B_z, needed to trigger the (otherwise exact) instability.
 magnetic_perturbation_amplitude = -1e-4
+model.em_fields.b_field.add_perturbation(
+    perturbations.ModesCos(amps=(magnetic_perturbation_amplitude,), ls=(1,), comp=2),
+)
 
-def create_simulation() -> Simulation:
-    model = VlasovMaxwellOneSpecies(alpha=1.0, epsilon=-1.0, measure_gauss_law=True)
-    model.em_fields.e_field.save_data = True
-    domain = domains.Cuboid(r1=2 * np.pi / wavenumber)
-    grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
-    derham_opts = DerhamOptions(degree=(3, 1, 1))
-    time_opts = Time(dt=0.1, Tend=200.0, split_algo="LieTrotter")
-    velocity_bins = BinningPlot(slice="v1_v2", n_bins=(48, 48), ranges=((-0.12, 0.12), (-0.3, 0.3)))
-    model.kinetic_ions.set_markers(
-        loading_params=LoadingParameters(
-            Np=20_000,
-            set_zero_velocity=(False, False, True),
-            moments=(0.0, 0.0, 0.0, vth1, vth2, 1.0),
-            seed=1234,
-        ),
-        # The control-variate weighting violates Gauss's law for this setup, so it's disabled here.
-        weights_params=WeightsParameters(control_variate=False),
-        boundary_params=BoundaryParameters(),
-        sorting_params=SortingParameters(boxes_per_dim=(16, 1, 1), do_sort=True),
-        saving_params=SavingParameters(binning_plots=(velocity_bins,)),
-        bufsize=2.0,
-    )
-    model.propagators.maxwell.options = model.propagators.maxwell.Options()
-    model.propagators.push_eta.options = model.propagators.push_eta.Options()
-    model.propagators.push_vxb.options = model.propagators.push_vxb.Options()
-    model.propagators.coupling_va.options = model.propagators.coupling_va.Options()
-    model.initial_poisson.options = model.initial_poisson.Options(stab_mat="M0")
-    model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D(vth1=(vth1, None), vth2=(vth2, None)))
-    model.em_fields.b_field.add_perturbation(
-        perturbations.ModesCos(amps=(magnetic_perturbation_amplitude,), ls=(1,), comp=2),
-    )
-    env = EnvironmentOptions(
-        out_folders="struphy_gallery_runs",
-        sim_folder="weibel_instability",
-    )
-    simulation = Simulation(
-        model=model,
-        name="Weibel instability",
-        description=(
-            "A temperature-anisotropic plasma spontaneously generates a magnetic "
-            "field: a tiny seed perturbation grows exponentially, tapping the "
-            "excess perpendicular thermal energy."
-            r" The initial thermal speeds satisfy $$v_{\mathrm{th},x}=0.02/\sqrt{2},\qquad v_{\mathrm{th},y}=\sqrt{12}\,v_{\mathrm{th},x},$$"
-            r" giving :math:`T_y/T_x=12`. A cosine seed in the third magnetic component has amplitude :math:`-10^{-4}` and wavenumber :math:`k=1.25`."
-        ),
-        env=env,
-        time_opts=time_opts,
-        domain=domain,
-        grid=grid,
-        derham_opts=derham_opts,
-    )
-    return simulation
+env = EnvironmentOptions(
+    out_folders="struphy_gallery_runs",
+    sim_folder="weibel_instability",
+)
+sim = Simulation(
+    model=model,
+    name="Weibel instability",
+    description=(
+        "A temperature-anisotropic plasma spontaneously generates a magnetic "
+        "field: a tiny seed perturbation grows exponentially, tapping the "
+        "excess perpendicular thermal energy."
+        r" The initial thermal speeds satisfy $$v_{\mathrm{th},x}=0.02/\sqrt{2},\qquad v_{\mathrm{th},y}=\sqrt{12}\,v_{\mathrm{th},x},$$"
+        r" giving :math:`T_y/T_x=12`. A cosine seed in the third magnetic component has amplitude :math:`-10^{-4}` and wavenumber :math:`k=1.25`."
+    ),
+    env=env,
+    time_opts=time_opts,
+    domain=domain,
+    grid=grid,
+    derham_opts=derham_opts,
+)
 
-def pproc(sim: Simulation):
-
+if __name__ == "__main__":
     from _gallery import (
         export_profiling,
         merge_metadata,
@@ -114,6 +109,7 @@ def pproc(sim: Simulation):
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
+    sim.run(profiling_activated=True)
     output = sim.output.process(create_vtk=False)
 
     # Total magnetic (B3) field energy at each saved time, summed over the grid.
@@ -214,15 +210,3 @@ def pproc(sim: Simulation):
         figures=figures,
         **profiling,
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

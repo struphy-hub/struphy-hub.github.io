@@ -1,5 +1,4 @@
 """Bump-on-tail instability: a minority beam drives Langmuir waves.
-import argparse
 
 A small ("bump") population of fast particles riding on the tail of an
 otherwise Maxwellian distribution is a classic source of free energy: it
@@ -31,65 +30,62 @@ from struphy import (
 )
 from struphy.models import VlasovAmpereOneSpecies
 
+model = VlasovAmpereOneSpecies(alpha=1.0, epsilon=-1.0, with_B0=False)
+model.em_fields.e_field.save_data = True
 
+domain = domains.Cuboid(r1=62.83)
+grid = grids.TensorProductGrid(num_elements=(64, 1, 1))
+derham_opts = DerhamOptions(degree=(3, 1, 1))
+time_opts = Time(dt=0.1, Tend=60.0, split_algo="LieTrotter")
 
 # A high-resolution binned x-v snapshot at every step: the bulk sits near v = 3,
 # the bump near v = -4.5.
+phase_space_bins = BinningPlot(slice="e1_v1", n_bins=(128, 128), ranges=((0.0, 1.0), (-8.0, 8.0)))
+model.kinetic_ions.set_markers(
+    loading_params=LoadingParameters(ppc=2000, moments=(0.0, 0.0, 0.0, 3.0, 1.0, 1.0)),
+    weights_params=WeightsParameters(control_variate=True),
+    boundary_params=BoundaryParameters(),
+    sorting_params=SortingParameters(boxes_per_dim=(16, 1, 1), do_sort=True),
+    saving_params=SavingParameters(binning_plots=(phase_space_bins,)),
+    bufsize=2.0,
+)
 
+model.propagators.push_eta.options = model.propagators.push_eta.Options()
+model.propagators.coupling_va.options = model.propagators.coupling_va.Options()
+model.initial_poisson.options = model.initial_poisson.Options(stab_mat="M0")
 
 # A 90% bulk Maxwellian plus a 10% "bump" population drifting at u1 = -4.5.
 perturbation_amplitude = 0.05
+perturbation = perturbations.ModesCos(amps=(perturbation_amplitude,), ls=(1,))
+bulk = maxwellians.Maxwellian3D(n=(0.9, None), u1=(3.0, None))
+bump = maxwellians.Maxwellian3D(n=(0.1, None), u1=(-4.5, None), vth1=(0.5, None))
+model.kinetic_ions.var.add_background(bulk + bump)
+init_bump = maxwellians.Maxwellian3D(n=(0.1, perturbation), u1=(-4.5, None), vth1=(0.5, None))
+model.kinetic_ions.var.add_initial_condition(bulk + init_bump)
 
-def create_simulation() -> Simulation:
-    model = VlasovAmpereOneSpecies(alpha=1.0, epsilon=-1.0, with_B0=False)
-    model.em_fields.e_field.save_data = True
-    domain = domains.Cuboid(r1=62.83)
-    grid = grids.TensorProductGrid(num_elements=(64, 1, 1))
-    derham_opts = DerhamOptions(degree=(3, 1, 1))
-    time_opts = Time(dt=0.1, Tend=60.0, split_algo="LieTrotter")
-    phase_space_bins = BinningPlot(slice="e1_v1", n_bins=(128, 128), ranges=((0.0, 1.0), (-8.0, 8.0)))
-    model.kinetic_ions.set_markers(
-        loading_params=LoadingParameters(ppc=2000, moments=(0.0, 0.0, 0.0, 3.0, 1.0, 1.0)),
-        weights_params=WeightsParameters(control_variate=True),
-        boundary_params=BoundaryParameters(),
-        sorting_params=SortingParameters(boxes_per_dim=(16, 1, 1), do_sort=True),
-        saving_params=SavingParameters(binning_plots=(phase_space_bins,)),
-        bufsize=2.0,
-    )
-    model.propagators.push_eta.options = model.propagators.push_eta.Options()
-    model.propagators.coupling_va.options = model.propagators.coupling_va.Options()
-    model.initial_poisson.options = model.initial_poisson.Options(stab_mat="M0")
-    perturbation = perturbations.ModesCos(amps=(perturbation_amplitude,), ls=(1,))
-    bulk = maxwellians.Maxwellian3D(n=(0.9, None), u1=(3.0, None))
-    bump = maxwellians.Maxwellian3D(n=(0.1, None), u1=(-4.5, None), vth1=(0.5, None))
-    model.kinetic_ions.var.add_background(bulk + bump)
-    init_bump = maxwellians.Maxwellian3D(n=(0.1, perturbation), u1=(-4.5, None), vth1=(0.5, None))
-    model.kinetic_ions.var.add_initial_condition(bulk + init_bump)
-    env = EnvironmentOptions(
-        out_folders="struphy_gallery_runs",
-        sim_folder="bump_on_tail",
-    )
-    simulation = Simulation(
-        model=model,
-        name="Bump-on-tail instability",
-        description=(
-            "A minority “bump” of fast particles on the tail of an otherwise "
-            "Maxwellian distribution drives Langmuir waves unstable, feeding "
-            "energy into the field until particle trapping saturates it."
-            r" The bulk has :math:`n_b=0.9`, :math:`u_{x,b}=3` and :math:`v_{\mathrm{th},x,b}=1`."
-            r" Only the fast population is perturbed: $$n_h(x,0)=0.1+0.05\cos(2\pi x/L),\qquad u_{x,h}=-4.5,\qquad v_{\mathrm{th},x,h}=0.5,$$"
-            r" with :math:`L=62.83`."
-        ),
-        env=env,
-        time_opts=time_opts,
-        domain=domain,
-        grid=grid,
-        derham_opts=derham_opts,
-    )
-    return simulation
+env = EnvironmentOptions(
+    out_folders="struphy_gallery_runs",
+    sim_folder="bump_on_tail",
+)
+sim = Simulation(
+    model=model,
+    name="Bump-on-tail instability",
+    description=(
+        "A minority “bump” of fast particles on the tail of an otherwise "
+        "Maxwellian distribution drives Langmuir waves unstable, feeding "
+        "energy into the field until particle trapping saturates it."
+        r" The bulk has :math:`n_b=0.9`, :math:`u_{x,b}=3` and :math:`v_{\mathrm{th},x,b}=1`."
+        r" Only the fast population is perturbed: $$n_h(x,0)=0.1+0.05\cos(2\pi x/L),\qquad u_{x,h}=-4.5,\qquad v_{\mathrm{th},x,h}=0.5,$$"
+        r" with :math:`L=62.83`."
+    ),
+    env=env,
+    time_opts=time_opts,
+    domain=domain,
+    grid=grid,
+    derham_opts=derham_opts,
+)
 
-def pproc(sim: Simulation):
-
+if __name__ == "__main__":
     from _gallery import (
         export_profiling,
         heatmap_figure,
@@ -101,7 +97,7 @@ def pproc(sim: Simulation):
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
-    output = sim.output
+    output = sim.run(profiling_activated=True)
 
     field_energy = output.evaluate("electric_energy")
 
@@ -193,15 +189,3 @@ def pproc(sim: Simulation):
         figures=figures,
         **profiling,
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

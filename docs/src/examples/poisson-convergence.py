@@ -10,8 +10,6 @@ whose coarse meshes are not yet in the asymptotic range, they are steeper.
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -25,6 +23,7 @@ kx, ky = 2 * np.pi / lx, 2 * np.pi / ly
 distortion = 0.1
 degrees = (1, 2, 3)
 resolutions = (4, 6, 8, 12, 16, 24, 32)  # cells in x; there are 1.5 times as many in y
+time_opts = Time(dt=0.1, Tend=0.1)  # the potential is found before the first time step, and again at each step
 
 
 def source(x, y, z):
@@ -35,7 +34,7 @@ def exact_potential(x, y):
     return source(x, y, 0.0) / (kx**2 + ky**2)
 
 
-def make_simulation(degree, cells, alpha, folder, *, time_opts, **extra):
+def make_simulation(degree, cells, alpha, folder, **extra):
     """The Poisson model on the Colella mesh with the distortion alpha, degree `degree` and `cells` x 1.5 `cells` elements."""
     model = Poisson()
     # A tight tolerance, so that the error of the linear solver stays below the discretization error at every resolution.
@@ -54,40 +53,39 @@ def make_simulation(degree, cells, alpha, folder, *, time_opts, **extra):
     )
 
 
-def create_simulation() -> Simulation:
-    time_opts = Time(dt=0.1, Tend=0.1)
-    simulation = make_simulation(
-        2, 8, distortion, "poisson_convergence",
-        time_opts=time_opts,
-        name="Poisson convergence on a distorted mesh",
-        description=(
-            "A cosine source on a periodic box, solved with splines of degree 1 to 3 on a mesh that the Colella mapping has "
-            "bent. The error of the potential against the exact solution falls with the mesh width h at least as fast as "
-            "h^(p+1) for a spline degree p, on the curved mesh as well as on the straight one."
-            r" The prescribed source and reference potential are $$\rho(x,y)=\cos(\pi x)\cos(2\pi y/3),\qquad \phi_{\mathrm{exact}}=\frac{\rho(x,y)}{\pi^2+(2\pi/3)^2},$$"
-            r" on :math:`[0,2)\times[0,3)`."
-        ),
-    )
-    return simulation
+sim = make_simulation(
+    2, 8, distortion, "poisson_convergence",
+    name="Poisson convergence on a distorted mesh",
+    description=(
+        "A cosine source on a periodic box, solved with splines of degree 1 to 3 on a mesh that the Colella mapping has "
+        "bent. The error of the potential against the exact solution falls with the mesh width h at least as fast as "
+        "h^(p+1) for a spline degree p, on the curved mesh as well as on the straight one."
+        r" The prescribed source and reference potential are $$\rho(x,y)=\cos(\pi x)\cos(2\pi y/3),\qquad \phi_{\mathrm{exact}}=\frac{\rho(x,y)}{\pi^2+(2\pi/3)^2},$$"
+        r" on :math:`[0,2)\times[0,3)`."
+    ),
+)
 
-def pproc(sim: Simulation):
 
+def potential_error(run):
+    """Points and the difference between the computed and the exact potential at the last time, from a post-processed run."""
+    phi = run.evaluate("em_fields/phi").isel(t=-1, e3=0)
+    return phi.X.values, phi.Y.values, phi.values, phi.values - exact_potential(phi.X.values, phi.Y.values)
+
+
+if __name__ == "__main__":
     from plotly.subplots import make_subplots
     from scipy.interpolate import griddata
 
     from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
-    sim.output
+    sim.run(profiling_activated=True)
 
     errors = {}  # (alpha, degree) -> rms errors against the resolution
     for alpha in (distortion, 0.0):
         for degree in degrees:
             values = []
             for cells in resolutions:
-                run = make_simulation(
-                    degree, cells, alpha, f"poisson_convergence_p{degree}_n{cells}_a{alpha}",
-                    time_opts=sim.time_opts,
-                ).output
+                run = make_simulation(degree, cells, alpha, f"poisson_convergence_p{degree}_n{cells}_a{alpha}").run()
                 run.pproc(physical=True, celldivide=3)  # three sample points per cell, to measure the error inside the cells
                 _, _, _, difference = potential_error(run)
                 values.append(float(np.sqrt(np.mean(difference**2))))
@@ -127,7 +125,7 @@ def pproc(sim: Simulation):
     save_figure(figure, "poisson-convergence", width=1300, height=650)
 
     # The solution and its error on the distorted mesh, at degree 2 and 8 x 12 cells.
-    run = make_simulation(2, 8, distortion, "poisson_convergence_map", time_opts=sim.time_opts).output
+    run = make_simulation(2, 8, distortion, "poisson_convergence_map").run()
     run.pproc(physical=True, celldivide=4)
     mesh_x, mesh_y, potential, difference = potential_error(run)
     x_plot, y_plot = np.linspace(0, lx, 100), np.linspace(0, ly, 150)
@@ -167,15 +165,3 @@ def pproc(sim: Simulation):
         figures=figures,
         **export_profiling(sim, "poisson-convergence"),
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

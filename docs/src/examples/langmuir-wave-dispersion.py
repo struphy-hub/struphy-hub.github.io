@@ -13,8 +13,6 @@ shown for reference: it ignores the kinetic effects and misses the frequency by 
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 from scipy.optimize import fsolve
@@ -39,6 +37,9 @@ from struphy.models import VlasovAmpereOneSpecies
 
 wavenumbers = (0.3, 0.4, 0.5, 0.6)  # the scan; the example itself is the k = 0.5 run
 amplitude = 0.001
+grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
+derham_opts = DerhamOptions(degree=(3, 1, 1))
+time_opts = Time(dt=0.05, Tend=20.0, split_algo="LieTrotter")
 
 
 def kinetic_frequency(k, guess=(1.4, -0.15)):
@@ -52,7 +53,7 @@ def kinetic_frequency(k, guess=(1.4, -0.15)):
     return fsolve(dispersion, guess, xtol=1e-12)
 
 
-def make_simulation(k, folder, *, time_opts, grid, derham_opts, **extra):
+def make_simulation(k, folder, **extra):
     """Vlasov-Ampère in a periodic box of length 2 pi / k with one cosine mode in the density."""
     model = VlasovAmpereOneSpecies(alpha=1.0, epsilon=-1.0, with_B0=False)
     model.em_fields.e_field.save_data = True
@@ -81,41 +82,34 @@ def make_simulation(k, folder, *, time_opts, grid, derham_opts, **extra):
     )
 
 
-def create_simulation() -> Simulation:
-    grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
-    derham_opts = DerhamOptions(degree=(3, 1, 1))
-    time_opts = Time(dt=0.05, Tend=20.0, split_algo="LieTrotter")
-    simulation = make_simulation(
-        0.5,
-        "langmuir_wave_dispersion",
-        time_opts=time_opts,
-        grid=grid,
-        derham_opts=derham_opts,
-        name="Langmuir wave dispersion",
-        description=(
-            "A density perturbation in a uniform Maxwellian plasma oscillates as a Langmuir wave and is Landau damped. "
-            "Runs at four wavenumbers give the oscillation frequency and the damping rate against k, and are compared with "
-            "the root of the kinetic dispersion relation and with the fluid Bohm–Gross estimate."
-            r" Each run starts from a zero-drift, unit-thermal-speed Maxwellian with $$n(x,0)=1+10^{-3}\cos(kx),\qquad L_x=2\pi/k,$$"
-            r" for :math:`k\in\{0.3,0.4,0.5,0.6\}`."
-        ),
-    )
-    return simulation
+sim = make_simulation(
+    0.5,
+    "langmuir_wave_dispersion",
+    name="Langmuir wave dispersion",
+    description=(
+        "A density perturbation in a uniform Maxwellian plasma oscillates as a Langmuir wave and is Landau damped. "
+        "Runs at four wavenumbers give the oscillation frequency and the damping rate against k, and are compared with "
+        "the root of the kinetic dispersion relation and with the fluid Bohm–Gross estimate."
+        r" Each run starts from a zero-drift, unit-thermal-speed Maxwellian with $$n(x,0)=1+10^{-3}\cos(kx),\qquad L_x=2\pi/k,$$"
+        r" for :math:`k\in\{0.3,0.4,0.5,0.6\}`."
+    ),
+)
 
-def pproc(sim: Simulation):
 
+def mode_amplitude(run):
+    """Time and the amplitude of the sin(k x) mode of the electric field E_x, from a post-processed run."""
+    e_x = run.evaluate("em_fields/e_field").isel(component=0, e2=0, e3=0)
+    e1 = e_x.e1.values
+    return e_x.t.values, 2.0 * np.mean(e_x.values[:, :-1] * np.sin(2 * np.pi * e1[:-1]), axis=1)
+
+
+if __name__ == "__main__":
     from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
-    runs = {0.5: sim.output}
+    runs = {0.5: sim.run(profiling_activated=True)}
     for k in wavenumbers:
         if k != 0.5:
-            runs[k] = make_simulation(
-                k,
-                f"langmuir_wave_dispersion_k{k}",
-                time_opts=sim.time_opts,
-                grid=sim.grid,
-                derham_opts=sim.derham_opts,
-            ).output
+            runs[k] = make_simulation(k, f"langmuir_wave_dispersion_k{k}").run()
     for run in runs.values():
         run.pproc()
 
@@ -213,15 +207,3 @@ def pproc(sim: Simulation):
         figures=figures,
         **export_profiling(sim, "langmuir-wave-dispersion"),
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

@@ -7,8 +7,6 @@ energy and discrete magnetic-divergence diagnostics.
 Requires Struphy 3.3 with compiled kernels (``struphy compile``).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -16,55 +14,53 @@ from struphy import DerhamOptions, EnvironmentOptions, FieldsBackground, Simulat
 from struphy.models import ViscoResistiveMHD
 
 # The standard periodic Orszag--Tang initial condition on [0, 2π]².
+model = ViscoResistiveMHD(with_viscosity=False, with_resistivity=False)
+model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="full")
 
+domain = domains.Cuboid(r1=2 * np.pi, r2=2 * np.pi, r3=1.0)
 # 48 x 48 cells, run on four MPI ranks in CI: each rank owns a 24 x 24 block, well above the spline degree.
+grid = grids.TensorProductGrid(num_elements=(48, 48, 1))
+derham_opts = DerhamOptions(degree=(2, 2, 1))
+time_opts = Time(dt=0.0025, Tend=1.0, split_algo="LieTrotter")
 # The equilibrium supplies normalization; the evolved magnetic field has no guide component.
+equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=0.1)
 
 # Logical volume forms include det(DF) = 4*pi**2, giving physical rho = 1, s = 0.6.
 # Vector perturbations are explicitly specified in the physical basis.
 # Uniform density/entropy and zero mean fields, then the two solenoidal
 # sine-mode vortices: u = (-sin y, sin x, 0), B = (-sin y, sin 2x, 0).
+model.mhd.density.add_background(FieldsBackground(values=(4 * np.pi**2,)))
+model.mhd.entropy.add_background(FieldsBackground(values=(0.6 * 4 * np.pi**2,)))
+model.mhd.velocity.add_background(FieldsBackground(values=(0.0, 0.0, 0.0)))
+model.em_fields.b_field.add_background(FieldsBackground(values=(0.0, 0.0, 0.0)))
+model.mhd.velocity.add_perturbation(perturbations.ModesSin(ms=(1,), amps=(-1.0,), Ly=2 * np.pi, comp=0, given_in_basis="physical"))
+model.mhd.velocity.add_perturbation(perturbations.ModesSin(ls=(1,), amps=(1.0,), Lx=2 * np.pi, comp=1, given_in_basis="physical"))
+model.em_fields.b_field.add_perturbation(perturbations.ModesSin(ms=(1,), amps=(-1.0,), Ly=2 * np.pi, comp=0, given_in_basis="physical"))
+model.em_fields.b_field.add_perturbation(perturbations.ModesSin(ls=(2,), amps=(1.0,), Lx=2 * np.pi, comp=1, given_in_basis="physical"))
 
-def create_simulation() -> Simulation:
-    model = ViscoResistiveMHD(with_viscosity=False, with_resistivity=False)
-    model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="full")
-    domain = domains.Cuboid(r1=2 * np.pi, r2=2 * np.pi, r3=1.0)
-    grid = grids.TensorProductGrid(num_elements=(48, 48, 1))
-    derham_opts = DerhamOptions(degree=(2, 2, 1))
-    time_opts = Time(dt=0.0025, Tend=1.0, split_algo="LieTrotter")
-    equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=0.1)
-    model.mhd.density.add_background(FieldsBackground(values=(4 * np.pi**2,)))
-    model.mhd.entropy.add_background(FieldsBackground(values=(0.6 * 4 * np.pi**2,)))
-    model.mhd.velocity.add_background(FieldsBackground(values=(0.0, 0.0, 0.0)))
-    model.em_fields.b_field.add_background(FieldsBackground(values=(0.0, 0.0, 0.0)))
-    model.mhd.velocity.add_perturbation(perturbations.ModesSin(ms=(1,), amps=(-1.0,), Ly=2 * np.pi, comp=0, given_in_basis="physical"))
-    model.mhd.velocity.add_perturbation(perturbations.ModesSin(ls=(1,), amps=(1.0,), Lx=2 * np.pi, comp=1, given_in_basis="physical"))
-    model.em_fields.b_field.add_perturbation(perturbations.ModesSin(ms=(1,), amps=(-1.0,), Ly=2 * np.pi, comp=0, given_in_basis="physical"))
-    model.em_fields.b_field.add_perturbation(perturbations.ModesSin(ls=(2,), amps=(1.0,), Lx=2 * np.pi, comp=1, given_in_basis="physical"))
-    env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="orszag_tang_vortex", max_runtime=3600)
-    simulation = Simulation(
-        model=model,
-        name="Orszag–Tang vortex",
-        description=(
-            "Nonlinear evolution of crossed velocity and magnetic vortices in ideal MHD, with density, magnetic field lines, pressure and conservation diagnostics."
-            r" The initial vortices are $$\mathbf{u}(x,y,0)=(-\sin y,\sin x,0),\qquad \mathbf{B}(x,y,0)=(-\sin y,\sin(2x),0),$$"
-            r" with uniform density :math:`n(x,y,0)=1` on the periodic square :math:`[0,2\pi)^2`."
-        ),
-        env=env,
-        time_opts=time_opts,
-        domain=domain,
-        equil=equil,
-        grid=grid,
-        derham_opts=derham_opts,
-    )
-    return simulation
+env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="orszag_tang_vortex", max_runtime=3600)
+sim = Simulation(
+    model=model,
+    name="Orszag–Tang vortex",
+    description=(
+        "Nonlinear evolution of crossed velocity and magnetic vortices in ideal MHD, with density, magnetic field lines, pressure and conservation diagnostics."
+        r" The initial vortices are $$\mathbf{u}(x,y,0)=(-\sin y,\sin x,0),\qquad \mathbf{B}(x,y,0)=(-\sin y,\sin(2x),0),$$"
+        r" with uniform density :math:`n(x,y,0)=1` on the periodic square :math:`[0,2\pi)^2`."
+    ),
+    env=env,
+    time_opts=time_opts,
+    domain=domain,
+    equil=equil,
+    grid=grid,
+    derham_opts=derham_opts,
+)
 
-def pproc(sim: Simulation):
 
+if __name__ == "__main__":
     from plotly.subplots import make_subplots
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.output
+    output = sim.run(profiling_activated=True)
     # The Slurm gallery job runs this example on four MPI ranks. Parallel
     # post-processing distributes the 401 saved snapshots across those ranks.
     output.pproc(parallel=True, physical=True, celldivide=2)
@@ -154,15 +150,3 @@ def pproc(sim: Simulation):
     merge_metadata("orszag-tang-vortex", finalTime=float(times[-1]), maxEnergyDrift=float(drift.max()),
                    maxDivB=float(divergence.max()), minDensity=float(rho.min()), figures=figures,
                    **export_profiling(sim, "orszag-tang-vortex"))
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

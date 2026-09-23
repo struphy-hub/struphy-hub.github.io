@@ -13,8 +13,6 @@ first stage of the Zel'dovich approximation for structure formation.
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -43,59 +41,69 @@ boxes = 64
 markers_per_box = 32
 density_points = 256
 
+model = PressureLessSPH()
+model.propagators.push_eta.options = model.propagators.push_eta.Options(
+    butcher=ButcherTableau(algo="forward_euler"),
+)
 
+domain = domains.Cuboid(r1=1.0)
+model.cold_fluid.set_markers(
+    loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
+    weights_params=WeightsParameters(),
+    boundary_params=BoundaryParameters(
+        bc=("periodic", "periodic", "periodic"), bc_sph=("periodic", "periodic", "periodic")
+    ),
+    # The markers pile up at the caustic, so a box must be able to hold many more than its share.
+    sorting_params=SortingParameters(
+        boxes_per_dim=(boxes, 1, 1), dims_mask=(True, False, False), box_bufsize=30.0
+    ),
+    saving_params=SavingParameters(
+        n_markers=1.0,
+        kernel_density_plots=(KernelDensityPlot(pts_e1=density_points, pts_e2=1),),
+    ),
+)
 # Uniform unit density, and the sinusoidal velocity as a perturbation of the (zero) mean flow.
+model.cold_fluid.var.add_background(equils.ConstantVelocity(ux=0.0, n=1.0))
+model.cold_fluid.var.add_perturbation(del_u1=perturbations.ModesSin(ls=(1,), amps=(amplitude,)))
 
-def create_simulation() -> Simulation:
-    model = PressureLessSPH()
-    model.propagators.push_eta.options = model.propagators.push_eta.Options(
-        butcher=ButcherTableau(algo="forward_euler"),
-    )
-    domain = domains.Cuboid(r1=1.0)
-    model.cold_fluid.set_markers(
-        loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
-        weights_params=WeightsParameters(),
-        boundary_params=BoundaryParameters(
-            bc=("periodic", "periodic", "periodic"), bc_sph=("periodic", "periodic", "periodic")
-        ),
-        # The markers pile up at the caustic, so a box must be able to hold many more than its share.
-        sorting_params=SortingParameters(
-            boxes_per_dim=(boxes, 1, 1), dims_mask=(True, False, False), box_bufsize=30.0
-        ),
-        saving_params=SavingParameters(
-            n_markers=1.0,
-            kernel_density_plots=(KernelDensityPlot(pts_e1=density_points, pts_e2=1),),
-        ),
-    )
-    model.cold_fluid.var.add_background(equils.ConstantVelocity(ux=0.0, n=1.0))
-    model.cold_fluid.var.add_perturbation(del_u1=perturbations.ModesSin(ls=(1,), amps=(amplitude,)))
-    env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="zeldovich_caustic")
-    simulation = Simulation(
-        model=model,
-        name="Zel'dovich caustic",
-        description=(
-            "A sinusoidal velocity field makes a pressureless gas collapse: the density steepens until it "
-            "diverges at a caustic, after which the fluid streams through itself. Smoothed particle "
-            "hydrodynamics follows the collapse and the multi-stream phase space, and is compared with the "
-            "exact solution of the Lagrangian map."
-            r" Initially $$n(x,0)=1,\qquad u_x(x,0)=0.5\sin(2\pi x),$$"
-            r" on :math:`0\le x<1`. The exact particle map is :math:`x(q,t)=q+0.5t\sin(2\pi q)` (modulo one), with first caustic at :math:`t_c=1/\pi`."
-        ),
-        env=env,
-        time_opts=Time(dt=0.005, Tend=0.6, split_algo="Strang"),
-        domain=domain,
-        grid=grids.TensorProductGrid(num_elements=(boxes, 1, 1)),  # for the model's (vanishing) force field
-        derham_opts=DerhamOptions(degree=(3, 1, 1)),
-    )
-    return simulation
+env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="zeldovich_caustic")
+sim = Simulation(
+    model=model,
+    name="Zel'dovich caustic",
+    description=(
+        "A sinusoidal velocity field makes a pressureless gas collapse: the density steepens until it "
+        "diverges at a caustic, after which the fluid streams through itself. Smoothed particle "
+        "hydrodynamics follows the collapse and the multi-stream phase space, and is compared with the "
+        "exact solution of the Lagrangian map."
+        r" Initially $$n(x,0)=1,\qquad u_x(x,0)=0.5\sin(2\pi x),$$"
+        r" on :math:`0\le x<1`. The exact particle map is :math:`x(q,t)=q+0.5t\sin(2\pi q)` (modulo one), with first caustic at :math:`t_c=1/\pi`."
+    ),
+    env=env,
+    time_opts=Time(dt=0.005, Tend=0.6, split_algo="Strang"),
+    domain=domain,
+    grid=grids.TensorProductGrid(num_elements=(boxes, 1, 1)),  # for the model's (vanishing) force field
+    derham_opts=DerhamOptions(degree=(3, 1, 1)),
+)
 
-def pproc(sim: Simulation):
 
+def exact_density(edges, time, samples=4_000_000):
+    """The exact density, averaged over the cells given by `edges`, at `time`.
+
+    Each of `samples` equal fluid elements moves to x = x0 + u(x0) t, so the mass in a cell is the number
+    of elements that land in it. This sums over all streams, also after the caustic.
+    """
+    x0 = (np.arange(samples) + 0.5) / samples
+    x = (x0 + amplitude * np.sin(2 * np.pi * x0) * time) % 1.0
+    counts, _ = np.histogram(x, bins=edges)
+    return counts / samples / np.diff(edges)
+
+
+if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, is_root, merge_metadata, save_figure
 
-    output = sim.output
+    output = sim.run(profiling_activated=True)
     output.pproc()
 
     density = output.evaluate("cold_fluid/view_0/n").isel(e2=0, e3=0)  # (t, e1): the SPH density estimate
@@ -162,15 +170,3 @@ def pproc(sim: Simulation):
         densityErrorAfter=error_after, markers=int(positions.shape[1]),
         **export_profiling(sim, "zeldovich-caustic"),
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

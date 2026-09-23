@@ -11,8 +11,6 @@ Adapted from Struphy's tutorial (tutorials/tutorial_dam_break_sph.ipynb).
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -43,71 +41,68 @@ boxes_per_dimension = 8
 markers_per_box = 32
 density_points = 41
 
+model = ViscousEulerSPH(with_B0=False, with_p=True, with_viscosity=True)
+model.propagators.push_eta.options = model.propagators.push_eta.Options(
+    butcher=ButcherTableau(algo="forward_euler"),
+)
+model.propagators.push_sph_p.options = model.propagators.push_sph_p.Options(
+    kernel_type="gaussian_2d",
+    gravity=(0.0, -gravity, 0.0),
+    kappa=kappa,
+)
+model.propagators.push_viscous.options = model.propagators.push_viscous.Options(
+    kernel_type="gaussian_2d",
+    mu=viscosity,
+)
 
 # A closed box of unit size with reflecting walls, and mirror ghost markers for the SPH kernels.
+domain = domains.Cuboid(r1=1.0, r2=1.0)
+model.euler_fluid.set_markers(
+    loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
+    # The box is loaded uniformly with almost no weight outside the column; those markers are removed.
+    weights_params=WeightsParameters(reject_weights=True, threshold=1e-6),
+    boundary_params=BoundaryParameters(bc=("reflect", "reflect", "periodic"), bc_sph=("mirror", "mirror", "periodic")),
+    sorting_params=SortingParameters(
+        boxes_per_dim=(boxes_per_dimension, boxes_per_dimension, 1), dims_mask=(True, True, False)
+    ),
+    # Save every marker at every step, and a kernel density estimate on a grid.
+    saving_params=SavingParameters(
+        n_markers=1.0,
+        kernel_density_plots=(KernelDensityPlot(pts_e1=density_points, pts_e2=density_points, pts_e3=1),),
+    ),
+    bufsize=2,
+)
 
 # The dense column occupies x < 1/4; everywhere else the density is negligible.
+model.euler_fluid.var.add_background(
+    equils.ConstantVelocity(density_profile="step_function_xy", n=column_density, upper_x=0.25, upper_y=1.0),
+)
 
-def create_simulation() -> Simulation:
-    model = ViscousEulerSPH(with_B0=False, with_p=True, with_viscosity=True)
-    model.propagators.push_eta.options = model.propagators.push_eta.Options(
-        butcher=ButcherTableau(algo="forward_euler"),
-    )
-    model.propagators.push_sph_p.options = model.propagators.push_sph_p.Options(
-        kernel_type="gaussian_2d",
-        gravity=(0.0, -gravity, 0.0),
-        kappa=kappa,
-    )
-    model.propagators.push_viscous.options = model.propagators.push_viscous.Options(
-        kernel_type="gaussian_2d",
-        mu=viscosity,
-    )
-    domain = domains.Cuboid(r1=1.0, r2=1.0)
-    model.euler_fluid.set_markers(
-        loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
-        # The box is loaded uniformly with almost no weight outside the column; those markers are removed.
-        weights_params=WeightsParameters(reject_weights=True, threshold=1e-6),
-        boundary_params=BoundaryParameters(bc=("reflect", "reflect", "periodic"), bc_sph=("mirror", "mirror", "periodic")),
-        sorting_params=SortingParameters(
-            boxes_per_dim=(boxes_per_dimension, boxes_per_dimension, 1), dims_mask=(True, True, False)
-        ),
-        # Save every marker at every step, and a kernel density estimate on a grid.
-        saving_params=SavingParameters(
-            n_markers=1.0,
-            kernel_density_plots=(KernelDensityPlot(pts_e1=density_points, pts_e2=density_points, pts_e3=1),),
-        ),
-        bufsize=2,
-    )
-    model.euler_fluid.var.add_background(
-        equils.ConstantVelocity(density_profile="step_function_xy", n=column_density, upper_x=0.25, upper_y=1.0),
-    )
-    env = EnvironmentOptions(
-        out_folders="struphy_gallery_runs",
-        sim_folder="dam_break",
-    )
-    simulation = Simulation(
-        model=model,
-        name="Dam break",
-        description=(
-            "A dense fluid column collapses under gravity in a closed box. Smoothed "
-            "particle hydrodynamics follows the collapse, the wave across the box and "
-            "the settling of the fluid, using markers alone."
-            r" The column starts at rest with $$n(x,y,0)=\begin{cases}0.1,&0\le x<0.25,\ 0\le y<1,\\0,&\text{elsewhere},\end{cases}$$"
-            r" in the unit square, under gravity :math:`\mathbf{g}=(0,-10,0)`."
-        ),
-        env=env,
-        time_opts=Time(dt=0.02, Tend=3.0, split_algo="Strang"),
-        domain=domain,
-        grid=None,
-        derham_opts=None,
-    )
-    return simulation
+env = EnvironmentOptions(
+    out_folders="struphy_gallery_runs",
+    sim_folder="dam_break",
+)
+sim = Simulation(
+    model=model,
+    name="Dam break",
+    description=(
+        "A dense fluid column collapses under gravity in a closed box. Smoothed "
+        "particle hydrodynamics follows the collapse, the wave across the box and "
+        "the settling of the fluid, using markers alone."
+        r" The column starts at rest with $$n(x,y,0)=\begin{cases}0.1,&0\le x<0.25,\ 0\le y<1,\\0,&\text{elsewhere},\end{cases}$$"
+        r" in the unit square, under gravity :math:`\mathbf{g}=(0,-10,0)`."
+    ),
+    env=env,
+    time_opts=Time(dt=0.02, Tend=3.0, split_algo="Strang"),
+    domain=domain,
+    grid=None,
+    derham_opts=None,
+)
 
-def pproc(sim: Simulation):
-
+if __name__ == "__main__":
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.output
+    output = sim.run(profiling_activated=True)
     output.pproc()
 
     density = output.evaluate("euler_fluid/view_0/n").isel(e3=0)  # (t, e1, e2)
@@ -272,15 +267,3 @@ def pproc(sim: Simulation):
         figures=figures,
         **profiling,
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

@@ -12,8 +12,6 @@ Adapted from Struphy's particle-tracing tutorial (tutorials/tutorial_particle_tr
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -35,6 +33,9 @@ from struphy import (
 from struphy.models import GuidingCenter
 
 # A circular tokamak (minor radius 1, major radius 3) with a field strength of 2 on the axis.
+equil = equils.AdhocTorus(B0=2.0)
+domain = domains.Tokamak(equilibrium=equil, num_elements=(4, 16), degree=(2, 3))
+equil.domain = domain
 
 # Eight markers on the outboard midplane of the flux surface eta1 = 0.5, all with speed 3 and
 # different pitch. The state of a guiding center is (position, v_parallel, mu), with the magnetic
@@ -42,60 +43,54 @@ from struphy.models import GuidingCenter
 speed = 3.0
 pitches = (-0.9, -0.75, -0.5, -0.25, 0.25, 0.5, 0.75, 0.9)
 start_eta1 = 0.5
+b_start = float(equil.absB0(start_eta1, 0.0, 0.0, squeeze_out=True))
+initial = tuple(
+    (start_eta1, 0.0, 0.0, speed * pitch, speed**2 * (1.0 - pitch**2) / (2.0 * b_start)) for pitch in pitches
+)
 
+model = GuidingCenter()
+model.kinetic_ions.set_markers(
+    loading_params=LoadingParameters(Np=len(initial), seed=1, specific_markers=initial),
+    weights_params=WeightsParameters(),
+    # A marker that leaves through the plasma edge is removed; the angles are periodic.
+    boundary_params=BoundaryParameters(bc=("remove", "periodic", "periodic")),
+    saving_params=SavingParameters(n_markers=1.0),
+    bufsize=2.0,
+)
+model.propagators.push_bxe.options = model.propagators.push_bxe.Options(tol=1e-5)
+model.propagators.push_parallel.options = model.propagators.push_parallel.Options(tol=1e-5)
+model.kinetic_ions.var.add_background(maxwellians.GyroMaxwellian2D(n=(1.0, None), B0=b_start))
 
 # The equilibrium is projected onto splines, which the guiding-center pusher evaluates.
+grid = grids.TensorProductGrid(num_elements=(32, 64, 1))
+derham_opts = DerhamOptions(degree=(3, 3, 1), bcs=(("free", "free"), None, None))
 
-def create_simulation() -> Simulation:
-    equil = equils.AdhocTorus(B0=2.0)
-    domain = domains.Tokamak(equilibrium=equil, num_elements=(4, 16), degree=(2, 3))
-    equil.domain = domain
-    b_start = float(equil.absB0(start_eta1, 0.0, 0.0, squeeze_out=True))
-    initial = tuple(
-        (start_eta1, 0.0, 0.0, speed * pitch, speed**2 * (1.0 - pitch**2) / (2.0 * b_start)) for pitch in pitches
-    )
-    model = GuidingCenter()
-    model.kinetic_ions.set_markers(
-        loading_params=LoadingParameters(Np=len(initial), seed=1, specific_markers=initial),
-        weights_params=WeightsParameters(),
-        # A marker that leaves through the plasma edge is removed; the angles are periodic.
-        boundary_params=BoundaryParameters(bc=("remove", "periodic", "periodic")),
-        saving_params=SavingParameters(n_markers=1.0),
-        bufsize=2.0,
-    )
-    model.propagators.push_bxe.options = model.propagators.push_bxe.Options(tol=1e-5)
-    model.propagators.push_parallel.options = model.propagators.push_parallel.Options(tol=1e-5)
-    model.kinetic_ions.var.add_background(maxwellians.GyroMaxwellian2D(n=(1.0, None), B0=b_start))
-    grid = grids.TensorProductGrid(num_elements=(32, 64, 1))
-    derham_opts = DerhamOptions(degree=(3, 3, 1), bcs=(("free", "free"), None, None))
-    env = EnvironmentOptions(
-        out_folders="struphy_gallery_runs",
-        sim_folder="guiding_center_orbits",
-    )
-    simulation = Simulation(
-        model=model,
-        name="Guiding-center orbits in a tokamak",
-        description=(
-            "Guiding centers with different pitch angles follow the field of a circular tokamak: "
-            "particles with large parallel velocity circle the magnetic axis; others are reflected on the high-field "
-            "side and bounce in banana-shaped orbits."
-            r" At the logical launch point :math:`\boldsymbol{\eta}_0=(0.5,0,0)`, the markers have $$v_{\parallel,0}=3\xi,\qquad \mu=\frac{9(1-\xi^2)}{2B_{\mathrm{start}}},$$"
-            r" with pitch :math:`\xi\in\{\pm0.25,\pm0.5,\pm0.75,\pm0.9\}` and :math:`B_{\mathrm{start}}=|\mathbf{B}(\boldsymbol{\eta}_0)|`."
-        ),
-        env=env,
-        time_opts=Time(dt=0.05, Tend=100.0, split_algo="Strang"),
-        domain=domain,
-        equil=equil,
-        grid=grid,
-        derham_opts=derham_opts,
-    )
-    return simulation
+env = EnvironmentOptions(
+    out_folders="struphy_gallery_runs",
+    sim_folder="guiding_center_orbits",
+)
+sim = Simulation(
+    model=model,
+    name="Guiding-center orbits in a tokamak",
+    description=(
+        "Guiding centers with different pitch angles follow the field of a circular tokamak: "
+        "particles with large parallel velocity circle the magnetic axis; others are reflected on the high-field "
+        "side and bounce in banana-shaped orbits."
+        r" At the logical launch point :math:`\boldsymbol{\eta}_0=(0.5,0,0)`, the markers have $$v_{\parallel,0}=3\xi,\qquad \mu=\frac{9(1-\xi^2)}{2B_{\mathrm{start}}},$$"
+        r" with pitch :math:`\xi\in\{\pm0.25,\pm0.5,\pm0.75,\pm0.9\}` and :math:`B_{\mathrm{start}}=|\mathbf{B}(\boldsymbol{\eta}_0)|`."
+    ),
+    env=env,
+    time_opts=Time(dt=0.05, Tend=100.0, split_algo="Strang"),
+    domain=domain,
+    equil=equil,
+    grid=grid,
+    derham_opts=derham_opts,
+)
 
-def pproc(sim: Simulation):
-
+if __name__ == "__main__":
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.output
+    output = sim.run(profiling_activated=True)
     output.pproc()
 
     # (t, marker, quantity) with the quantities named x, y, z, v1, v2, ...: the position in Cartesian
@@ -422,15 +417,3 @@ def pproc(sim: Simulation):
         figures=figures,
         **profiling,
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

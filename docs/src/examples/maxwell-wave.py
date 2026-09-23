@@ -7,8 +7,6 @@ FEEC, and plots the numerical dispersion relation against omega = c k.
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -25,49 +23,46 @@ from struphy.diagnostics.diagn_tools import power_spectrum_2d
 from struphy.models import Maxwell
 
 # Model and structure-preserving Maxwell propagator.
+model = Maxwell()
+model.propagators.maxwell.options = model.propagators.maxwell.Options(
+    algo="implicit",
+)
 
 # A periodic one-dimensional domain embedded in 3D.
+domain = domains.Cuboid(r3=20.0)
+grid = grids.TensorProductGrid(num_elements=(1, 1, 128))
+derham_opts = DerhamOptions(degree=(1, 1, 3))
+time_opts = Time(dt=0.01, Tend=50.0)
 
 # Broadband noise excites several light-wave modes at once.
+model.em_fields.e_field.add_perturbation(
+    perturbations.Noise(amp=0.1, comp=0, seed=123),
+)
+model.em_fields.e_field.add_perturbation(
+    perturbations.Noise(amp=0.1, comp=1, seed=123),
+)
 
-def create_simulation() -> Simulation:
-    model = Maxwell()
-    model.propagators.maxwell.options = model.propagators.maxwell.Options(
-        algo="implicit",
-    )
-    domain = domains.Cuboid(r3=20.0)
-    grid = grids.TensorProductGrid(num_elements=(1, 1, 128))
-    derham_opts = DerhamOptions(degree=(1, 1, 3))
-    time_opts = Time(dt=0.01, Tend=50.0)
-    model.em_fields.e_field.add_perturbation(
-        perturbations.Noise(amp=0.1, comp=0, seed=123),
-    )
-    model.em_fields.e_field.add_perturbation(
-        perturbations.Noise(amp=0.1, comp=1, seed=123),
-    )
-    env = EnvironmentOptions(
-        out_folders="struphy_gallery_runs",
-        sim_folder="maxwell_light_wave",
-    )
-    simulation = Simulation(
-        model=model,
-        name="Maxwell light-wave dispersion",
-        description=(
-            "Excite a broadband electric field and recover the vacuum dispersion "
-            "relation ω = ck with Struphy’s FEEC Maxwell solver."
-            r" The two transverse electric components start with coefficient-noise amplitude :math:`A=0.1`, while :math:`\mathbf{B}(z,0)=0`."
-            r" On the periodic interval :math:`L_z=20`, the allowed wavenumbers are $$k_n=\frac{2\pi n}{20},\qquad n\in\mathbb{Z}.$$"
-        ),
-        env=env,
-        time_opts=time_opts,
-        domain=domain,
-        grid=grid,
-        derham_opts=derham_opts,
-    )
-    return simulation
+env = EnvironmentOptions(
+    out_folders="struphy_gallery_runs",
+    sim_folder="maxwell_light_wave",
+)
+sim = Simulation(
+    model=model,
+    name="Maxwell light-wave dispersion",
+    description=(
+        "Excite a broadband electric field and recover the vacuum dispersion "
+        "relation ω = ck with Struphy’s FEEC Maxwell solver."
+        r" The two transverse electric components start with coefficient-noise amplitude :math:`A=0.1`, while :math:`\mathbf{B}(z,0)=0`."
+        r" On the periodic interval :math:`L_z=20`, the allowed wavenumbers are $$k_n=\frac{2\pi n}{20},\qquad n\in\mathbb{Z}.$$"
+    ),
+    env=env,
+    time_opts=time_opts,
+    domain=domain,
+    grid=grid,
+    derham_opts=derham_opts,
+)
 
-def pproc(sim: Simulation):
-
+if __name__ == "__main__":
     from _gallery import (
         export_profiling,
         merge_metadata,
@@ -79,6 +74,7 @@ def pproc(sim: Simulation):
     # Run, evaluate the FEEC fields on a grid, and load the result.
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
+    sim.run(profiling_activated=True)
     output = sim.output.process(create_vtk=False)
 
     # Struphy's diagnostic computes the (k, omega) spectrum and fits its branch.
@@ -190,15 +186,3 @@ def pproc(sim: Simulation):
         figures=figures,
         **profiling,
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)

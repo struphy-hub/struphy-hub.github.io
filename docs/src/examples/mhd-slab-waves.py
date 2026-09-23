@@ -10,8 +10,6 @@ Adapted from Struphy's tutorial (tutorials/tutorial_linear_mhd_slab_waves_1d.ipy
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
-import argparse
-
 import numpy as np
 import plotly.graph_objects as go
 
@@ -35,47 +33,45 @@ exact_speeds = {
     "fast": np.sqrt(0.5 * (sound_speed**2 + alfven_speed**2) * (1.0 + np.sqrt(1.0 - delta))),
 }
 
+model = LinearMHD()
+model.propagators.shear_alf.options = model.propagators.shear_alf.Options(algo="implicit")
 
 # Broadband noise in all three velocity components, so that every branch is excited.
+for component in range(3):
+    model.mhd.velocity.add_perturbation(perturbations.Noise(amp=0.1, comp=component, seed=123))
+
+domain = domains.Cuboid(r3=60.0)
+grid = grids.TensorProductGrid(num_elements=(1, 1, 64))
+derham_opts = DerhamOptions(degree=(1, 1, 3))
+equil = equils.HomogenSlab(B0x=B0x, B0y=B0y, B0z=B0z, beta=beta, n0=n0)
+time_opts = Time(dt=0.15, Tend=180.0)
+
+env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="mhd_slab_waves")
+sim = Simulation(
+    model=model,
+    name="MHD waves in a magnetized slab",
+    description=(
+        "Broadband noise excites the shear Alfvén wave and the slow and fast magnetosonic waves of a "
+        "uniform, obliquely magnetized plasma. The power spectra of the velocity and the pressure show "
+        "the three branches, and their fitted speeds are compared with the exact ideal-MHD values."
+        r" The equilibrium parameters are $$\mathbf{B}_0=(0,1,1),\qquad n_0=0.7,\qquad p_0=\frac{\beta|\mathbf{B}_0|^2}{2}=3,$$"
+        r" with :math:`\beta=3` and :math:`\gamma=5/3`. All three velocity components receive coefficient noise of amplitude :math:`0.1` in a periodic interval :math:`L_z=60`."
+    ),
+    env=env,
+    time_opts=time_opts,
+    domain=domain,
+    equil=equil,
+    grid=grid,
+    derham_opts=derham_opts,
+)
 
 
-def create_simulation() -> Simulation:
-    model = LinearMHD()
-    model.propagators.shear_alf.options = model.propagators.shear_alf.Options(algo="implicit")
-    for component in range(3):
-        model.mhd.velocity.add_perturbation(perturbations.Noise(amp=0.1, comp=component, seed=123))
-    domain = domains.Cuboid(r3=60.0)
-    grid = grids.TensorProductGrid(num_elements=(1, 1, 64))
-    derham_opts = DerhamOptions(degree=(1, 1, 3))
-    equil = equils.HomogenSlab(B0x=B0x, B0y=B0y, B0z=B0z, beta=beta, n0=n0)
-    time_opts = Time(dt=0.15, Tend=180.0)
-    env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="mhd_slab_waves")
-    simulation = Simulation(
-        model=model,
-        name="MHD waves in a magnetized slab",
-        description=(
-            "Broadband noise excites the shear Alfvén wave and the slow and fast magnetosonic waves of a "
-            "uniform, obliquely magnetized plasma. The power spectra of the velocity and the pressure show "
-            "the three branches, and their fitted speeds are compared with the exact ideal-MHD values."
-            r" The equilibrium parameters are $$\mathbf{B}_0=(0,1,1),\qquad n_0=0.7,\qquad p_0=\frac{\beta|\mathbf{B}_0|^2}{2}=3,$$"
-            r" with :math:`\beta=3` and :math:`\gamma=5/3`. All three velocity components receive coefficient noise of amplitude :math:`0.1` in a periodic interval :math:`L_z=60`."
-        ),
-        env=env,
-        time_opts=time_opts,
-        domain=domain,
-        equil=equil,
-        grid=grid,
-        derham_opts=derham_opts,
-    )
-    return simulation
-
-def pproc(sim: Simulation):
-
+if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, merge_metadata, save_figure
 
-    output = sim.output
+    output = sim.run(profiling_activated=True)
     output.pproc(physical=True)
 
     disp_params = {"B0x": B0x, "B0y": B0y, "B0z": B0z, "p0": p0, "n0": n0, "gamma": gamma}
@@ -153,15 +149,3 @@ def pproc(sim: Simulation):
         measuredFastSpeed=measured_speeds["fast"], exactFastSpeed=float(exact_speeds["fast"]),
         **export_profiling(sim, "mhd-slab-waves"),
     )
-
-
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description="Run the example.")
-    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
-    args = argparser.parse_args()
-    simulation = create_simulation()
-    if args.pproc:
-        pproc(simulation)
-    else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)
