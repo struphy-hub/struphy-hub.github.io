@@ -7,6 +7,7 @@ export interface ExamplePageConfig {
 
 /** Small, hand-written presentation layer for the generated example results. */
 export const exampleConfig: Record<string, ExamplePageConfig> = {
+  'toroidal-shear-alfven': { category: 'MHD waves', setupTitle: 'Coupled poloidal modes in a circular tokamak', plotTitle: 'Physical velocity components on a poloidal slice', plotAlt: 'Animated minor-radial, poloidal and toroidal velocity in a hollow tokamak cross-section' },
   'ordinary-mode-dispersion': { category: 'Plasma waves', setupTitle: 'Electromagnetic waves above the plasma cutoff', plotTitle: 'Ordinary-mode frequencies and the plasma cutoff', plotAlt: 'Four measured ordinary-wave frequencies on the cold-plasma dispersion curve, with their electric-field oscillations' },
   'faraday-rotation': { category: 'Plasma wave polarization', setupTitle: 'Two circular waves rotate a linear polarization', plotTitle: 'Faraday rotation along a magnetized plasma', plotAlt: 'Animated three-dimensional electric-field wave train alongside the measured rotation of its polarization axis' },
   'grad-b-drift': { category: 'Particle drifts', setupTitle: 'Gyration in a magnetic-field gradient', plotTitle: 'Grad-B drift of full-orbit test ions', plotAlt: 'Three gyrating ions drifting across a magnetic-field gradient, with drift velocities compared against perpendicular energy' },
