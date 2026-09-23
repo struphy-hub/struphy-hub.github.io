@@ -188,7 +188,10 @@ def print_artifacts(stem: str, artifacts: Artifacts, indent: str = "  ") -> None
             "Interactive figures",
             [p for p in artifacts.figures if p.name.endswith(".plotly.json")],
         ),
-        ("Standalone HTML figures", [p for p in artifacts.figures if p.suffix == ".html"]),
+        (
+            "Standalone HTML figures",
+            [p for p in artifacts.figures if p.suffix == ".html"],
+        ),
         ("Static images", [p for p in artifacts.figures if p.suffix == ".png"]),
         ("Metadata and profiling", artifacts.data),
         ("Gallery thumbnails", artifacts.thumbnails),
@@ -454,7 +457,11 @@ def cmd_pproc(args: argparse.Namespace) -> int:
         ok, seconds, artifacts, message = run_one(stem, args, postprocess_only=True)
         results.append((stem, ok, seconds))
         if ok:
-            print(green(f"\n  {stem}: post-processing done in {human_time(seconds)}. Generated files:"))
+            print(
+                green(
+                    f"\n  {stem}: post-processing done in {human_time(seconds)}. Generated files:"
+                )
+            )
             print_artifacts(stem, artifacts)
             if args.open:
                 open_example_page(stem)

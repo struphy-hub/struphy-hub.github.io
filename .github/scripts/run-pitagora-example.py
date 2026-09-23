@@ -11,7 +11,6 @@ from pathlib import Path
 from slurm_script_generator.slurm_script import SlurmScript
 from slurm_script_generator.squeue import SQueue
 
-
 MODULES = [
     "gcc/12.3.0",
     "python/3.11.7",
@@ -64,9 +63,7 @@ def main() -> int:
     else:
         # mpi4py must see the Open MPI environment that `cli.py --mpi` creates.
         commands.append("unset STRUPHY_MPI")
-    commands.append(
-        f"python cli.py run {shlex.quote(args.example)} --mpi {mpi_ranks}"
-    )
+    commands.append(f"python cli.py run {shlex.quote(args.example)} --mpi {mpi_ranks}")
 
     script = SlurmScript(
         job_name=job_name,
@@ -87,9 +84,9 @@ def main() -> int:
     print(f"Submitted {job_name} as Slurm job {job_id}")
 
     try:
-        state = SQueue().wait_until_done(
-            job_id=job_id, poll_interval=15, check=True
-        )[job_id]
+        state = SQueue().wait_until_done(job_id=job_id, poll_interval=15, check=True)[
+            job_id
+        ]
         print(f"Slurm job {job_id} finished with state {state or 'unknown'}.")
     finally:
         tail_log(workspace / f"slurm-{job_name}-{job_id}.out")

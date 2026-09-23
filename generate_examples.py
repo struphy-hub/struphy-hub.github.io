@@ -110,7 +110,9 @@ def main(stems: list[str] | None = None) -> None:
             if callable(create_simulation):
                 sim = create_simulation()
         if sim is None:
-            print(f"Skipping {script.name}: no module-level `sim` or `create_simulation()` found")
+            print(
+                f"Skipping {script.name}: no module-level `sim` or `create_simulation()` found"
+            )
             continue
 
         output_path = OUTPUT_DIR / f"{script.stem}.metadata.json"
