@@ -93,6 +93,15 @@ sim = Simulation(
 )
 
 
+def physical_radial_component(output, field_xyz):
+    """Project Cartesian components onto the local minor-radial unit vector."""
+    params = output.domain.params
+    theta = 2 * np.pi * field_xyz.e2
+    phi = -2 * np.pi * field_xyz.e3 / params["tor_period"]
+    fx, fy, fz = (field_xyz.isel(component=c, drop=True) for c in range(3))
+    return (fx * np.cos(phi) + fy * np.sin(phi)) * np.cos(theta) + fz * np.sin(theta)
+
+
 def radial_mode_amplitudes(output, field_xyz, poloidal_modes=(9, 10, 11, 12), sector_mode=-1):
     """Normalized radial profiles of physical (m, n_sector) Fourier amplitudes.
 
@@ -101,10 +110,7 @@ def radial_mode_amplitudes(output, field_xyz, poloidal_modes=(9, 10, 11, 12), se
     relative strengths. This is a spatial FFT, not a temporal band selection.
     """
     params = output.domain.params
-    theta = 2 * np.pi * field_xyz.e2
-    phi = -2 * np.pi * field_xyz.e3 / params["tor_period"]
-    fx, fy, fz = (field_xyz.isel(component=c, drop=True) for c in range(3))
-    radial = (fx * np.cos(phi) + fy * np.sin(phi)) * np.cos(theta) + fz * np.sin(theta)
+    radial = physical_radial_component(output, field_xyz)
     # Convert to the rotating radial basis BEFORE transforming in toroidal angle.
     # Cartesian components themselves are not periodic across the sector seam.
     radial = radial.isel({dim: np.flatnonzero(radial[dim].values < 1.0 - 1e-12)
@@ -130,6 +136,78 @@ def radial_mode_amplitudes(output, field_xyz, poloidal_modes=(9, 10, 11, 12), se
                             full_torus_mode=abs(sector_mode * params["tor_period"]),
                             snapshot_time=float(field_xyz.t))
     return normalized
+
+
+def fixed_theta_amplitudes(output, field_xyz, angles=(0.0, 45.0), sector_mode=-1):
+    """Toroidal Fourier amplitudes at fixed poloidal angles (in degrees).
+
+    Retain the coherent sum of all poloidal harmonics. One normalization over
+    both angles and all radii preserves the difference between the two rays.
+    """
+    radial = physical_radial_component(output, field_xyz)
+    # Interpolate the physical radial field only if an angle is off the display
+    # grid. The default 0 and 45 degree rays lie exactly on that grid.
+    rays = radial.interp(e2=np.asarray(angles) / 360.0)
+    rays = rays.isel(e3=np.flatnonzero(rays.e3.values < 1.0 - 1e-12))
+    coefficients = output.fft(rays, dim="e3")
+    selected = coefficients.sel(k_e3=2 * np.pi * sector_mode, method="nearest")
+    if not np.isclose(float(selected.k_e3) / (2 * np.pi), sector_mode):
+        raise ValueError("Toroidal sampling does not resolve the requested Fourier mode.")
+    amplitude = 2 * abs(selected)
+    if not np.isfinite(amplitude.values).all():
+        raise RuntimeError("Non-finite fixed-angle Fourier amplitude.")
+    peak = float(amplitude.max())
+    normalized = (amplitude / (peak if peak > 0 else 1.0)).rename({"e2": "theta_degrees"})
+    params = output.domain.params
+    normalized = normalized.assign_coords(
+        theta_degrees=list(angles),
+        radius=params["a1"] + (params["a2"] - params["a1"]) * normalized.e1,
+    ).rename("normalized_fft_amplitude")
+    normalized.attrs.update(normalization_amplitude=peak, snapshot_time=float(field_xyz.t),
+                            full_torus_mode=abs(sector_mode * params["tor_period"]))
+    return normalized
+
+
+def save_fixed_theta_fft_figures(output):
+    """Export the two angle comparisons; usable directly with saved output."""
+    from _gallery import save_extra_figure
+
+    figures = []
+    for field_name, label, key in (
+        ("mhd/velocity_xyz", "u_r", "fixed-theta-fft-velocity"),
+        ("em_fields/b_field_xyz", "δB_r", "fixed-theta-fft-magnetic"),
+    ):
+        profiles = fixed_theta_amplitudes(output, output.evaluate(field_name, isel={"t": -1}))
+        time = profiles.attrs["snapshot_time"]
+        toroidal_mode = profiles.attrs["full_torus_mode"]
+        figure = go.Figure()
+        for angle, color, dash in ((0.0, "#0072B2", "solid"), (45.0, "#D55E00", "dash")):
+            figure.add_scatter(
+                x=profiles.radius.values, y=profiles.sel(theta_degrees=angle).values,
+                mode="lines+markers", name=f"θ={angle:g}°", marker={"size": 4},
+                line={"color": color, "dash": dash, "width": 2.5},
+                hovertemplate=f"θ={angle:g}°<br>r=%{{x:.3f}}<br>Normalized amplitude=%{{y:.4f}}<extra></extra>",
+            )
+        figure.update_layout(
+            title=f"Fixed-angle radial FFT amplitude · {label} · |n|={toroidal_mode:g}, t={time:g}",
+            xaxis_title="Minor radius r", yaxis_title="Normalized FFT amplitude",
+            xaxis={"range": [float(profiles.radius[0]), float(profiles.radius[-1])]},
+            yaxis={"range": [0, 1.05]}, template="plotly_white",
+            margin={"l": 85, "r": 35, "t": 95, "b": 75},
+            legend={"title": {"text": "Poloidal angle"}},
+        )
+        figures.append(save_extra_figure(
+            figure, STEM, key,
+            alt=f"Normalized toroidal FFT amplitude of {label} versus radius at theta zero and 45 degrees",
+            caption=f"Physical {label} at θ=0° and θ=45°, at the final saved time t={time:g}. "
+            f"The FFT is taken only in toroidal angle, selecting sector mode −1 (full-torus |n|={toroidal_mode:g}). "
+            "All poloidal harmonics contribute coherently at each angle; there is no poloidal or time FFT. "
+            "The duplicate toroidal endpoint is excluded. Both curves share the same maximum-amplitude "
+            "normalization over the two angles and all radii, separately for each field. "
+            "The magnetic field is the perturbation. The requested angles lie on the default evaluation grid; "
+            "other grids use linear interpolation of the physical radial field where needed.",
+        ))
+    return figures
 
 
 def plot_results(output, simulation_seconds):
@@ -473,6 +551,7 @@ def plot_results(output, simulation_seconds):
             "The duplicate periodic endpoint is excluded. Positive-mode amplitudes are 2|FFT|/N, "
             "followed by RMS over sampled radii, with no volume weighting. Dotted lines identify the seeded m=10,11 modes."),
         *radial_mode_figures,
+        *save_fixed_theta_fft_figures(output),
         save_extra_figure(frequency_plot, STEM, "time-fft",
             alt="Temporal spectra of three physical velocity components with selected dominant frequency bands",
             caption="One-sided power per frequency bin from the signed velocity, averaged over sampled points "
