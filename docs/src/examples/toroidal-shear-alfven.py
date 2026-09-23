@@ -268,6 +268,95 @@ def plot_results(output, simulation_seconds):
         template="plotly_white", margin={"l": 60, "r": 100, "t": 90, "b": 70},
     )
 
+    # Transform signed physical components, before taking RMS or squaring:
+    # transforming a velocity magnitude/energy would change its frequencies.
+    # Omit the duplicated poloidal endpoint from spatial sums.
+    plane = velocity.copy(data=components).assign_coords(component=list(labels))
+    plane = plane.isel(e2=np.flatnonzero(periodic)).rename("physical_poloidal_velocity")
+    temporal = output.time_fft(plane)
+    band = output.filter_time(plane, dims=("e1", "e2"), pad_bins=0)
+    positive = temporal.power.isel(omega=slice(1, None))
+    omega = positive.omega.values
+    frequency_resolution = temporal.attrs["frequency_resolution"]
+    mean_power = positive.mean(("e1", "e2"))
+    radius_power = positive.mean("e2")
+    frequency_plot = make_subplots(rows=1, cols=3, subplot_titles=titles, horizontal_spacing=0.1)
+    radius_spectrum = make_subplots(rows=1, cols=3, subplot_titles=labels, horizontal_spacing=0.12)
+    filtered_probe = make_subplots(rows=1, cols=3, subplot_titles=labels, horizontal_spacing=0.12)
+    for component, label in enumerate(labels):
+        power = mean_power.isel(component=component).values
+        frequency_plot.add_scatter(
+            x=omega, y=power / max(float(power.max()), 1e-30), mode="lines+markers",
+            name="Power", showlegend=False, line={"color": "#0072B2"}, row=1, col=component + 1,
+        )
+        selected = band.spectrum.isel(component=component)
+        if bool(selected.has_peak):
+            # Bin edges make a one-bin FWHM band visible; metadata retains bin centers.
+            frequency_plot.add_vrect(
+                x0=max(0, float(selected.omega_lo) - frequency_resolution / 2),
+                x1=float(selected.omega_hi) + frequency_resolution / 2,
+                fillcolor="#E69F00", opacity=0.2, line_width=0, row=1, col=component + 1,
+            )
+        local_power = radius_power.isel(component=component).transpose("omega", "e1").values
+        log_power = np.log10(np.maximum(local_power / max(float(local_power.max()), 1e-30), 1e-6))
+        radius_spectrum.add_trace(go.Heatmap(
+            x=radii, y=omega, z=log_power, zmin=-6, zmax=0, colorscale="Magma",
+            colorbar={"title": "log₁₀ P/Pmax", "x": (0.28, 0.64, 1.0)[component], "len": 0.8,
+                      "thickness": 10, "title_font": {"size": 10}},
+            hovertemplate="r=%{x:.3f}<br>ω=%{y:.3f}<br>log₁₀ P/Pmax=%{z:.2f}<extra></extra>",
+        ), row=1, col=component + 1)
+        radius_spectrum.update_yaxes(showticklabels=component == 0, row=1, col=component + 1)
+        for field, name, color, dash in ((plane, "Original", "#0072B2", "solid"),
+                                         (band.filtered, "Dominant band", "#D55E00", "dash")):
+            probe = field.isel(component=component, e1=radial_probe, e2=angle_probe)
+            filtered_probe.add_scatter(
+                x=times, y=probe.values, mode="lines+markers", name=name, legendgroup=name,
+                showlegend=component == 0, line={"color": color, "dash": dash}, marker={"size": 4},
+                row=1, col=component + 1,
+            )
+        filtered_probe.update_yaxes(title_text=label, exponentformat="power", tickfont={"size": 10},
+                                    row=1, col=component + 1)
+    frequency_plot.update_xaxes(title_text="ω (normalized)", range=[0, temporal.attrs["nyquist_frequency"]])
+    frequency_plot.update_yaxes(range=[0, 1.05])
+    frequency_plot.update_yaxes(title_text="Power / peak power", row=1, col=1)
+    frequency_plot.update_layout(
+        title=f"Temporal velocity spectra · Δω = {frequency_resolution:.3f}, N = {len(times)}",
+        template="plotly_white", margin={"l": 65, "r": 30, "t": 100, "b": 80},
+    )
+    radius_spectrum.update_xaxes(title_text="Minor radius r", range=[radii[0], radii[-1]])
+    radius_spectrum.update_yaxes(title_text="ω (normalized)", row=1, col=1)
+    radius_spectrum.update_layout(
+        title="Temporal power versus radius · poloidal average at φ = 0",
+        template="plotly_white", margin={"l": 85, "r": 100, "t": 90, "b": 70},
+    )
+    filtered_probe.update_xaxes(title_text="t")
+    filtered_probe.update_layout(
+        title=f"Dominant-band reconstruction · r = {probe_radius:.3f}, θ = {angle_degrees:g}°, φ = 0",
+        template="plotly_white", margin={"l": 85, "r": 35, "t": 100, "b": 100},
+        legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": -0.18},
+    )
+
+    # Check the seeded poloidal modes in the logical radial component, before
+    # physical-basis rotation introduces additional geometric harmonics.
+    logical_initial = output.evaluate("mhd/velocity").isel(t=0, component=0, e3=0)
+    logical_initial = logical_initial.isel(e2=np.flatnonzero(periodic))
+    poloidal_fft = output.fft(logical_initial, dim="e2")
+    mode_numbers = poloidal_fft.k_e2.values / (2 * np.pi)
+    modal_amplitude = np.sqrt((abs(poloidal_fft) ** 2).mean("e1")).values
+    positive_modes = (mode_numbers > 0) & (mode_numbers <= grid.num_elements[1] // 2)
+    mode_plot = go.Figure(go.Scatter(
+        x=mode_numbers[positive_modes], y=2 * modal_amplitude[positive_modes], mode="lines+markers",
+        line={"color": "#0072B2"}, name="Initial radial mode amplitude",
+    ))
+    for m in modes:
+        mode_plot.add_vline(x=m, line_dash="dot", line_color="#D55E00", annotation_text=f"m={m}",
+                            annotation_position="top left" if m == modes[0] else "top right")
+    mode_plot.update_layout(
+        title="Initial poloidal Fourier modes · logical radial velocity",
+        xaxis_title="Poloidal mode number m", yaxis_title="Mode amplitude (RMS over sampled radii)",
+        template="plotly_white", margin={"l": 85, "r": 35, "t": 100, "b": 70},
+    )
+
     energy = go.Figure()
     for key, label in (("en_U", "Kinetic"), ("en_B", "Magnetic"), ("en_thermal", "Compressional")):
         values = output.evaluate(key)
@@ -298,6 +387,31 @@ def plot_results(output, simulation_seconds):
             "Each component has its own fixed color range in normalized velocity units. "
             f"The white dotted line marks the initial center r={initial_radius:.3f}; the underlying run still uses "
             f"only {grid.num_elements[0]} radial elements."),
+        save_extra_figure(mode_plot, STEM, "poloidal-fft",
+            alt="Initial logical radial velocity Fourier amplitudes with the seeded m=10 and m=11 modes",
+            caption="Poloidal FFT of the initial logical H(div) radial velocity at φ=0. "
+            "The duplicate periodic endpoint is excluded. Positive-mode amplitudes are 2|FFT|/N, "
+            "followed by RMS over sampled radii, with no volume weighting. Dotted lines identify the seeded m=10,11 modes."),
+        save_extra_figure(frequency_plot, STEM, "time-fft",
+            alt="Temporal spectra of three physical velocity components with selected dominant frequency bands",
+            caption="One-sided power per frequency bin from the signed velocity, averaged over sampled points "
+            "in the φ=0 plane. DC is omitted and each panel is normalized to its own largest nonzero-frequency bin. "
+            "Orange shading shows the contiguous half-power band used for reconstruction (no padding). "
+            f"Saved spacing Δt={temporal.attrs['sample_spacing']:g}, N={len(times)}, Δω=2π/(NΔt)={frequency_resolution:.3f}, "
+            f"and Nyquist frequency {temporal.attrs['nyquist_frequency']:.3f}. "
+            "This short, untapered record has coarse frequency resolution and spectral leakage; its largest bin is not a converged TAE frequency."),
+        save_extra_figure(radius_spectrum, STEM, "radial-time-fft",
+            alt="Temporal velocity power as a function of minor radius and angular frequency",
+            caption="Time FFT at each spatial point, followed by poloidal averaging of the power. "
+            "Transforming the signed components before squaring avoids the frequency doubling of quadratic diagnostics. "
+            "Colors show log₁₀(P/Pmax) separately for each component, clipped at −6; DC is omitted. "
+            "The angular average is not weighted by physical volume. Only the actual frequency bins are displayed."),
+        save_extra_figure(filtered_probe, STEM, "filtered-velocity",
+            alt="Original and dominant-band-filtered velocity traces at a probe on the poloidal slice",
+            caption=f"Original and reconstructed physical velocity at r={probe_radius:.3f}, θ={angle_degrees:g}°, φ=0. "
+            "Each component's band is chosen from power summed over the whole sampled poloidal plane, then applied "
+            "at every point before the inverse time FFT. DC and other bins are removed. "
+            "This is a finite-record band-pass diagnostic, not an exact eigenmode; leakage and endpoint ringing remain possible."),
         save_extra_figure(energy, STEM, "energy",
             alt="Kinetic, magnetic and compressional perturbation energies over time",
             caption="Volume-integrated quadratic perturbation energies from LinearMHD. "
@@ -307,6 +421,9 @@ def plot_results(output, simulation_seconds):
     ]
     merge_metadata(
         STEM, figures=figures, simulationSeconds=simulation_seconds,
+        fftFrequencyResolution=frequency_resolution,
+        fftDominantFrequencies=[float(value) if np.isfinite(value) else None
+                               for value in band.spectrum.dominant_frequency.values],
         finalTime=float(times[-1]), savedFrames=len(times), **export_profiling(sim, STEM),
     )
     print(f"Simulation: {simulation_seconds:.1f} s; run and plots: {simulation_seconds + perf_counter() - started:.1f} s")
