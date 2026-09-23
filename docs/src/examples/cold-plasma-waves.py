@@ -9,6 +9,8 @@ E_x shows them, and is compared with the analytic cold-plasma dispersion relatio
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -45,43 +47,46 @@ def parallel_branches(k):
         "whistler": np.array(whistler),
     }
 
-model = ColdPlasma(alpha=alpha, epsilon=epsilon)
-model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
 
-# Broadband noise in both transverse components of E excites the R and L waves together.
-for component in (0, 1):
-    model.em_fields.e_field.add_perturbation(perturbations.Noise(amp=0.1, comp=component, seed=123))
+def create_simulation() -> Simulation:
+    model = ColdPlasma(alpha=alpha, epsilon=epsilon)
+    model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
 
-domain = domains.Cuboid(r3=40.0)
-grid = grids.TensorProductGrid(num_elements=(1, 1, 128))
-derham_opts = DerhamOptions(degree=(1, 1, 3))
-equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=B0z, n0=n0)
-time_opts = Time(dt=0.05, Tend=80.0)
+    # Broadband noise in both transverse components of E excites the R and L waves together.
+    for component in (0, 1):
+        model.em_fields.e_field.add_perturbation(perturbations.Noise(amp=0.1, comp=component, seed=123))
 
-env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="cold_plasma_waves")
-sim = Simulation(
-    model=model,
-    name="Cold-plasma waves along a magnetic field",
-    description=(
-        "Broadband noise excites the right- and left-hand circularly polarized waves of a cold, magnetized "
-        "electron plasma. The power spectrum of the transverse electric field shows the whistler branch below "
-        "the cyclotron frequency and the two cutoffs, on top of the analytic cold-plasma dispersion relation."
-        r" The background parameters are $$\mathbf{B}_0=\mathbf{e}_z,\qquad n_0=1,\qquad \alpha=\epsilon=1,$$"
-        r" with transverse electric coefficient-noise amplitude :math:`0.1`, :math:`E_z(z,0)=0` and periodic length :math:`L_z=40`."
-    ),
-    env=env,
-    time_opts=time_opts,
-    domain=domain,
-    equil=equil,
-    grid=grid,
-    derham_opts=derham_opts,
-)
+    domain = domains.Cuboid(r3=40.0)
+    grid = grids.TensorProductGrid(num_elements=(1, 1, 128))
+    derham_opts = DerhamOptions(degree=(1, 1, 3))
+    equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=B0z, n0=n0)
+    time_opts = Time(dt=0.05, Tend=80.0)
+
+    env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="cold_plasma_waves")
+    sim = Simulation(
+        model=model,
+        name="Cold-plasma waves along a magnetic field",
+        description=(
+            "Broadband noise excites the right- and left-hand circularly polarized waves of a cold, magnetized "
+            "electron plasma. The power spectrum of the transverse electric field shows the whistler branch below "
+            "the cyclotron frequency and the two cutoffs, on top of the analytic cold-plasma dispersion relation."
+            r" The background parameters are $$\mathbf{B}_0=\mathbf{e}_z,\qquad n_0=1,\qquad \alpha=\epsilon=1,$$"
+            r" with transverse electric coefficient-noise amplitude :math:`0.1`, :math:`E_z(z,0)=0` and periodic length :math:`L_z=40`."
+        ),
+        env=env,
+        time_opts=time_opts,
+        domain=domain,
+        equil=equil,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return sim
 
 
-if __name__ == "__main__":
+def pproc(sim: Simulation):
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
 
     omega, k, spectrum, _ = power_spectrum_2d(
@@ -194,3 +199,18 @@ if __name__ == "__main__":
         figures=figures,
         **export_profiling(sim, "cold-plasma-waves"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the cold plasma waves example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+    pproc(simulation)

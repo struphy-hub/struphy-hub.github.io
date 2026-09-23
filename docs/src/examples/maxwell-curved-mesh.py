@@ -10,6 +10,8 @@ energy, which the structure-preserving scheme conserves for any mesh, is followe
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -22,7 +24,6 @@ distortion = 0.1
 width = 0.25  # of the Gaussian pulse
 max_mode = 6  # cosine modes per direction in the Fourier series of the Gaussian
 x0, y0 = 0.5 * lx, 0.5 * ly
-time_opts = Time(dt=0.01, Tend=3.0)
 
 # The Gaussian pulse as a cosine series about its centre, E_z = sum c_lm cos(kx (x - x0)) cos(ky (y - y0)) without the mean (l, m) = (0, 0).
 modes = [(l, m) for l in range(max_mode + 1) for m in range(max_mode + 1) if (l, m) != (0, 0)]
@@ -39,42 +40,46 @@ def exact_field(x, y, t):
     return np.sum(coefficients * np.cos(kx * (x - x0)) * np.cos(ky * (y - y0)) * np.cos(frequencies * t), axis=-1)
 
 
-model = Maxwell()
-model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
-model.em_fields.e_field.add_perturbation(
-    GenericPerturbation(lambda x, y, z: exact_field(x, y, 0.0), given_in_basis="physical", comp=2)
-)
+def create_simulation() -> Simulation:
+    time_opts = Time(dt=0.01, Tend=3.0)
 
-domain = domains.Colella(Lx=lx, Ly=ly, alpha=distortion, Lz=1.0)
-grid = grids.TensorProductGrid(num_elements=(24, 36, 1))
-derham_opts = DerhamOptions(degree=(3, 3, 1))
+    model = Maxwell()
+    model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
+    model.em_fields.e_field.add_perturbation(
+        GenericPerturbation(lambda x, y, z: exact_field(x, y, 0.0), given_in_basis="physical", comp=2)
+    )
 
-sim = Simulation(
-    model=model,
-    name="Electromagnetic pulse on a distorted mesh",
-    description=(
-        "A Gaussian pulse of the electric field spreads as a ring across a periodic box, on a mesh that the Colella "
-        "mapping has bent. The structure-preserving Maxwell solver keeps the energy constant and follows the exact "
-        "solution, which is a sum of cosine modes."
-        r" The initial pulse is a truncated, zero-mean Gaussian Fourier expansion: $$E_z(x,y,0)=\sum_{\substack{0\le l,m\le6\\(l,m)\ne(0,0)}}a_{lm}\cos[k_l(x-1)]\cos[q_m(y-1.5)],$$"
-        r" where :math:`k_l=\pi l`, :math:`q_m=2\pi m/3` and :math:`a_{lm}=(2-\delta_{l0})(2-\delta_{m0})(2\pi\sigma^2/6)e^{-\sigma^2(k_l^2+q_m^2)/2}`."
-        r" The width is :math:`\sigma=0.25`, :math:`\delta_{ij}` is the Kronecker delta, and the magnetic field starts at zero."
-    ),
-    env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="maxwell_curved_mesh"),
-    time_opts=time_opts,
-    domain=domain,
-    grid=grid,
-    derham_opts=derham_opts,
-)
+    domain = domains.Colella(Lx=lx, Ly=ly, alpha=distortion, Lz=1.0)
+    grid = grids.TensorProductGrid(num_elements=(24, 36, 1))
+    derham_opts = DerhamOptions(degree=(3, 3, 1))
+
+    sim = Simulation(
+        model=model,
+        name="Electromagnetic pulse on a distorted mesh",
+        description=(
+            "A Gaussian pulse of the electric field spreads as a ring across a periodic box, on a mesh that the Colella "
+            "mapping has bent. The structure-preserving Maxwell solver keeps the energy constant and follows the exact "
+            "solution, which is a sum of cosine modes."
+            r" The initial pulse is a truncated, zero-mean Gaussian Fourier expansion: $$E_z(x,y,0)=\sum_{\substack{0\le l,m\le6\\(l,m)\ne(0,0)}}a_{lm}\cos[k_l(x-1)]\cos[q_m(y-1.5)],$$"
+            r" where :math:`k_l=\pi l`, :math:`q_m=2\pi m/3` and :math:`a_{lm}=(2-\delta_{l0})(2-\delta_{m0})(2\pi\sigma^2/6)e^{-\sigma^2(k_l^2+q_m^2)/2}`."
+            r" The width is :math:`\sigma=0.25`, :math:`\delta_{ij}` is the Kronecker delta, and the magnetic field starts at zero."
+        ),
+        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="maxwell_curved_mesh"),
+        time_opts=time_opts,
+        domain=domain,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return sim
 
 
-if __name__ == "__main__":
+def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
     from scipy.interpolate import griddata
 
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
 
     e_z = output.evaluate("em_fields/e_field_xyz").isel(component=2, e3=0)  # (t, e1, e2), on the mesh points
@@ -160,3 +165,18 @@ if __name__ == "__main__":
         figures=figures,
         **export_profiling(sim, "maxwell-curved-mesh"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the maxwell curved mesh example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+    pproc(simulation)

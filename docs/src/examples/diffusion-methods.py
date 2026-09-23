@@ -15,6 +15,8 @@ Both start from the same markers and are compared with the exact decay.
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -42,17 +44,32 @@ wavenumber = 2 * np.pi
 decay_rate = diffusion * wavenumber**2  # the exact decay rate of the mode
 markers = 100_000
 bins = 32
-time_opts = Time(dt=0.005, Tend=1.0, split_algo="LieTrotter")
-
-domain = domains.Cuboid(r1=1.0)
-# The finite element grid is used only by the deterministic method, to estimate the density.
-grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
-derham_opts = DerhamOptions(degree=(3, 1, 1))
 
 
-def make_model(model_class, propagator_name, **options):
-    """A diffusion model with the same markers and initial density, for either method."""
-    model = model_class()
+def create_simulation(method="Random walk") -> Simulation:
+    """Build either of the two hardcoded diffusion comparisons."""
+    time_opts = Time(dt=0.005, Tend=1.0, split_algo="LieTrotter")
+    domain = domains.Cuboid(r1=1.0)
+    if method == "Random walk":
+        model = RandomParticleDiffusion()
+        propagator = model.propagators.rand_diff
+        # The random walk supports forward Euler only: other tableaux would
+        # add the noise once per stage and multiply the diffusion coefficient.
+        propagator.options = propagator.Options(
+            diff_coeff=diffusion, butcher=ButcherTableau(algo="forward_euler")
+        )
+        folder = "diffusion_random"
+        grid = None
+        derham_opts = None
+    else:
+        model = DeterministicParticleDiffusion()
+        propagator = model.propagators.det_diff
+        propagator.options = propagator.Options(diff_coeff=diffusion)
+        folder = "diffusion_deterministic"
+        # Only the deterministic method needs a finite element density estimate.
+        grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
+        derham_opts = DerhamOptions(degree=(3, 1, 1))
+
     model.hydrogen.set_markers(
         loading_params=LoadingParameters(Np=markers, loading="pseudo_random", seed=1608),
         weights_params=WeightsParameters(),
@@ -61,57 +78,35 @@ def make_model(model_class, propagator_name, **options):
             binning_plots=(BinningPlot(slice="e1", n_bins=(bins,), ranges=(0.0, 1.0)),),
         ),
     )
-    propagator = getattr(model.propagators, propagator_name)
-    propagator.options = propagator.Options(diff_coeff=diffusion, **options)
     # A uniform background, and the cosine mode as the initial condition.
     model.hydrogen.var.add_background(maxwellians.ColdPlasma(n=(1.0, None)))
     mode = perturbations.ModesCos(amps=(amplitude,), ls=(1,))
     model.hydrogen.var.add_initial_condition(maxwellians.ColdPlasma(n=(1.0, mode)))
-    return model
-
-
-def make_simulation(model, folder, **extra):
     return Simulation(
         model=model,
+        name="Random and deterministic particle diffusion",
+        description=(
+            "A cosine density relaxes by diffusion. Struphy's random-walk and deterministic particle methods "
+            "both follow it, and their density and decay of the mode are compared with the exact solution."
+            r" Both methods use $$n(x,0)=1+0.5\cos(2\pi x),\qquad D=0.05,$$"
+            r" on :math:`0\le x<1`. The reference mode amplitude is :math:`A(t)=0.5e^{-D(2\pi)^2t}`."
+        ),
         env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder=folder),
         time_opts=time_opts,
         domain=domain,
-        **extra,
+        grid=grid,
+        derham_opts=derham_opts,
     )
 
 
-# The random walk needs forward Euler: it is the only scheme it supports, and the default Runge-Kutta
-# tableau would add the noise increment once per stage and so multiply the diffusion coefficient.
-random_model = make_model(
-    RandomParticleDiffusion, "rand_diff", butcher=ButcherTableau(algo="forward_euler")
-)
-deterministic_model = make_model(DeterministicParticleDiffusion, "det_diff")
-
-# The example's model is the random walk; the deterministic method is run for comparison.
-sim = make_simulation(
-    random_model,
-    "diffusion_random",
-    name="Random and deterministic particle diffusion",
-    description=(
-        "A cosine density relaxes by diffusion. Struphy's random-walk and deterministic particle methods "
-        "both follow it, and their density and decay of the mode are compared with the exact solution."
-        r" Both methods use $$n(x,0)=1+0.5\cos(2\pi x),\qquad D=0.05,$$"
-        r" on :math:`0\le x<1`. The reference mode amplitude is :math:`A(t)=0.5e^{-D(2\pi)^2t}`."
-    ),
-    grid=None,
-    derham_opts=None,
-)
-sim_deterministic = make_simulation(deterministic_model, "diffusion_deterministic", grid=grid, derham_opts=derham_opts)
-
-
-if __name__ == "__main__":
+def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, is_root, merge_metadata, save_figure
 
     runs = {
-        "Random walk": sim.run(profiling_activated=True),
-        "Deterministic": sim_deterministic.run(),
+        "Random walk": sim.output,
+        "Deterministic": create_simulation("Deterministic").output,
     }
     for run in runs.values():
         run.pproc()
@@ -185,3 +180,19 @@ if __name__ == "__main__":
         randomRmsError=rms_error["Random walk"], deterministicRmsError=rms_error["Deterministic"],
         markers=markers, **export_profiling(sim, "diffusion-methods"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the diffusion methods example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+        create_simulation("Deterministic").run()
+    pproc(simulation)

@@ -12,6 +12,8 @@ the box is not a square, the resonances that would coincide in a square box sepa
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -19,34 +21,6 @@ from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains
 from struphy.models import Maxwell
 
 lx, ly = 1.0, 1.5
-time_opts = Time(dt=0.02, Tend=80.0)
-
-model = Maxwell()
-model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
-# Noise in the out-of-plane E_z couples to B_x and B_y: the transverse-magnetic modes of the box.
-model.em_fields.e_field.add_perturbation(perturbations.Noise(direction="e1e2", amp=0.1, comp=2, seed=123))
-
-domain = domains.Cuboid(r1=lx, r2=ly, r3=1.0)
-grid = grids.TensorProductGrid(num_elements=(16, 24, 1))
-derham_opts = DerhamOptions(degree=(3, 3, 1))
-
-sim = Simulation(
-    model=model,
-    name="Maxwell cavity resonances",
-    description=(
-        "Noise in the electric field excites every electromagnetic mode of a rectangular periodic box. The "
-        "power spectrum of the field over time has one peak per resonance, at the exact frequencies "
-        "ω = c |k| of the box."
-        r" The launch uses :math:`E_z` coefficient noise of amplitude :math:`0.1` and :math:`\mathbf{B}(x,y,0)=0`."
-        r" The periodic box selects $$\mathbf{k}_{mn}=2\pi\left(\frac{m}{L_x},\frac{n}{L_y}\right),\qquad (L_x,L_y)=(1,1.5),$$"
-        r" for integer mode numbers :math:`m,n`."
-    ),
-    env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="maxwell_cavity_resonances"),
-    time_opts=time_opts,
-    domain=domain,
-    grid=grid,
-    derham_opts=derham_opts,
-)
 
 
 def resonances(omega_max, count):
@@ -62,10 +36,42 @@ def resonances(omega_max, count):
     return [(omega, modes[omega]) for omega in sorted(modes)][:count]
 
 
-if __name__ == "__main__":
+def create_simulation() -> Simulation:
+    time_opts = Time(dt=0.02, Tend=80.0)
+
+    model = Maxwell()
+    model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
+    # Noise in the out-of-plane E_z couples to B_x and B_y: the transverse-magnetic modes of the box.
+    model.em_fields.e_field.add_perturbation(perturbations.Noise(direction="e1e2", amp=0.1, comp=2, seed=123))
+
+    domain = domains.Cuboid(r1=lx, r2=ly, r3=1.0)
+    grid = grids.TensorProductGrid(num_elements=(16, 24, 1))
+    derham_opts = DerhamOptions(degree=(3, 3, 1))
+
+    sim = Simulation(
+        model=model,
+        name="Maxwell cavity resonances",
+        description=(
+            "Noise in the electric field excites every electromagnetic mode of a rectangular periodic box. The "
+            "power spectrum of the field over time has one peak per resonance, at the exact frequencies "
+            "ω = c |k| of the box."
+            r" The launch uses :math:`E_z` coefficient noise of amplitude :math:`0.1` and :math:`\mathbf{B}(x,y,0)=0`."
+            r" The periodic box selects $$\mathbf{k}_{mn}=2\pi\left(\frac{m}{L_x},\frac{n}{L_y}\right),\qquad (L_x,L_y)=(1,1.5),$$"
+            r" for integer mode numbers :math:`m,n`."
+        ),
+        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="maxwell_cavity_resonances"),
+        time_opts=time_opts,
+        domain=domain,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return sim
+
+
+def pproc(sim: Simulation):
     from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
 
     # E_z at every point of the box, (t, x, y), and its power spectrum over time averaged over the box.
@@ -147,3 +153,18 @@ if __name__ == "__main__":
         figures=figures,
         **export_profiling(sim, "maxwell-cavity-resonances"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the maxwell cavity resonances example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+    pproc(simulation)

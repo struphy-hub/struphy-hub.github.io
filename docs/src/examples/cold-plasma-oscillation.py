@@ -9,6 +9,8 @@ sin^2(omega_p t). The plasma frequency scales as sqrt(n0), which a short scan ov
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -21,14 +23,14 @@ alpha, epsilon = 1.0, 1.0
 length = 10.0  # box length along z
 amplitude = 0.1
 densities = (0.5, 1.0, 2.0, 4.0)  # the scan; the example itself is the n0 = 1 run
-time_opts = Time(dt=0.02, Tend=20.0)
-grid = grids.TensorProductGrid(num_elements=(1, 1, 32))
-derham_opts = DerhamOptions(degree=(1, 1, 3))
-domain = domains.Cuboid(r3=length)
 
 
-def make_simulation(n0, folder, **extra):
+def create_simulation(n0=1.0, folder="cold_plasma_oscillation") -> Simulation:
     """The cold-plasma model with the density n0 and one long-wavelength cosine mode in E_z."""
+    time_opts = Time(dt=0.02, Tend=20.0)
+    grid = grids.TensorProductGrid(num_elements=(1, 1, 32))
+    derham_opts = DerhamOptions(degree=(1, 1, 3))
+    domain = domains.Cuboid(r3=length)
     model = ColdPlasma(alpha=alpha, epsilon=epsilon)
     model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
     model.em_fields.e_field.add_perturbation(
@@ -42,22 +44,15 @@ def make_simulation(n0, folder, **extra):
         equil=equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=1.0, n0=n0),
         grid=grid,
         derham_opts=derham_opts,
-        **extra,
+        name="Cold-plasma oscillation",
+        description=(
+            "A cosine electric field along the magnetic field displaces a cold electron fluid, which oscillates "
+            "at the plasma frequency. The field and flow energies trade places as cos² and sin² of the frequency, "
+            "and the measured frequency follows the square root of the density."
+            r" The initial electric field is $$E_z(z,0)=0.1\cos(2\pi z/10),\qquad \mathbf{u}(z,0)=0,$$"
+            r" along :math:`\mathbf{B}_0=\mathbf{e}_z`. The density scan uses :math:`n_0\in\{0.5,1,2,4\}` with :math:`\omega_p=\sqrt{n_0}`."
+        ),
     )
-
-
-sim = make_simulation(
-    1.0,
-    "cold_plasma_oscillation",
-    name="Cold-plasma oscillation",
-    description=(
-        "A cosine electric field along the magnetic field displaces a cold electron fluid, which oscillates "
-        "at the plasma frequency. The field and flow energies trade places as cos² and sin² of the frequency, "
-        "and the measured frequency follows the square root of the density."
-        r" The initial electric field is $$E_z(z,0)=0.1\cos(2\pi z/10),\qquad \mathbf{u}(z,0)=0,$$"
-        r" along :math:`\mathbf{B}_0=\mathbf{e}_z`. The density scan uses :math:`n_0\in\{0.5,1,2,4\}` with :math:`\omega_p=\sqrt{n_0}`."
-    ),
-)
 
 
 def mode_amplitude(run):
@@ -76,15 +71,15 @@ def oscillation_frequency(times, values):
     return float(np.pi / np.mean(np.diff(roots)))
 
 
-if __name__ == "__main__":
+def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
-    runs = {1.0: sim.run(profiling_activated=True)}
+    runs = {1.0: sim.output}
     for n0 in densities:
         if n0 != 1.0:
-            runs[n0] = make_simulation(n0, f"cold_plasma_oscillation_n{n0}").run()
+            runs[n0] = create_simulation(n0, f"cold_plasma_oscillation_n{n0}").output
     for run in runs.values():
         run.pproc(physical=True)
 
@@ -175,3 +170,21 @@ if __name__ == "__main__":
         figures=figures,
         **export_profiling(sim, "cold-plasma-oscillation"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the cold plasma oscillation example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+        for n0 in densities:
+            if n0 != 1.0:
+                create_simulation(n0, f"cold_plasma_oscillation_n{n0}").run()
+    pproc(simulation)

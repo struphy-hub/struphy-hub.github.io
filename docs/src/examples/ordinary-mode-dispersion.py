@@ -10,6 +10,8 @@ Reference: https://farside.ph.utexas.edu/teaching/315/Waveshtml/node75.html
 Requires the pinned Struphy with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
@@ -22,39 +24,44 @@ mode_numbers = (1, 2, 4, 8)
 amplitude = 0.02  # electric-field amplitude per mode
 wavenumbers = 2.0 * np.pi * np.array(mode_numbers) / length
 frequencies = np.sqrt(1.0 + wavenumbers**2)  # c = omega_p = 1
-model = ColdPlasma(alpha=1.0, epsilon=1.0)
-for propagator in (model.propagators.maxwell, model.propagators.ohm, model.propagators.jxb):
-    propagator.options = propagator.Options(solver_params=SolverParameters(tol=1e-12))
-model.em_fields.e_field.add_perturbation(
-    perturbations.ModesCos(ls=mode_numbers, amps=(amplitude,) * len(mode_numbers),
-                           comp=2, Lx=length, given_in_basis="physical"),
-)
-domain = domains.Cuboid(r1=length)
-grid = grids.TensorProductGrid(num_elements=(64, 1, 1))
-derham_opts = DerhamOptions(degree=(3, 1, 1))
-time_opts = Time(dt=0.02, Tend=30.0, split_algo="Strang")
-sim = Simulation(
-    model=model, name="Ordinary waves and the plasma cutoff",
-    description=(
-        "Four ordinary electromagnetic waves oscillate across a uniform magnetic field. "
-        "Their electric field is parallel to the background field, so the electrons feel no "
-        "magnetic force in this polarization. Measured frequencies follow the cold-plasma dispersion relation"
-        r" $$\omega^2=\omega_p^2+c^2k^2,\qquad \omega_p=c=1.$$"
-        r" Initially :math:`E_z(x,0)=0.02\sum_{n\in\{1,2,4,8\}}\cos(nx/4)` and the magnetic perturbation and current vanish. "
-        "The dispersion curve approaches the plasma-frequency cutoff as the wavelength grows; "
-        "below it, a uniform cold plasma has no propagating ordinary mode."
-    ),
-    env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="ordinary_mode_dispersion"),
-    time_opts=time_opts, domain=domain, grid=grid, derham_opts=derham_opts,
-    equil=equils.HomogenSlab(B0z=1.0, n0=1.0),
-)
 
 
-if __name__ == "__main__":
+def create_simulation() -> Simulation:
+    model = ColdPlasma(alpha=1.0, epsilon=1.0)
+    for propagator in (model.propagators.maxwell, model.propagators.ohm, model.propagators.jxb):
+        propagator.options = propagator.Options(solver_params=SolverParameters(tol=1e-12))
+    model.em_fields.e_field.add_perturbation(
+        perturbations.ModesCos(ls=mode_numbers, amps=(amplitude,) * len(mode_numbers),
+                               comp=2, Lx=length, given_in_basis="physical"),
+    )
+    domain = domains.Cuboid(r1=length)
+    grid = grids.TensorProductGrid(num_elements=(64, 1, 1))
+    derham_opts = DerhamOptions(degree=(3, 1, 1))
+    time_opts = Time(dt=0.02, Tend=30.0, split_algo="Strang")
+    sim = Simulation(
+        model=model, name="Ordinary waves and the plasma cutoff",
+        description=(
+            "Four ordinary electromagnetic waves oscillate across a uniform magnetic field. "
+            "Their electric field is parallel to the background field, so the electrons feel no "
+            "magnetic force in this polarization. Measured frequencies follow the cold-plasma dispersion relation"
+            r" $$\omega^2=\omega_p^2+c^2k^2,\qquad \omega_p=c=1.$$"
+            r" Initially :math:`E_z(x,0)=0.02\sum_{n\in\{1,2,4,8\}}\cos(nx/4)` and the magnetic perturbation and current vanish. "
+            "The dispersion curve approaches the plasma-frequency cutoff as the wavelength grows; "
+            "below it, a uniform cold plasma has no propagating ordinary mode."
+        ),
+        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="ordinary_mode_dispersion"),
+        time_opts=time_opts, domain=domain, grid=grid, derham_opts=derham_opts,
+        equil=equils.HomogenSlab(B0z=1.0, n0=1.0),
+    )
+    return sim
+
+
+def pproc(sim: Simulation):
+    time_opts = sim.time_opts
     from plotly.subplots import make_subplots
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
     field = output.evaluate("em_fields/e_field_xyz").isel(component=2, e2=0, e3=0)
     energy = output.evaluate("total_energy")
@@ -107,3 +114,18 @@ if __name__ == "__main__":
     merge_metadata(stem, measuredFrequencies=measured.tolist(), exactFrequencies=frequencies.tolist(),
                    maxFrequencyError=frequency_error, maxModeError=mode_error, maxEnergyDrift=energy_drift,
                    figures=figures, **export_profiling(sim, stem))
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the ordinary mode dispersion example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+    pproc(simulation)

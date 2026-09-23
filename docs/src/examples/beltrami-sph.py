@@ -16,6 +16,8 @@ Adapted from Struphy's ``tutorial_beltrami_sph.ipynb`` tutorial.
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -67,76 +69,78 @@ def density(x, y, z):
     return np.ones_like(x)
 
 
-beltrami_flow = equils.GenericCartesianFluidEquilibrium(
-    u_xyz=velocity,
-    p_xyz=potential,
-    n_xyz=density,
-)
+def create_simulation() -> Simulation:
+    beltrami_flow = equils.GenericCartesianFluidEquilibrium(
+        u_xyz=velocity,
+        p_xyz=potential,
+        n_xyz=density,
+    )
 
-model = PressureLessSPH(epsilon=1.0)
-model.propagators.push_eta.options = model.propagators.push_eta.Options(
-    butcher=ButcherTableau(algo="forward_euler"),
-)
-model.propagators.push_v.potential = beltrami_flow.p0
-model.cold_fluid.set_markers(
-    loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
-    weights_params=WeightsParameters(),
-    boundary_params=BoundaryParameters(bc=("reflect", "reflect", "periodic")),
-    sorting_params=SortingParameters(
-        boxes_per_dim=(boxes, boxes, 1),
-        dims_mask=(True, True, False),
-    ),
-    saving_params=SavingParameters(
-        n_markers=1.0,
-        kernel_density_plots=(
-            KernelDensityPlot(
-                pts_e1=density_points,
-                pts_e2=density_points,
-                pts_e3=1,
+    model = PressureLessSPH(epsilon=1.0)
+    model.propagators.push_eta.options = model.propagators.push_eta.Options(
+        butcher=ButcherTableau(algo="forward_euler"),
+    )
+    model.propagators.push_v.potential = beltrami_flow.p0
+    model.cold_fluid.set_markers(
+        loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
+        weights_params=WeightsParameters(),
+        boundary_params=BoundaryParameters(bc=("reflect", "reflect", "periodic")),
+        sorting_params=SortingParameters(
+            boxes_per_dim=(boxes, boxes, 1),
+            dims_mask=(True, True, False),
+        ),
+        saving_params=SavingParameters(
+            n_markers=1.0,
+            kernel_density_plots=(
+                KernelDensityPlot(
+                    pts_e1=density_points,
+                    pts_e2=density_points,
+                    pts_e3=1,
+                ),
             ),
         ),
-    ),
-    bufsize=0.5,
-)
-model.cold_fluid.var.add_background(beltrami_flow)
+        bufsize=0.5,
+    )
+    model.cold_fluid.var.add_background(beltrami_flow)
 
-domain = domains.Cuboid(
-    l1=box_min,
-    r1=box_max,
-    l2=box_min,
-    r2=box_max,
-    l3=0.0,
-    r3=1.0,
-)
-env = EnvironmentOptions(
-    out_folders="struphy_gallery_runs",
-    sim_folder="beltrami_sph",
-)
-sim = Simulation(
-    model=model,
-    name="SPH in a Beltrami force field",
-    description=(
-        "Pressureless SPH markers circulate through a stationary cellular flow driven by a prescribed "
-        "Beltrami potential. The computed marker velocity is compared with the exact Eulerian velocity "
-        "field, while conservation of each marker's kinetic-plus-potential energy checks the orbit integration."
-        r" Initially :math:`n=1` and $$\mathbf{u}(x,y,0)=(-\cos(\pi x)\sin(\pi y),\sin(\pi x)\cos(\pi y),0).$$"
-        r" The prescribed potential is :math:`V(x,y)=\tfrac12[\sin^2(\pi x)+\sin^2(\pi y)]` on :math:`[-0.5,0.5]^2`."
-    ),
-    env=env,
-    time_opts=Time(dt=0.02, Tend=4.0, split_algo="Strang"),
-    domain=domain,
-    grid=grids.TensorProductGrid(num_elements=(32, 32, 1)),
-    derham_opts=DerhamOptions(
-        degree=(3, 3, 1),
-        bcs=(("free", "free"), ("free", "free"), None),
-    ),
-)
+    domain = domains.Cuboid(
+        l1=box_min,
+        r1=box_max,
+        l2=box_min,
+        r2=box_max,
+        l3=0.0,
+        r3=1.0,
+    )
+    env = EnvironmentOptions(
+        out_folders="struphy_gallery_runs",
+        sim_folder="beltrami_sph",
+    )
+    sim = Simulation(
+        model=model,
+        name="SPH in a Beltrami force field",
+        description=(
+            "Pressureless SPH markers circulate through a stationary cellular flow driven by a prescribed "
+            "Beltrami potential. The computed marker velocity is compared with the exact Eulerian velocity "
+            "field, while conservation of each marker's kinetic-plus-potential energy checks the orbit integration."
+            r" Initially :math:`n=1` and $$\mathbf{u}(x,y,0)=(-\cos(\pi x)\sin(\pi y),\sin(\pi x)\cos(\pi y),0).$$"
+            r" The prescribed potential is :math:`V(x,y)=\tfrac12[\sin^2(\pi x)+\sin^2(\pi y)]` on :math:`[-0.5,0.5]^2`."
+        ),
+        env=env,
+        time_opts=Time(dt=0.02, Tend=4.0, split_algo="Strang"),
+        domain=domain,
+        grid=grids.TensorProductGrid(num_elements=(32, 32, 1)),
+        derham_opts=DerhamOptions(
+            degree=(3, 3, 1),
+            bcs=(("free", "free"), ("free", "free"), None),
+        ),
+    )
+    return sim
 
 
-if __name__ == "__main__":
+def pproc(sim: Simulation):
     from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc()
 
     orbits = output.evaluate("cold_fluid")
@@ -632,3 +636,18 @@ if __name__ == "__main__":
         tutorial="https://struphy-hub.github.io/struphy/_collections/tutorials/tutorial_beltrami_sph.html",
         **export_profiling(sim, "beltrami-sph"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the beltrami sph example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+    pproc(simulation)

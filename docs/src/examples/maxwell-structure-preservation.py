@@ -15,6 +15,8 @@ condition does not save it: round-off seeds the unstable modes and they take ove
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -29,21 +31,22 @@ wavenumber = 2.0 * np.pi * mode_number / length
 frequency = wavenumber  # omega = c k with c = 1
 periods = 30
 
-domain = domains.Cuboid(r3=length)
-grid = grids.TensorProductGrid(num_elements=(1, 1, 32))
-derham_opts = DerhamOptions(degree=(1, 1, 3))
-time_opts = Time(dt=(2.0 * np.pi / frequency) / 40.0, Tend=periods * 2.0 * np.pi / frequency)
-
 # The three schemes, all at the same time step.
-schemes = {
-    "Crank-Nicolson (implicit)": {"algo": "implicit"},
-    "Runge-Kutta 4 (explicit)": {"algo": "explicit", "butcher": ButcherTableau(algo="rk4")},
-    "Heun 2 (explicit)": {"algo": "explicit", "butcher": ButcherTableau(algo="heun2")},
-}
+schemes = ("Crank-Nicolson (implicit)", "Runge-Kutta 4 (explicit)", "Heun 2 (explicit)")
+reference_label = schemes[0]
 
 
-def build_simulation(label, options, **extra):
-    """The same standing wave, stepped by one of the schemes."""
+def create_simulation(label=reference_label) -> Simulation:
+    """The same standing wave, stepped by one of the three hardcoded schemes."""
+    domain = domains.Cuboid(r3=length)
+    grid = grids.TensorProductGrid(num_elements=(1, 1, 32))
+    derham_opts = DerhamOptions(degree=(1, 1, 3))
+    time_opts = Time(dt=(2.0 * np.pi / frequency) / 40.0, Tend=periods * 2.0 * np.pi / frequency)
+    if label == reference_label:
+        options = {"algo": "implicit"}
+    else:
+        algo = "rk4" if label == "Runge-Kutta 4 (explicit)" else "heun2"
+        options = {"algo": "explicit", "butcher": ButcherTableau(algo=algo)}
     model = Maxwell()
     model.propagators.maxwell.options = model.propagators.maxwell.Options(**options)
     model.em_fields.e_field.add_perturbation(
@@ -52,38 +55,30 @@ def build_simulation(label, options, **extra):
     folder = "maxwell_" + label.split(" ")[0].lower().replace("-", "_")
     return Simulation(
         model=model,
+        name="Structure preservation in time integration",
+        description=(
+            "One standing electromagnetic wave, stepped by Crank-Nicolson, RK4 and Heun's method at the same "
+            "time step. The symplectic implicit scheme keeps the energy error bounded for the whole run, while "
+            "the explicit schemes do not: RK4 loses energy steadily, and Heun's method is unstable for this "
+            "operator."
+            r" All three runs start from $$\mathbf{E}(z,0)=(0.1\sin(\pi z/5),0,0),\qquad \mathbf{B}(z,0)=0,$$"
+            r" with periodic length :math:`L_z=20` and time step :math:`\Delta t=0.25` in units where :math:`c=1`."
+        ),
         env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder=folder),
         time_opts=time_opts,
         domain=domain,
         grid=grid,
         derham_opts=derham_opts,
-        **extra,
     )
 
 
-reference_label = "Crank-Nicolson (implicit)"
-sim = build_simulation(
-    reference_label,
-    schemes[reference_label],
-    name="Structure preservation in time integration",
-    description=(
-        "One standing electromagnetic wave, stepped by Crank-Nicolson, RK4 and Heun's method at the same "
-        "time step. The symplectic implicit scheme keeps the energy error bounded for the whole run, while "
-        "the explicit schemes do not: RK4 loses energy steadily, and Heun's method is unstable for this "
-        "operator."
-        r" All three runs start from $$\mathbf{E}(z,0)=(0.1\sin(\pi z/5),0,0),\qquad \mathbf{B}(z,0)=0,$$"
-        r" with periodic length :math:`L_z=20` and time step :math:`\Delta t=0.25` in units where :math:`c=1`."
-    ),
-)
-
-
-if __name__ == "__main__":
+def pproc(sim: Simulation):
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     runs = {}
-    for label, options in schemes.items():
-        simulation = sim if label == reference_label else build_simulation(label, options)
-        runs[label] = simulation.run(profiling_activated=label == reference_label)
+    for label in schemes:
+        simulation = sim if label == reference_label else create_simulation(label)
+        runs[label] = simulation.output
         # Every rank post-processes: the field profile below is evaluated from the FEEC output, which
         # under MPI is not materialized on first use.
         runs[label].pproc()
@@ -164,3 +159,21 @@ if __name__ == "__main__":
         figures=figures,
         **export_profiling(sim, "maxwell-structure-preservation"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the maxwell structure preservation example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+        for label in schemes:
+            if label != reference_label:
+                create_simulation(label).run()
+    pproc(simulation)

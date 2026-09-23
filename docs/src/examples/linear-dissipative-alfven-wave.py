@@ -9,6 +9,8 @@ and is not part of this linear perturbation system.
 Requires the pinned Struphy with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 
 from struphy import (
@@ -19,43 +21,48 @@ from struphy.models import ViscoResistiveLinearMHD
 
 stem = "linear-dissipative-alfven-wave"
 length, amplitude, diffusivity = 2.0 * np.pi, 0.1, 0.1
-model = ViscoResistiveLinearMHD()
-model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="linear")
-model.propagators.variat_pb.options = model.propagators.variat_pb.Options(model="linear")
-model.propagators.variat_viscous.options = model.propagators.variat_viscous.Options(model="linear_p", mu=diffusivity)
-model.propagators.variat_resist.options = model.propagators.variat_resist.Options(model="linear_p", eta=diffusivity)
-model.mhd.velocity.add_perturbation(
-    perturbations.ModesSin(ns=(1,), amps=(amplitude,), comp=0, Lz=length, given_in_basis="physical"),
-)
-model.mhd.velocity.save_data = True
-model.em_fields.b_field.save_data = True
-domain = domains.Cuboid(r3=length)
-grid = grids.TensorProductGrid(num_elements=(1, 1, 32))
-derham_opts = DerhamOptions(degree=(1, 1, 3))
-time_opts = Time(dt=0.025, Tend=2.0 * length, split_algo="Strang")
-sim = Simulation(
-    model=model,
-    name="Viscous and resistive linear Alfvén wave",
-    description=(
-        "A standing Alfvén wave loses energy through both viscosity and resistivity in "
-        "ViscoResistiveLinearMHD. Equal diffusivities give a simple exponential envelope "
-        "for the oscillating velocity and magnetic field."
-        r" Initially $$u_x(z,0)=0.1\sin z,\qquad\delta\mathbf{B}(z,0)=0,$$"
-        r" with :math:`\rho_0=B_0=1` on :math:`0\leq z<2\pi`."
-        r" Both diffusivities are :math:`\nu=\eta=0.1`; the wave energy decays as :math:`e^{-0.2t}`."
-    ),
-    env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="linear_dissipative_alfven_wave"),
-    time_opts=time_opts, domain=domain, grid=grid, derham_opts=derham_opts,
-    equil=equils.HomogenSlab(B0z=1.0, n0=1.0, beta=0.1),
-)
 
 
-if __name__ == "__main__":
+def create_simulation() -> Simulation:
+    model = ViscoResistiveLinearMHD()
+    model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="linear")
+    model.propagators.variat_pb.options = model.propagators.variat_pb.Options(model="linear")
+    model.propagators.variat_viscous.options = model.propagators.variat_viscous.Options(model="linear_p", mu=diffusivity)
+    model.propagators.variat_resist.options = model.propagators.variat_resist.Options(model="linear_p", eta=diffusivity)
+    model.mhd.velocity.add_perturbation(
+        perturbations.ModesSin(ns=(1,), amps=(amplitude,), comp=0, Lz=length, given_in_basis="physical"),
+    )
+    model.mhd.velocity.save_data = True
+    model.em_fields.b_field.save_data = True
+    domain = domains.Cuboid(r3=length)
+    grid = grids.TensorProductGrid(num_elements=(1, 1, 32))
+    derham_opts = DerhamOptions(degree=(1, 1, 3))
+    time_opts = Time(dt=0.025, Tend=2.0 * length, split_algo="Strang")
+    sim = Simulation(
+        model=model,
+        name="Viscous and resistive linear Alfvén wave",
+        description=(
+            "A standing Alfvén wave loses energy through both viscosity and resistivity in "
+            "ViscoResistiveLinearMHD. Equal diffusivities give a simple exponential envelope "
+            "for the oscillating velocity and magnetic field."
+            r" Initially $$u_x(z,0)=0.1\sin z,\qquad\delta\mathbf{B}(z,0)=0,$$"
+            r" with :math:`\rho_0=B_0=1` on :math:`0\leq z<2\pi`."
+            r" Both diffusivities are :math:`\nu=\eta=0.1`; the wave energy decays as :math:`e^{-0.2t}`."
+        ),
+        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="linear_dissipative_alfven_wave"),
+        time_opts=time_opts, domain=domain, grid=grid, derham_opts=derham_opts,
+        equil=equils.HomogenSlab(B0z=1.0, n0=1.0, beta=0.1),
+    )
+    return sim
+
+
+def pproc(sim: Simulation):
+    time_opts = sim.time_opts
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
     velocity = output.evaluate("mhd/velocity_xyz").isel(component=0, e1=0, e2=0)
     magnetic = output.evaluate("em_fields/b_field_xyz").isel(component=0, e1=0, e2=0)
@@ -102,3 +109,18 @@ if __name__ == "__main__":
                                 caption="The nodes remain fixed while viscosity and resistivity damp the wave.")]
     merge_metadata(stem, maxRelativeFieldError=error, maxRelativeEnergyError=energy_error,
                    figures=figures, **export_profiling(sim, stem))
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the linear dissipative alfven wave example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+    pproc(simulation)

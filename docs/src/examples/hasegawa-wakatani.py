@@ -12,6 +12,8 @@ eddies and the slow reorganization of their energy.
 Requires Struphy 3.3 with compiled kernels (``struphy compile``).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -23,26 +25,6 @@ from struphy.ode.utils import ButcherTableau
 # A square periodic slab.  The third direction is inactive, making this a
 # genuinely 2D fluid calculation rather than a thin 3D one.
 length = 2 * np.pi
-model = HasegawaWakatani()
-domain = domains.Cuboid(r1=length, r2=length)
-equil = equils.HomogenSlab()
-grid = grids.TensorProductGrid(num_elements=(64, 64, 1))
-derham_opts = DerhamOptions(degree=(2, 2, 1))
-time_opts = Time(dt=0.04, Tend=14.0, split_algo="LieTrotter")
-
-# C couples density and potential, kappa supplies the background-gradient
-# drive, and weak diffusion removes only the smallest resolved scales.  RK4
-# is useful here because all three effects are advanced explicitly.
-# The periodic Laplacian has an arbitrary constant mode. A small identity
-# stabilization fixes that gauge and keeps the iterative solve inexpensive;
-# it changes the k=1 response by less than one percent.
-model.propagators.poisson.options = model.propagators.poisson.Options(stab_eps=0.01)
-model.propagators.hw.options = model.propagators.hw.Options(
-    coupling=1.0,
-    kappa=1.0,
-    nu=0.002,
-    butcher=ButcherTableau(algo="rk4"),
-)
 
 # Use a reproducible, smooth broadband seed instead of grid-scale white
 # noise.  Starting at finite amplitude avoids spending most of this compact
@@ -57,59 +39,81 @@ weights = rng.normal(size=len(wave_numbers))
 weights /= np.sqrt(np.sum(weights**2))
 
 
-def broadband_field(x, y, z, *, laplacian=False):
-    """A deterministic broadband potential, or its negative Laplacian."""
-    result = np.zeros_like(x + y + z, dtype=float)
-    for (kx, ky), phase, weight in zip(wave_numbers, phases, weights):
-        factor = kx**2 + ky**2 if laplacian else 1.0
-        result += factor * weight * np.cos(kx * x + ky * y + phase)
-    return result
+def create_simulation() -> Simulation:
+    model = HasegawaWakatani()
+    domain = domains.Cuboid(r1=length, r2=length)
+    equil = equils.HomogenSlab()
+    grid = grids.TensorProductGrid(num_elements=(64, 64, 1))
+    derham_opts = DerhamOptions(degree=(2, 2, 1))
+    time_opts = Time(dt=0.04, Tend=14.0, split_algo="LieTrotter")
+
+    # C couples density and potential, kappa supplies the background-gradient
+    # drive, and weak diffusion removes only the smallest resolved scales.  RK4
+    # is useful here because all three effects are advanced explicitly.
+    # The periodic Laplacian has an arbitrary constant mode. A small identity
+    # stabilization fixes that gauge and keeps the iterative solve inexpensive;
+    # it changes the k=1 response by less than one percent.
+    model.propagators.poisson.options = model.propagators.poisson.Options(stab_eps=0.01)
+    model.propagators.hw.options = model.propagators.hw.Options(
+        coupling=1.0,
+        kappa=1.0,
+        nu=0.002,
+        butcher=ButcherTableau(algo="rk4"),
+    )
+
+    def broadband_field(x, y, z, *, laplacian=False):
+        """A deterministic broadband potential, or its negative Laplacian."""
+        result = np.zeros_like(x + y + z, dtype=float)
+        for (kx, ky), phase, weight in zip(wave_numbers, phases, weights):
+            factor = kx**2 + ky**2 if laplacian else 1.0
+            result += factor * weight * np.cos(kx * x + ky * y + phase)
+        return result
+
+    def initial_density(x, y, z):
+        return 0.12 * broadband_field(x, y, z)
+
+    def initial_vorticity(x, y, z):
+        # PoissonSolve uses the weak form -Delta(phi) = omega.
+        return 0.12 * broadband_field(x, y, z, laplacian=True)
+
+    model.plasma.density.add_perturbation(GenericPerturbation(initial_density, given_in_basis="physical"))
+    model.plasma.vorticity.add_perturbation(GenericPerturbation(initial_vorticity, given_in_basis="physical"))
+
+    env = EnvironmentOptions(
+        out_folders="struphy_gallery_runs",
+        sim_folder="hasegawa_wakatani",
+        save_step=5,
+        save_restart=False,
+    )
+    sim = Simulation(
+        model=model,
+        name="Hasegawa–Wakatani drift-wave turbulence",
+        description=(
+            "Broadband fluctuations break into interacting density and vorticity "
+            "eddies in a periodic plasma slab, while nonlinear E×B transport "
+            "moves part of the kinetic energy into a banded zonal flow."
+            r" The initial density and vorticity fluctuations use the same phases: $$n(x,y,0)=0.12\sum_{\mathbf{k}}w_{\mathbf{k}}\cos(\mathbf{k}\cdot\mathbf{x}+\theta_{\mathbf{k}}),$$"
+            r" $$\omega(x,y,0)=0.12\sum_{\mathbf{k}}|\mathbf{k}|^2w_{\mathbf{k}}\cos(\mathbf{k}\cdot\mathbf{x}+\theta_{\mathbf{k}}).$$"
+            r" Here :math:`k_x,k_y\in\{1,\ldots,6\}`, :math:`2\le|\mathbf{k}|^2\le36` and :math:`\sum_{\mathbf{k}}w_{\mathbf{k}}^2=1`; random phases and weights use seed 1701."
+        ),
+        env=env,
+        time_opts=time_opts,
+        domain=domain,
+        equil=equil,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return sim
 
 
-def initial_density(x, y, z):
-    return 0.12 * broadband_field(x, y, z)
-
-
-def initial_vorticity(x, y, z):
-    # PoissonSolve uses the weak form -Delta(phi) = omega.
-    return 0.12 * broadband_field(x, y, z, laplacian=True)
-
-
-model.plasma.density.add_perturbation(GenericPerturbation(initial_density, given_in_basis="physical"))
-model.plasma.vorticity.add_perturbation(GenericPerturbation(initial_vorticity, given_in_basis="physical"))
-
-env = EnvironmentOptions(
-    out_folders="struphy_gallery_runs",
-    sim_folder="hasegawa_wakatani",
-    save_step=5,
-    save_restart=False,
-)
-sim = Simulation(
-    model=model,
-    name="Hasegawa–Wakatani drift-wave turbulence",
-    description=(
-        "Broadband fluctuations break into interacting density and vorticity "
-        "eddies in a periodic plasma slab, while nonlinear E×B transport "
-        "moves part of the kinetic energy into a banded zonal flow."
-        r" The initial density and vorticity fluctuations use the same phases: $$n(x,y,0)=0.12\sum_{\mathbf{k}}w_{\mathbf{k}}\cos(\mathbf{k}\cdot\mathbf{x}+\theta_{\mathbf{k}}),$$"
-        r" $$\omega(x,y,0)=0.12\sum_{\mathbf{k}}|\mathbf{k}|^2w_{\mathbf{k}}\cos(\mathbf{k}\cdot\mathbf{x}+\theta_{\mathbf{k}}).$$"
-        r" Here :math:`k_x,k_y\in\{1,\ldots,6\}`, :math:`2\le|\mathbf{k}|^2\le36` and :math:`\sum_{\mathbf{k}}w_{\mathbf{k}}^2=1`; random phases and weights use seed 1701."
-    ),
-    env=env,
-    time_opts=time_opts,
-    domain=domain,
-    equil=equil,
-    grid=grid,
-    derham_opts=derham_opts,
-)
-
-
-if __name__ == "__main__":
+def pproc(sim: Simulation):
+    env = sim.env
+    time_opts = sim.time_opts
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(celldivide=1)
 
     density = output.evaluate("plasma/density").isel(e3=0, drop=True)
@@ -233,3 +237,18 @@ if __name__ == "__main__":
         figures=figures,
         **export_profiling(sim, "hasegawa-wakatani"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the hasegawa wakatani example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+    pproc(simulation)
