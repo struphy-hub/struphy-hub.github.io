@@ -10,6 +10,8 @@ field, so each particle should gyrate around a field line while it circulates
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -26,8 +28,6 @@ from struphy.kinetic_background import maxwellians
 from struphy.models import Vlasov
 from struphy.pic.base import BoundaryParameters, LoadingParameters, SavingParameters
 
-model = Vlasov(charge_number=1, mass_number=1.0)
-model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D())
 
 # Load a small population; only a handful of markers have their full orbit saved.
 # eta1 is the radial flux coordinate on this domain, so it must reflect at the
@@ -38,50 +38,54 @@ model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D())
 # that reflecting boundary for most of the run.
 n_tracked = 5
 tracked_start = tuple((0.35, None, None, None, None, None) for _ in range(n_tracked))
-model.kinetic_ions.set_markers(
-    loading_params=LoadingParameters(Np=300, seed=7, specific_markers=tracked_start),
-    saving_params=SavingParameters(n_markers=n_tracked),
-    boundary_params=BoundaryParameters(bc=("reflect", "periodic", "periodic")),
-)
 
 # A flux-aligned tokamak domain, built by field-line tracing an analytic
 # axisymmetric MHD equilibrium. A stronger-than-default field (B0) shrinks the
 # Larmor radius, so gyration shows up as tight loops on top of the smooth
 # guiding-center motion instead of dominating it.
-equil = equils.AdhocTorus(B0=8.0)
-domain = domains.Tokamak(equilibrium=equil, num_elements=(4, 16), degree=(2, 3))
-grid = grids.TensorProductGrid(num_elements=(8, 12, 4))
-derham_opts = DerhamOptions(degree=(1, 2, 1))
-time_opts = Time(dt=0.005, Tend=20.0)
 
-env = EnvironmentOptions(
-    out_folders="struphy_gallery_runs",
-    sim_folder="vlasov_tokamak",
-)
-sim = Simulation(
-    model=model,
-    name="Vlasov particle orbits in a tokamak",
-    description=(
-        "Trace full-orbit test particles through a tokamak’s magnetic field "
-        "and watch them gyrate around field lines while circulating -- or "
-        "bouncing -- through the torus."
-        r" Velocities are drawn from the unit-thermal-speed Maxwellian $$f_0(\mathbf{v})=(2\pi)^{-3/2}e^{-|\mathbf{v}|^2/2}.$$"
-        r" The five tracked particles start at logical radius :math:`\eta_1=0.35`, with random angles, in an equilibrium with field parameter :math:`B_0=8`."
-    ),
-    env=env,
-    time_opts=time_opts,
-    domain=domain,
-    equil=equil,
-    grid=grid,
-    derham_opts=derham_opts,
-)
+def create_simulation() -> Simulation:
+    model = Vlasov(charge_number=1, mass_number=1.0)
+    model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D())
+    model.kinetic_ions.set_markers(
+        loading_params=LoadingParameters(Np=300, seed=7, specific_markers=tracked_start),
+        saving_params=SavingParameters(n_markers=n_tracked),
+        boundary_params=BoundaryParameters(bc=("reflect", "periodic", "periodic")),
+    )
+    equil = equils.AdhocTorus(B0=8.0)
+    domain = domains.Tokamak(equilibrium=equil, num_elements=(4, 16), degree=(2, 3))
+    grid = grids.TensorProductGrid(num_elements=(8, 12, 4))
+    derham_opts = DerhamOptions(degree=(1, 2, 1))
+    time_opts = Time(dt=0.005, Tend=20.0)
+    env = EnvironmentOptions(
+        out_folders="struphy_gallery_runs",
+        sim_folder="vlasov_tokamak",
+    )
+    simulation = Simulation(
+        model=model,
+        name="Vlasov particle orbits in a tokamak",
+        description=(
+            "Trace full-orbit test particles through a tokamak’s magnetic field "
+            "and watch them gyrate around field lines while circulating -- or "
+            "bouncing -- through the torus."
+            r" Velocities are drawn from the unit-thermal-speed Maxwellian $$f_0(\mathbf{v})=(2\pi)^{-3/2}e^{-|\mathbf{v}|^2/2}.$$"
+            r" The five tracked particles start at logical radius :math:`\eta_1=0.35`, with random angles, in an equilibrium with field parameter :math:`B_0=8`."
+        ),
+        env=env,
+        time_opts=time_opts,
+        domain=domain,
+        equil=equil,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return simulation
 
-if __name__ == "__main__":
+def pproc(sim: Simulation):
+
     from _gallery import export_profiling, merge_metadata, save_figure
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
-    sim.run(profiling_activated=True)
     output = sim.output.process(create_vtk=False)
 
     # (time, particle, [x, y, z, v1, v2, v3, weight, id]) in physical coordinates.
@@ -265,3 +269,15 @@ if __name__ == "__main__":
         projectionsInteractive="/examples/vlasov-tokamak-projections.plotly.json",
         **profiling,
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

@@ -8,6 +8,8 @@ makes a small, fast verification case with an analytic answer.
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -38,52 +40,54 @@ wavenumber = 2 * np.pi / length
 exact_decay_rate = viscosity * 4 / 3 * wavenumber**2
 
 # With pressure disabled, this is the particle discretisation of velocity diffusion.
-model = ViscousEulerSPH(with_B0=False, with_p=False, with_viscosity=True)
-model.propagators.push_eta.options = model.propagators.push_eta.Options(
-    butcher=ButcherTableau(algo="forward_euler")
-)
-model.propagators.push_viscous.options = model.propagators.push_viscous.Options(
-    kernel_type="gaussian_1d", mu=viscosity
-)
 
-domain = domains.Cuboid(r1=length)
-model.euler_fluid.set_markers(
-    loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
-    weights_params=WeightsParameters(),
-    boundary_params=BoundaryParameters(),
-    sorting_params=SortingParameters(boxes_per_dim=(boxes, 1, 1), dims_mask=(True, False, False)),
-    saving_params=SavingParameters(
-        binning_plots=(
-            BinningPlot(slice="e1", n_bins=(bins,), ranges=(0.0, 1.0), output_quantity="current_1"),
+
+def create_simulation() -> Simulation:
+    model = ViscousEulerSPH(with_B0=False, with_p=False, with_viscosity=True)
+    model.propagators.push_eta.options = model.propagators.push_eta.Options(
+        butcher=ButcherTableau(algo="forward_euler")
+    )
+    model.propagators.push_viscous.options = model.propagators.push_viscous.Options(
+        kernel_type="gaussian_1d", mu=viscosity
+    )
+    domain = domains.Cuboid(r1=length)
+    model.euler_fluid.set_markers(
+        loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
+        weights_params=WeightsParameters(),
+        boundary_params=BoundaryParameters(),
+        sorting_params=SortingParameters(boxes_per_dim=(boxes, 1, 1), dims_mask=(True, False, False)),
+        saving_params=SavingParameters(
+            binning_plots=(
+                BinningPlot(slice="e1", n_bins=(bins,), ranges=(0.0, 1.0), output_quantity="current_1"),
+            ),
         ),
-    ),
-)
-model.euler_fluid.var.add_background(equils.ConstantVelocity())
-model.euler_fluid.var.add_perturbation(
-    del_u1=perturbations.ModesSin(ls=(1,), amps=(initial_amplitude,))
-)
+    )
+    model.euler_fluid.var.add_background(equils.ConstantVelocity())
+    model.euler_fluid.var.add_perturbation(
+        del_u1=perturbations.ModesSin(ls=(1,), amps=(initial_amplitude,))
+    )
+    simulation = Simulation(
+        model=model,
+        name="SPH velocity diffusion",
+        description=(
+            "A sinusoidal velocity field diffuses on a periodic interval. The binned SPH current "
+            "is compared with the exact viscous decay of the mode."
+            r" The initial state is $$u_x(x,0)=0.5\sin(2\pi x),\qquad n(x,0)=1,$$"
+            r" on :math:`0\le x<1`, with viscosity :math:`\mu=0.05`. The reference decay rate is :math:`\Gamma=\tfrac43\mu(2\pi)^2`."
+        ),
+        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="sph_velocity_diffusion"),
+        time_opts=Time(dt=0.0025, Tend=0.3, split_algo="Strang"),
+        domain=domain,
+        grid=None,
+        derham_opts=None,
+    )
+    return simulation
 
-sim = Simulation(
-    model=model,
-    name="SPH velocity diffusion",
-    description=(
-        "A sinusoidal velocity field diffuses on a periodic interval. The binned SPH current "
-        "is compared with the exact viscous decay of the mode."
-        r" The initial state is $$u_x(x,0)=0.5\sin(2\pi x),\qquad n(x,0)=1,$$"
-        r" on :math:`0\le x<1`, with viscosity :math:`\mu=0.05`. The reference decay rate is :math:`\Gamma=\tfrac43\mu(2\pi)^2`."
-    ),
-    env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="sph_velocity_diffusion"),
-    time_opts=Time(dt=0.0025, Tend=0.3, split_algo="Strang"),
-    domain=domain,
-    grid=None,
-    derham_opts=None,
-)
+def pproc(sim: Simulation):
 
-
-if __name__ == "__main__":
     from _gallery import export_profiling, is_root, merge_metadata, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc()
     velocity = output.evaluate("euler_fluid/e1_current_1/f")
     times = np.asarray(velocity.t.values)
@@ -156,3 +160,15 @@ if __name__ == "__main__":
         markers=boxes * markers_per_box,
         **export_profiling(sim, "sph-velocity-diffusion"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

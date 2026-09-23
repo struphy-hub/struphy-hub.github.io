@@ -1,9 +1,9 @@
 """Generate page metadata for the Struphy example gallery.
 
-Each script in `docs/src/examples/` builds its `Simulation` at module scope
+Each script in `docs/src/examples/` exposes a `create_simulation()` factory
 and guards the actual run (and plotting) behind `if __name__ == "__main__":`.
 That lets this script import each example without running its simulation,
-read the resulting `sim` object, and write out the name, description,
+read the resulting `sim` object (or call `create_simulation()`), and write out the name, description,
 governing equations, and configuration summary the gallery page needs --
 so the page never duplicates values the script already knows.
 
@@ -106,7 +106,11 @@ def main(stems: list[str] | None = None) -> None:
         namespace = runpy.run_path(str(script), run_name=script.stem)
         sim = namespace.get("sim")
         if sim is None:
-            print(f"Skipping {script.name}: no module-level `sim` found")
+            create_simulation = namespace.get("create_simulation")
+            if callable(create_simulation):
+                sim = create_simulation()
+        if sim is None:
+            print(f"Skipping {script.name}: no module-level `sim` or `create_simulation()` found")
             continue
 
         output_path = OUTPUT_DIR / f"{script.stem}.metadata.json"

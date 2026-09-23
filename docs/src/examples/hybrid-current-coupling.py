@@ -14,6 +14,8 @@ conservation demonstration, not a measurement of a kinetic damping rate.
 Requires the repository's pinned Struphy with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 
 from struphy import (
@@ -40,66 +42,68 @@ length = 20.0
 amplitude = 0.05
 
 # B0 = n0 = 1 sets v_A = 1; epsilon = 1 sets the hot-ion gyrofrequency.
-model = LinearMHDVlasovCC(hot_epsilon=1.0)
 # Resolve the small wave-energy exchange accurately against the ion background.
-for propagator in (
-    model.propagators.couple_dens, model.propagators.shear_alf,
-    model.propagators.couple_curr, model.propagators.mag_sonic,
-):
-    propagator.options = propagator.Options(solver_params=SolverParameters(tol=1e-12))
-model.mhd.velocity.save_data = True
-model.em_fields.b_field.save_data = True
-model.mhd.velocity.add_perturbation(
-    perturbations.ModesSin(
-        ns=(2,), amps=(amplitude,), comp=0, Lz=length, given_in_basis="physical",
-    ),
-)
-model.energetic_ions.set_markers(
-    loading_params=LoadingParameters(Np=8192, seed=7),
-    weights_params=WeightsParameters(),
-    boundary_params=BoundaryParameters(),
-    sorting_params=SortingParameters(boxes_per_dim=(1, 1, 16), do_sort=True),
-    saving_params=SavingParameters(),
-)
-model.energetic_ions.var.add_background(
-    maxwellians.Maxwellian3D(
-        n=(0.1, None), vth1=(0.5, None), vth2=(0.5, None), vth3=(0.5, None),
-    ),
-)
 
-domain = domains.Cuboid(r3=length)
-equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=1.0, n0=1.0, beta=0.1)
-grid = grids.TensorProductGrid(num_elements=(1, 1, 32))
-derham_opts = DerhamOptions(degree=(1, 1, 3))
-time_opts = Time(dt=0.05, Tend=20.0, split_algo="Strang")
-env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="hybrid_current_coupling")
-sim = Simulation(
-    model=model,
-    name="Alfvén wave with kinetic-ion current coupling",
-    description=(
-        "A shear-Alfvén wave exchanges energy with a dilute population of kinetic ions. "
-        "The LinearMHDVlasovCC hybrid model evolves the bulk plasma as a fluid and the "
-        "energetic ions as particles, coupled through their current. Follow the wave "
-        "and compare energy transfer with the total-energy conservation error."
-        r" The fluid starts with $$u_x(z,0)=0.05\sin(\pi z/5),$$"
-        r" in :math:`\mathbf{B}_0=\mathbf{e}_z`, :math:`n_0=1`. The energetic-ion Maxwellian has :math:`n_h=0.1`, :math:`\mathbf{u}_h=0` and isotropic thermal speed :math:`v_{\mathrm{th},h}=0.5`."
-    ),
-    env=env,
-    time_opts=time_opts,
-    domain=domain,
-    equil=equil,
-    grid=grid,
-    derham_opts=derham_opts,
-)
+def create_simulation() -> Simulation:
+    model = LinearMHDVlasovCC(hot_epsilon=1.0)
+    for propagator in (
+        model.propagators.couple_dens, model.propagators.shear_alf,
+        model.propagators.couple_curr, model.propagators.mag_sonic,
+    ):
+        propagator.options = propagator.Options(solver_params=SolverParameters(tol=1e-12))
+    model.mhd.velocity.save_data = True
+    model.em_fields.b_field.save_data = True
+    model.mhd.velocity.add_perturbation(
+        perturbations.ModesSin(
+            ns=(2,), amps=(amplitude,), comp=0, Lz=length, given_in_basis="physical",
+        ),
+    )
+    model.energetic_ions.set_markers(
+        loading_params=LoadingParameters(Np=8192, seed=7),
+        weights_params=WeightsParameters(),
+        boundary_params=BoundaryParameters(),
+        sorting_params=SortingParameters(boxes_per_dim=(1, 1, 16), do_sort=True),
+        saving_params=SavingParameters(),
+    )
+    model.energetic_ions.var.add_background(
+        maxwellians.Maxwellian3D(
+            n=(0.1, None), vth1=(0.5, None), vth2=(0.5, None), vth3=(0.5, None),
+        ),
+    )
+    domain = domains.Cuboid(r3=length)
+    equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=1.0, n0=1.0, beta=0.1)
+    grid = grids.TensorProductGrid(num_elements=(1, 1, 32))
+    derham_opts = DerhamOptions(degree=(1, 1, 3))
+    time_opts = Time(dt=0.05, Tend=20.0, split_algo="Strang")
+    env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="hybrid_current_coupling")
+    simulation = Simulation(
+        model=model,
+        name="Alfvén wave with kinetic-ion current coupling",
+        description=(
+            "A shear-Alfvén wave exchanges energy with a dilute population of kinetic ions. "
+            "The LinearMHDVlasovCC hybrid model evolves the bulk plasma as a fluid and the "
+            "energetic ions as particles, coupled through their current. Follow the wave "
+            "and compare energy transfer with the total-energy conservation error."
+            r" The fluid starts with $$u_x(z,0)=0.05\sin(\pi z/5),$$"
+            r" in :math:`\mathbf{B}_0=\mathbf{e}_z`, :math:`n_0=1`. The energetic-ion Maxwellian has :math:`n_h=0.1`, :math:`\mathbf{u}_h=0` and isotropic thermal speed :math:`v_{\mathrm{th},h}=0.5`."
+        ),
+        env=env,
+        time_opts=time_opts,
+        domain=domain,
+        equil=equil,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return simulation
 
+def pproc(sim: Simulation):
 
-if __name__ == "__main__":
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
 
     energies = {key: output.evaluate(key) for key in ("en_U", "en_B", "en_p", "en_f", "en_tot")}
@@ -260,3 +264,15 @@ if __name__ == "__main__":
         figures=figures,
         **export_profiling(sim, stem),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

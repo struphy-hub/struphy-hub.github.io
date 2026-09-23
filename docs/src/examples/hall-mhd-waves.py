@@ -11,6 +11,8 @@ spectrum with the exact ones.
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -34,46 +36,48 @@ def hall_branches(k):
     return {"whistler": root + h, "ion-cyclotron": root - h, "sound": sound_speed * k}
 
 
-model = LinearExtendedMHDuniform(epsilon=epsilon)
 
 # Broadband noise in all three velocity components: the transverse ones drive the two Hall branches,
 # the parallel one the sound wave.
-for component in range(3):
-    model.mhd.velocity.add_perturbation(perturbations.Noise(amp=0.1, comp=component, seed=123))
-
-domain = domains.Cuboid(r3=60.0)
-grid = grids.TensorProductGrid(num_elements=(1, 1, 64))
-derham_opts = DerhamOptions(degree=(1, 1, 3))
-equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=B0z, beta=beta, n0=n0)
-time_opts = Time(dt=0.1, Tend=100.0)
-
-env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="hall_mhd_waves")
-sim = Simulation(
-    model=model,
-    name="Whistler and ion-cyclotron waves in Hall MHD",
-    description=(
-        "Broadband noise in a uniform magnetized plasma excites the two circularly polarized branches into which "
-        "the Hall term splits the shear Alfvén wave: the whistler, whose frequency grows like k², and the "
-        "ion-cyclotron wave, which saturates at the ion cyclotron frequency. Their power spectra and phase "
-        "velocities are compared with the analytic Hall-MHD dispersion relation."
-        r" The initial background has $$\mathbf{B}_0=\mathbf{e}_z,\qquad n_0=1,\qquad p_0=0.25,\qquad \epsilon=1,$$"
-        r" with coefficient-noise amplitude :math:`0.1` in all three velocity components and periodic length :math:`L_z=60`."
-    ),
-    env=env,
-    time_opts=time_opts,
-    domain=domain,
-    equil=equil,
-    grid=grid,
-    derham_opts=derham_opts,
-)
 
 
-if __name__ == "__main__":
+def create_simulation() -> Simulation:
+    model = LinearExtendedMHDuniform(epsilon=epsilon)
+    for component in range(3):
+        model.mhd.velocity.add_perturbation(perturbations.Noise(amp=0.1, comp=component, seed=123))
+    domain = domains.Cuboid(r3=60.0)
+    grid = grids.TensorProductGrid(num_elements=(1, 1, 64))
+    derham_opts = DerhamOptions(degree=(1, 1, 3))
+    equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=B0z, beta=beta, n0=n0)
+    time_opts = Time(dt=0.1, Tend=100.0)
+    env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="hall_mhd_waves")
+    simulation = Simulation(
+        model=model,
+        name="Whistler and ion-cyclotron waves in Hall MHD",
+        description=(
+            "Broadband noise in a uniform magnetized plasma excites the two circularly polarized branches into which "
+            "the Hall term splits the shear Alfvén wave: the whistler, whose frequency grows like k², and the "
+            "ion-cyclotron wave, which saturates at the ion cyclotron frequency. Their power spectra and phase "
+            "velocities are compared with the analytic Hall-MHD dispersion relation."
+            r" The initial background has $$\mathbf{B}_0=\mathbf{e}_z,\qquad n_0=1,\qquad p_0=0.25,\qquad \epsilon=1,$$"
+            r" with coefficient-noise amplitude :math:`0.1` in all three velocity components and periodic length :math:`L_z=60`."
+        ),
+        env=env,
+        time_opts=time_opts,
+        domain=domain,
+        equil=equil,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return simulation
+
+def pproc(sim: Simulation):
+
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
 
     common = {"slice_at": [0, 0, None], "physical": True, "do_plot": False}
@@ -206,3 +210,15 @@ if __name__ == "__main__":
         figures=figures,
         **export_profiling(sim, "hall-mhd-waves"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

@@ -9,6 +9,8 @@ helices: the gyroperiod is the same for all of them, the Larmor radius grows in 
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -25,50 +27,45 @@ v_parallel = (0.2, 0.4, 0.6, 0.8)
 centre = 0.5 * box
 # About three gyroperiods. Strang splitting of the position and velocity pushes makes the orbit second order in dt; the
 # default Lie-Trotter splitting is first order and leaves an error of about v * dt / 2 in the position.
-time_opts = Time(dt=0.02, Tend=20.0, split_algo="Strang")
 
-model = Vlasov(charge_number=1, mass_number=1.0)
-model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D())
 # Every marker starts at the middle of the box with velocity (v_perp, 0, v_parallel).
 markers = tuple((0.5, 0.5, 0.1, vp, 0.0, vz) for vp, vz in zip(v_perp, v_parallel))
-model.kinetic_ions.set_markers(
-    loading_params=LoadingParameters(Np=len(markers), seed=7, specific_markers=markers),
-    saving_params=SavingParameters(n_markers=len(markers)),
-    boundary_params=BoundaryParameters(),
-)
 
-sim = Simulation(
-    model=model,
-    name="Gyromotion in a uniform magnetic field",
-    description=(
-        "Test particles with different perpendicular speeds circle a uniform magnetic field at the same gyrofrequency, "
-        "on circles whose Larmor radius grows with the perpendicular speed, while they stream freely along the field. "
-        "Struphy's full-orbit pusher is compared with the exact helices."
-        r" All four particles start at :math:`\mathbf{x}_0=(10,10,2)` in :math:`\mathbf{B}_0=\mathbf{e}_z`, with $$\mathbf{v}_{0,j}=(0.4j,0,0.2j),\qquad j=1,2,3,4.$$"
-        r" Their Larmor radii are :math:`r_{L,j}=v_{\perp,j}/\Omega_c`, with normalized gyrofrequency :math:`\Omega_c=1`."
-    ),
-    env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="gyromotion"),
-    time_opts=time_opts,
-    domain=domains.Cuboid(r1=box, r2=box, r3=box),
-    equil=equils.HomogenSlab(B0z=B0, n0=1.0),
-    grid=grids.TensorProductGrid(num_elements=(4, 4, 4)),
-    derham_opts=DerhamOptions(degree=(1, 1, 1)),
-)
+def create_simulation() -> Simulation:
+    time_opts = Time(dt=0.02, Tend=20.0, split_algo="Strang")
+    model = Vlasov(charge_number=1, mass_number=1.0)
+    model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D())
+    model.kinetic_ions.set_markers(
+        loading_params=LoadingParameters(Np=len(markers), seed=7, specific_markers=markers),
+        saving_params=SavingParameters(n_markers=len(markers)),
+        boundary_params=BoundaryParameters(),
+    )
+    simulation = Simulation(
+        model=model,
+        name="Gyromotion in a uniform magnetic field",
+        description=(
+            "Test particles with different perpendicular speeds circle a uniform magnetic field at the same gyrofrequency, "
+            "on circles whose Larmor radius grows with the perpendicular speed, while they stream freely along the field. "
+            "Struphy's full-orbit pusher is compared with the exact helices."
+            r" All four particles start at :math:`\mathbf{x}_0=(10,10,2)` in :math:`\mathbf{B}_0=\mathbf{e}_z`, with $$\mathbf{v}_{0,j}=(0.4j,0,0.2j),\qquad j=1,2,3,4.$$"
+            r" Their Larmor radii are :math:`r_{L,j}=v_{\perp,j}/\Omega_c`, with normalized gyrofrequency :math:`\Omega_c=1`."
+        ),
+        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="gyromotion"),
+        time_opts=time_opts,
+        domain=domains.Cuboid(r1=box, r2=box, r3=box),
+        equil=equils.HomogenSlab(B0z=B0, n0=1.0),
+        grid=grids.TensorProductGrid(num_elements=(4, 4, 4)),
+        derham_opts=DerhamOptions(degree=(1, 1, 1)),
+    )
+    return simulation
 
+def pproc(sim: Simulation):
 
-def exact_orbit(t, vp, vz, z0):
-    """The helix of a marker starting at the box centre with velocity (vp, 0, vz): (x, y, z)."""
-    phase = gyrofrequency * t
-    radius = vp / gyrofrequency
-    return centre + radius * np.sin(phase), centre + radius * (np.cos(phase) - 1.0), z0 + vz * t
-
-
-if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc()
 
     # (time, marker, [x, y, z, v1, v2, v3, weight, id]), physical coordinates.
@@ -180,3 +177,15 @@ if __name__ == "__main__":
         maxPositionError=float(position_error.max()), maxSpeedDrift=float(speed_drift.max()),
         figures=figures, **export_profiling(sim, "gyromotion"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

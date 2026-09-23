@@ -11,6 +11,8 @@ each packet is compared with the analytic group velocity d omega / d k of the co
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -26,11 +28,6 @@ mode_number = 14
 k0 = 2 * np.pi * mode_number / length  # the carrier wavenumber
 width = 7.0  # of the Gaussian envelope
 amplitude = 0.05
-time_opts = Time(dt=0.05, Tend=40.0)
-grid = grids.TensorProductGrid(num_elements=(1, 1, 256))
-derham_opts = DerhamOptions(degree=(1, 1, 3))
-domain = domains.Cuboid(r3=length)
-equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=B0z, n0=n0)
 
 
 def branch_frequency(k, wave):
@@ -55,48 +52,48 @@ def envelope(z):
     return amplitude * np.exp(-0.5 * ((z - center) / width) ** 2)
 
 
-model = ColdPlasma(alpha=alpha, epsilon=epsilon)
-model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
 # The carrier of the packet: E_x = env cos(k0 z), E_y = -env sin(k0 z).
-model.em_fields.e_field.add_perturbation(
-    GenericPerturbation(lambda x, y, z: envelope(z) * np.cos(k0 * z), given_in_basis="physical", comp=0)
-)
-model.em_fields.e_field.add_perturbation(
-    GenericPerturbation(lambda x, y, z: -envelope(z) * np.sin(k0 * z), given_in_basis="physical", comp=1)
-)
 
-sim = Simulation(
-    model=model,
-    name="Cold-plasma wave packets",
-    description=(
-        "A Gaussian packet of circularly polarized electric field splits, in a magnetized cold plasma, into a fast L-wave packet "
-        "and a slow, spreading R-wave packet that leave the launch point in opposite directions. Their speeds are the group "
-        "velocities of the cold-plasma dispersion relation."
-        r" The launch field is $$\mathbf{E}(z,0)=0.05e^{-(z-40)^2/(2\cdot7^2)}(\cos(k_0z),-\sin(k_0z),0),$$"
-        r" with :math:`k_0=2\pi\cdot14/80`, :math:`\mathbf{B}_0=\mathbf{e}_z` and :math:`n_0=1`."
-    ),
-    env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="cold_plasma_wave_packet"),
-    time_opts=time_opts,
-    domain=domain,
-    equil=equil,
-    grid=grid,
-    derham_opts=derham_opts,
-)
+def create_simulation() -> Simulation:
+    time_opts = Time(dt=0.05, Tend=40.0)
+    grid = grids.TensorProductGrid(num_elements=(1, 1, 256))
+    derham_opts = DerhamOptions(degree=(1, 1, 3))
+    domain = domains.Cuboid(r3=length)
+    equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=B0z, n0=n0)
+    model = ColdPlasma(alpha=alpha, epsilon=epsilon)
+    model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
+    model.em_fields.e_field.add_perturbation(
+        GenericPerturbation(lambda x, y, z: envelope(z) * np.cos(k0 * z), given_in_basis="physical", comp=0)
+    )
+    model.em_fields.e_field.add_perturbation(
+        GenericPerturbation(lambda x, y, z: -envelope(z) * np.sin(k0 * z), given_in_basis="physical", comp=1)
+    )
+    simulation = Simulation(
+        model=model,
+        name="Cold-plasma wave packets",
+        description=(
+            "A Gaussian packet of circularly polarized electric field splits, in a magnetized cold plasma, into a fast L-wave packet "
+            "and a slow, spreading R-wave packet that leave the launch point in opposite directions. Their speeds are the group "
+            "velocities of the cold-plasma dispersion relation."
+            r" The launch field is $$\mathbf{E}(z,0)=0.05e^{-(z-40)^2/(2\cdot7^2)}(\cos(k_0z),-\sin(k_0z),0),$$"
+            r" with :math:`k_0=2\pi\cdot14/80`, :math:`\mathbf{B}_0=\mathbf{e}_z` and :math:`n_0=1`."
+        ),
+        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="cold_plasma_wave_packet"),
+        time_opts=time_opts,
+        domain=domain,
+        equil=equil,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return simulation
 
+def pproc(sim: Simulation):
 
-def packet_energy(run):
-    """Time, position and the transverse electric energy density |E_perp|^2(t, z) of a post-processed run."""
-    e_field = run.evaluate("em_fields/e_field_xyz").isel(e1=0, e2=0)
-    density = e_field.isel(component=0).values ** 2 + e_field.isel(component=1).values ** 2
-    return e_field.t.values, e_field.e3.values * length, density
-
-
-if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
 
     times, z, density = packet_energy(output)
@@ -191,3 +188,15 @@ if __name__ == "__main__":
         figures=figures,
         **export_profiling(sim, "cold-plasma-wave-packet"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

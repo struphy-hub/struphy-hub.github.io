@@ -13,6 +13,8 @@ propagator is a Crank-Nicolson step, which conserves that sum up to the toleranc
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -30,43 +32,45 @@ wavenumber = 2.0 * np.pi * mode_number / length
 frequency = alfven_speed * wavenumber
 period = 2.0 * np.pi / frequency
 
-model = ShearAlfven()
 
 # One mode, transverse to B0: sin(2 pi n z / L) in the velocity, nothing in the magnetic field.
-model.mhd.velocity.add_perturbation(
-    perturbations.ModesSin(ns=(mode_number,), amps=(amplitude,), comp=0, Lz=length, given_in_basis="physical"),
-)
-
-domain = domains.Cuboid(r3=length)
-grid = grids.TensorProductGrid(num_elements=(1, 1, 32))
-derham_opts = DerhamOptions(degree=(1, 1, 3))
-equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=B0z, n0=n0, beta=beta)
-time_opts = Time(dt=period / 200.0, Tend=4.0 * period)
-
-env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="alfven_standing_wave")
-sim = Simulation(
-    model=model,
-    name="Standing shear-Alfvén wave",
-    description=(
-        "A single transverse velocity mode splits into two counter-propagating Alfvén waves, i.e. a standing "
-        "wave. Its energy oscillates between the kinetic and the magnetic channel at twice the wave frequency, "
-        "while the structure-preserving discretization keeps the sum constant."
-        r" The launch condition is $$u_x(z,0)=0.01\sin(\pi z/5),\qquad \delta\mathbf{B}(z,0)=0,$$"
-        r" in a periodic interval of length :math:`L_z=20`, with :math:`\mathbf{B}_0=\mathbf{e}_z` and :math:`n_0=1`."
-    ),
-    env=env,
-    time_opts=time_opts,
-    domain=domain,
-    equil=equil,
-    grid=grid,
-    derham_opts=derham_opts,
-)
 
 
-if __name__ == "__main__":
+def create_simulation() -> Simulation:
+    model = ShearAlfven()
+    model.mhd.velocity.add_perturbation(
+        perturbations.ModesSin(ns=(mode_number,), amps=(amplitude,), comp=0, Lz=length, given_in_basis="physical"),
+    )
+    domain = domains.Cuboid(r3=length)
+    grid = grids.TensorProductGrid(num_elements=(1, 1, 32))
+    derham_opts = DerhamOptions(degree=(1, 1, 3))
+    equil = equils.HomogenSlab(B0x=0.0, B0y=0.0, B0z=B0z, n0=n0, beta=beta)
+    time_opts = Time(dt=period / 200.0, Tend=4.0 * period)
+    env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="alfven_standing_wave")
+    simulation = Simulation(
+        model=model,
+        name="Standing shear-Alfvén wave",
+        description=(
+            "A single transverse velocity mode splits into two counter-propagating Alfvén waves, i.e. a standing "
+            "wave. Its energy oscillates between the kinetic and the magnetic channel at twice the wave frequency, "
+            "while the structure-preserving discretization keeps the sum constant."
+            r" The launch condition is $$u_x(z,0)=0.01\sin(\pi z/5),\qquad \delta\mathbf{B}(z,0)=0,$$"
+            r" in a periodic interval of length :math:`L_z=20`, with :math:`\mathbf{B}_0=\mathbf{e}_z` and :math:`n_0=1`."
+        ),
+        env=env,
+        time_opts=time_opts,
+        domain=domain,
+        equil=equil,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return simulation
+
+def pproc(sim: Simulation):
+
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
 
     kinetic = output.evaluate("en_U")
@@ -144,3 +148,15 @@ if __name__ == "__main__":
         figures=figures,
         **export_profiling(sim, "alfven-standing-wave"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

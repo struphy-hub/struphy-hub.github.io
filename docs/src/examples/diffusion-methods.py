@@ -15,6 +15,8 @@ Both start from the same markers and are compared with the exact decay.
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -42,12 +44,8 @@ wavenumber = 2 * np.pi
 decay_rate = diffusion * wavenumber**2  # the exact decay rate of the mode
 markers = 100_000
 bins = 32
-time_opts = Time(dt=0.005, Tend=1.0, split_algo="LieTrotter")
 
-domain = domains.Cuboid(r1=1.0)
 # The finite element grid is used only by the deterministic method, to estimate the density.
-grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
-derham_opts = DerhamOptions(degree=(3, 1, 1))
 
 
 def make_model(model_class, propagator_name, **options):
@@ -70,7 +68,7 @@ def make_model(model_class, propagator_name, **options):
     return model
 
 
-def make_simulation(model, folder, **extra):
+def make_simulation(model, folder, *, time_opts, domain, **extra):
     return Simulation(
         model=model,
         env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder=folder),
@@ -80,38 +78,51 @@ def make_simulation(model, folder, **extra):
     )
 
 
-# The random walk needs forward Euler: it is the only scheme it supports, and the default Runge-Kutta
-# tableau would add the noise increment once per stage and so multiply the diffusion coefficient.
-random_model = make_model(
-    RandomParticleDiffusion, "rand_diff", butcher=ButcherTableau(algo="forward_euler")
-)
-deterministic_model = make_model(DeterministicParticleDiffusion, "det_diff")
+def create_simulation() -> Simulation:
+    time_opts = Time(dt=0.005, Tend=1.0, split_algo="LieTrotter")
+    domain = domains.Cuboid(r1=1.0)
+    grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
+    derham_opts = DerhamOptions(degree=(3, 1, 1))
+    # The random walk needs forward Euler: it is the only scheme it supports, and the default
+    # Runge-Kutta tableau would add the noise increment once per stage and multiply diffusion.
+    random_model = make_model(
+        RandomParticleDiffusion, "rand_diff", butcher=ButcherTableau(algo="forward_euler")
+    )
+    deterministic_model = make_model(DeterministicParticleDiffusion, "det_diff")
+    simulation = make_simulation(
+        random_model,
+        "diffusion_random",
+        time_opts=time_opts,
+        domain=domain,
+        name="Random and deterministic particle diffusion",
+        description=(
+            "A cosine density relaxes by diffusion. Struphy's random-walk and deterministic particle methods "
+            "both follow it, and their density and decay of the mode are compared with the exact solution."
+            r" Both methods use $$n(x,0)=1+0.5\cos(2\pi x),\qquad D=0.05,$$"
+            r" on :math:`0\le x<1`. The reference mode amplitude is :math:`A(t)=0.5e^{-D(2\pi)^2t}`."
+        ),
+        grid=None,
+        derham_opts=None,
+    )
+    simulation._comparison_simulation = make_simulation(
+        deterministic_model,
+        "diffusion_deterministic",
+        time_opts=time_opts,
+        domain=domain,
+        grid=None,
+        derham_opts=None,
+    )
+    return simulation
 
-# The example's model is the random walk; the deterministic method is run for comparison.
-sim = make_simulation(
-    random_model,
-    "diffusion_random",
-    name="Random and deterministic particle diffusion",
-    description=(
-        "A cosine density relaxes by diffusion. Struphy's random-walk and deterministic particle methods "
-        "both follow it, and their density and decay of the mode are compared with the exact solution."
-        r" Both methods use $$n(x,0)=1+0.5\cos(2\pi x),\qquad D=0.05,$$"
-        r" on :math:`0\le x<1`. The reference mode amplitude is :math:`A(t)=0.5e^{-D(2\pi)^2t}`."
-    ),
-    grid=None,
-    derham_opts=None,
-)
-sim_deterministic = make_simulation(deterministic_model, "diffusion_deterministic", grid=grid, derham_opts=derham_opts)
+def pproc(sim: Simulation):
 
-
-if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, is_root, merge_metadata, save_figure
 
     runs = {
-        "Random walk": sim.run(profiling_activated=True),
-        "Deterministic": sim_deterministic.run(),
+        "Random walk": sim.output,
+        "Deterministic": sim._comparison_simulation.output,
     }
     for run in runs.values():
         run.pproc()
@@ -185,3 +196,15 @@ if __name__ == "__main__":
         randomRmsError=rms_error["Random walk"], deterministicRmsError=rms_error["Deterministic"],
         markers=markers, **export_profiling(sim, "diffusion-methods"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

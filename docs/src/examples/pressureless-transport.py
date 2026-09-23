@@ -7,6 +7,8 @@ This is an exact nonlinear solution, without characteristic crossing.
 Requires the pinned Struphy with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 
 from struphy import (
@@ -18,42 +20,44 @@ from struphy.models import VariationalPressurelessFluid
 stem = "pressureless-transport"
 length, speed, amplitude = 2.0 * np.pi, 0.5, 0.2
 crossing_time = length / speed
-model = VariationalPressurelessFluid()
-model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="pressureless")
 # The density 3-form and contravariant velocity include the coordinate mapping.
-model.fluid.density.add_background(FieldsBackground(values=(length,)))
-model.fluid.velocity.add_background(FieldsBackground(values=(speed / length, 0.0, 0.0)))
-model.fluid.density.add_perturbation(
-    perturbations.ModesCos(ls=(1,), amps=(amplitude,), Lx=length, given_in_basis="physical"),
-)
-model.fluid.density.save_data = True
-model.fluid.velocity.save_data = True
-domain = domains.Cuboid(r1=length)
-grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
-derham_opts = DerhamOptions(degree=(3, 1, 1))
-time_opts = Time(dt=crossing_time / 800, Tend=crossing_time, split_algo="Strang")
-sim = Simulation(
-    model=model,
-    name="Pressureless density transport",
-    description=(
-        "A density ripple travels once around a periodic box at constant speed. "
-        "VariationalPressurelessFluid has no pressure force, so the exact nonlinear "
-        "solution keeps the profile unchanged. Compare its shape, mass and kinetic energy."
-        r" The initial data are $$\rho(x,0)=1+0.2\cos x,\qquad \mathbf{u}(x,0)=(0.5,0,0),$$"
-        r" giving :math:`\rho(x,t)=1+0.2\cos(x-0.5t)` on :math:`0\leq x<2\pi`."
-    ),
-    env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="pressureless_transport"),
-    time_opts=time_opts, domain=domain, grid=grid, derham_opts=derham_opts,
-    equil=equils.HomogenSlab(B0z=1.0, n0=1.0),
-)
+def create_simulation() -> Simulation:
+    model = VariationalPressurelessFluid()
+    model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="pressureless")
+    model.fluid.density.add_background(FieldsBackground(values=(length,)))
+    model.fluid.velocity.add_background(FieldsBackground(values=(speed / length, 0.0, 0.0)))
+    model.fluid.density.add_perturbation(
+        perturbations.ModesCos(ls=(1,), amps=(amplitude,), Lx=length, given_in_basis="physical"),
+    )
+    model.fluid.density.save_data = True
+    model.fluid.velocity.save_data = True
+    domain = domains.Cuboid(r1=length)
+    grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
+    derham_opts = DerhamOptions(degree=(3, 1, 1))
+    time_opts = Time(dt=crossing_time / 800, Tend=crossing_time, split_algo="Strang")
+    simulation = Simulation(
+        model=model,
+        name="Pressureless density transport",
+        description=(
+            "A density ripple travels once around a periodic box at constant speed. "
+            "VariationalPressurelessFluid has no pressure force, so the exact nonlinear "
+            "solution keeps the profile unchanged. Compare its shape, mass and kinetic energy."
+            r" The initial data are $$\rho(x,0)=1+0.2\cos x,\qquad \mathbf{u}(x,0)=(0.5,0,0),$$"
+            r" giving :math:`\rho(x,t)=1+0.2\cos(x-0.5t)` on :math:`0\leq x<2\pi`."
+        ),
+        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="pressureless_transport"),
+        time_opts=time_opts, domain=domain, grid=grid, derham_opts=derham_opts,
+        equil=equils.HomogenSlab(B0z=1.0, n0=1.0),
+    )
+    return simulation
 
+def pproc(sim: Simulation):
 
-if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
     rho = output.evaluate("fluid/density_xyz").isel(e2=0, e3=0)
     velocity = output.evaluate("fluid/velocity_xyz").isel(component=0, e2=0, e3=0)
@@ -98,3 +102,15 @@ if __name__ == "__main__":
     merge_metadata(stem, maxRelativeProfileError=float(errors.max()), maxRelativeVelocityError=velocity_error,
                    maxEnergyDrift=energy_drift, maxSampledMassDrift=mass_drift,
                    figures=figures, **export_profiling(sim, stem))
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

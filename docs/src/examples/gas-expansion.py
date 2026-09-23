@@ -11,6 +11,8 @@ so that an exact solution exists.
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -40,76 +42,62 @@ boxes = 64
 markers_per_box = 64
 density_points = 401
 
-model = ViscousEulerSPH(with_B0=False, with_p=True, with_viscosity=False)
-model.propagators.push_eta.options = model.propagators.push_eta.Options(
-    butcher=ButcherTableau(algo="forward_euler"),
-)
-model.propagators.push_sph_p.options = model.propagators.push_sph_p.Options(kernel_type="gaussian_1d", kappa=kappa)
-
-domain = domains.Cuboid(r1=box_length)
-model.euler_fluid.set_markers(
-    loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
-    # Markers are loaded over the whole box, and those with almost no weight (the vacuum) are removed.
-    weights_params=WeightsParameters(reject_weights=True, threshold=1e-6),
-    boundary_params=BoundaryParameters(
-        bc=("reflect", "periodic", "periodic"), bc_sph=("mirror", "periodic", "periodic")
-    ),
-    sorting_params=SortingParameters(boxes_per_dim=(boxes, 1, 1), dims_mask=(True, False, False)),
-    saving_params=SavingParameters(
-        n_markers=1.0,
-        kernel_density_plots=(KernelDensityPlot(pts_e1=density_points, pts_e2=1),),
-    ),
-    bufsize=2,
-)
-model.euler_fluid.var.add_background(
-    equils.ConstantVelocity(density_profile="step_function_xy", n=gas_density, upper_x=release_point),
-)
-
-env = EnvironmentOptions(
-    out_folders="struphy_gallery_runs",
-    sim_folder="gas_expansion",
-)
-sim = Simulation(
-    model=model,
-    name="Gas expansion into vacuum",
-    description=(
-        "An isothermal gas initially occupies the left part of a one-dimensional box and expands into "
-        "the vacuum. Smoothed particle hydrodynamics follows the rarefaction wave "
-        "and the gas streaming into the vacuum, and the result is compared with the "
-        "exact self-similar solution."
-        r" The initial state is $$n(x,0)=\begin{cases}1,&0\le x<1.5,\\0,&1.5<x\le8,\end{cases}\qquad u_x(x,0)=0,$$"
-        r" with isothermal sound speed :math:`c_s=\sqrt{\kappa}=1`."
-    ),
-    env=env,
-    time_opts=Time(dt=0.01, Tend=1.2, split_algo="Strang"),
-    domain=domain,
-    grid=None,
-    derham_opts=None,
-)
 
 
-def exact_solution(positions, time):
-    """The exact isothermal rarefaction into vacuum: density and velocity at `time`.
+def create_simulation() -> Simulation:
+    model = ViscousEulerSPH(with_B0=False, with_p=True, with_viscosity=False)
+    model.propagators.push_eta.options = model.propagators.push_eta.Options(
+        butcher=ButcherTableau(algo="forward_euler"),
+    )
+    model.propagators.push_sph_p.options = model.propagators.push_sph_p.Options(kernel_type="gaussian_1d", kappa=kappa)
+    domain = domains.Cuboid(r1=box_length)
+    model.euler_fluid.set_markers(
+        loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
+        # Markers are loaded over the whole box, and those with almost no weight (the vacuum) are removed.
+        weights_params=WeightsParameters(reject_weights=True, threshold=1e-6),
+        boundary_params=BoundaryParameters(
+            bc=("reflect", "periodic", "periodic"), bc_sph=("mirror", "periodic", "periodic")
+        ),
+        sorting_params=SortingParameters(boxes_per_dim=(boxes, 1, 1), dims_mask=(True, False, False)),
+        saving_params=SavingParameters(
+            n_markers=1.0,
+            kernel_density_plots=(KernelDensityPlot(pts_e1=density_points, pts_e2=1),),
+        ),
+        bufsize=2,
+    )
+    model.euler_fluid.var.add_background(
+        equils.ConstantVelocity(density_profile="step_function_xy", n=gas_density, upper_x=release_point),
+    )
+    env = EnvironmentOptions(
+        out_folders="struphy_gallery_runs",
+        sim_folder="gas_expansion",
+    )
+    simulation = Simulation(
+        model=model,
+        name="Gas expansion into vacuum",
+        description=(
+            "An isothermal gas initially occupies the left part of a one-dimensional box and expands into "
+            "the vacuum. Smoothed particle hydrodynamics follows the rarefaction wave "
+            "and the gas streaming into the vacuum, and the result is compared with the "
+            "exact self-similar solution."
+            r" The initial state is $$n(x,0)=\begin{cases}1,&0\le x<1.5,\\0,&1.5<x\le8,\end{cases}\qquad u_x(x,0)=0,$$"
+            r" with isothermal sound speed :math:`c_s=\sqrt{\kappa}=1`."
+        ),
+        env=env,
+        time_opts=Time(dt=0.01, Tend=1.2, split_algo="Strang"),
+        domain=domain,
+        grid=None,
+        derham_opts=None,
+    )
+    return simulation
 
-    Gas of density `gas_density` at rest fills x < `release_point` at t = 0. For xi = (x - x0) / t below
-    -c the gas is undisturbed. Above, the Riemann invariant u + c ln(rho) = c ln(rho_0) and the
-    self-similar characteristic u = xi + c give rho = rho_0 exp(-(xi / c + 1)) and u = xi + c.
-    """
-    if time <= 0.0:
-        return np.where(positions < release_point, gas_density, 0.0), np.zeros_like(positions)
-    xi = (positions - release_point) / time
-    undisturbed = xi < -sound_speed
-    density = np.where(undisturbed, gas_density, gas_density * np.exp(-(xi / sound_speed + 1.0)))
-    velocity = np.where(undisturbed, 0.0, xi + sound_speed)
-    return density, velocity
+def pproc(sim: Simulation):
 
-
-if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc()
 
     density = output.evaluate("euler_fluid/view_0/n").isel(e2=0, e3=0)  # (t, e1): the SPH density estimate
@@ -464,3 +452,15 @@ if __name__ == "__main__":
         figures=figures,
         **profiling,
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

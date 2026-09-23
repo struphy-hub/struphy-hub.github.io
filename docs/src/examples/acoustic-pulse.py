@@ -10,6 +10,8 @@ starts as pure thermodynamic energy, which the running pulses share with kinetic
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -35,10 +37,6 @@ sound_speed = 1.0
 gamma = 5.0 / 3.0
 # c^2 = gamma (gamma - 1) rho^(gamma - 1) exp(s / rho) equals 1 at unit density when exp(s / rho) = 1 / (gamma (gamma - 1)).
 entropy_per_mass = -np.log(gamma * (gamma - 1.0))
-time_opts = Time(dt=0.02, Tend=length / sound_speed, split_algo="Strang")  # one crossing of the periodic box
-grid = grids.TensorProductGrid(num_elements=(64, 1, 1))
-derham_opts = DerhamOptions(degree=(3, 1, 1))
-domain = domains.Cuboid(l1=0.0, r1=length, l2=0.0, r2=1.0, l3=0.0, r3=1.0)
 
 # The Gaussian, as a cosine series about x = 0 (the pulse wraps around the periodic box): f(x) = sum_n a_n cos(n k x).
 harmonics = np.arange(1, modes + 1)
@@ -53,56 +51,56 @@ class CompatibleNonlinearSolverParameters(NonlinearSolverParameters):
         return getattr(self, key)
 
 
-model = VariationalCompressibleFluid()
-nonlinear_solver = CompatibleNonlinearSolverParameters(type="Newton")
-model.propagators.variat_dens.options = model.propagators.variat_dens.Options(
-    model="full", gamma=gamma, nonlin_solver=nonlinear_solver
-)
-model.propagators.variat_ent.options = model.propagators.variat_ent.Options(gamma=gamma, nonlin_solver=nonlinear_solver)
 # Logical 3-forms include det(DF) = length, so a physical density 1 is the value `length`.
-model.fluid.density.add_background(FieldsBackground(values=(length,)))
-model.fluid.entropy.add_background(FieldsBackground(values=(entropy_per_mass * length,)))
-model.fluid.velocity.add_background(FieldsBackground(values=(0.0, 0.0, 0.0)))
 # The entropy per unit mass s / rho stays uniform, so the entropy follows the density: ds = (s / rho) d(rho).
-for variable, factor in ((model.fluid.density, 1.0), (model.fluid.entropy, entropy_per_mass)):
-    variable.add_perturbation(
-        perturbations.ModesCos(
-            ls=tuple(int(n) for n in harmonics), amps=tuple(float(factor * c) for c in coefficients), Lx=length,
-            given_in_basis="physical",
-        )
+
+def create_simulation() -> Simulation:
+    time_opts = Time(dt=0.02, Tend=length / sound_speed, split_algo="Strang")
+    grid = grids.TensorProductGrid(num_elements=(64, 1, 1))
+    derham_opts = DerhamOptions(degree=(3, 1, 1))
+    domain = domains.Cuboid(l1=0.0, r1=length, l2=0.0, r2=1.0, l3=0.0, r3=1.0)
+    model = VariationalCompressibleFluid()
+    nonlinear_solver = CompatibleNonlinearSolverParameters(type="Newton")
+    model.propagators.variat_dens.options = model.propagators.variat_dens.Options(
+        model="full", gamma=gamma, nonlin_solver=nonlinear_solver
     )
+    model.propagators.variat_ent.options = model.propagators.variat_ent.Options(gamma=gamma, nonlin_solver=nonlinear_solver)
+    model.fluid.density.add_background(FieldsBackground(values=(length,)))
+    model.fluid.entropy.add_background(FieldsBackground(values=(entropy_per_mass * length,)))
+    model.fluid.velocity.add_background(FieldsBackground(values=(0.0, 0.0, 0.0)))
+    for variable, factor in ((model.fluid.density, 1.0), (model.fluid.entropy, entropy_per_mass)):
+        variable.add_perturbation(
+            perturbations.ModesCos(
+                ls=tuple(int(n) for n in harmonics), amps=tuple(float(factor * c) for c in coefficients), Lx=length,
+                given_in_basis="physical",
+            )
+        )
+    simulation = Simulation(
+        model=model,
+        name="Acoustic pulse",
+        description=(
+            "A Gaussian bump in the density of a compressible gas splits into two half-height pulses that travel in "
+            "opposite directions at the speed of sound. Struphy's variational discretization follows them around the "
+            "periodic box, conserving energy, and they agree with d'Alembert's solution."
+            r" The periodic initial density uses ten Gaussian-weighted modes: $$n(x,0)=1+\sum_{j=1}^{10}a_j\cos(jx),\qquad a_j=\frac{0.02\sqrt{2\pi}}{2\pi}e^{-j^2/8},$$"
+            r" with :math:`\mathbf{u}(x,0)=0` on :math:`0\le x<2\pi`. The pulse has width :math:`\sigma=0.5` and sound speed :math:`c_s=1`."
+        ),
+        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="acoustic_pulse"),
+        time_opts=time_opts,
+        domain=domain,
+        equil=equils.HomogenSlab(B0z=1.0, n0=1.0, beta=2.0),
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return simulation
 
-sim = Simulation(
-    model=model,
-    name="Acoustic pulse",
-    description=(
-        "A Gaussian bump in the density of a compressible gas splits into two half-height pulses that travel in "
-        "opposite directions at the speed of sound. Struphy's variational discretization follows them around the "
-        "periodic box, conserving energy, and they agree with d'Alembert's solution."
-        r" The periodic initial density uses ten Gaussian-weighted modes: $$n(x,0)=1+\sum_{j=1}^{10}a_j\cos(jx),\qquad a_j=\frac{0.02\sqrt{2\pi}}{2\pi}e^{-j^2/8},$$"
-        r" with :math:`\mathbf{u}(x,0)=0` on :math:`0\le x<2\pi`. The pulse has width :math:`\sigma=0.5` and sound speed :math:`c_s=1`."
-    ),
-    env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="acoustic_pulse"),
-    time_opts=time_opts,
-    domain=domain,
-    equil=equils.HomogenSlab(B0z=1.0, n0=1.0, beta=2.0),
-    grid=grid,
-    derham_opts=derham_opts,
-)
+def pproc(sim: Simulation):
 
-
-def exact_density(x, t):
-    """d'Alembert's solution of the linearized problem: the sum of the cosine modes, each oscillating at c k."""
-    modes_x = np.cos(np.outer(np.atleast_1d(x), wavenumbers))
-    return 1.0 + modes_x @ (coefficients * np.cos(sound_speed * wavenumbers * t))
-
-
-if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
 
     rho = output.evaluate("fluid/density_xyz").isel(e2=0, e3=0)
@@ -179,3 +177,15 @@ if __name__ == "__main__":
         figures=figures,
         **export_profiling(sim, "acoustic-pulse"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

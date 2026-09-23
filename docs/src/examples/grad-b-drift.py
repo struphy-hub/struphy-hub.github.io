@@ -12,6 +12,8 @@ Reference: https://farside.ph.utexas.edu/teaching/plasma/lectures/node19.html
 Requires the pinned Struphy with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 
 from struphy import (
@@ -43,42 +45,44 @@ class PeriodicMagneticSlab(equils.HomogenSlab):
         return 0.0 * x, -self.gradB_xyz(x, y, z)[0], 0.0 * x
 
 
-equil = PeriodicMagneticSlab(length=box, ripple=ripple)
-model = Vlasov(charge_number=1, mass_number=1.0)
-model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D())
 markers = tuple((0.5, 0.5, 0.5, speed, 0.0, 0.0) for speed in speeds)
-model.kinetic_ions.set_markers(
-    loading_params=LoadingParameters(Np=len(markers), seed=7, specific_markers=markers),
-    saving_params=SavingParameters(n_markers=len(markers)),
-    boundary_params=BoundaryParameters(),
-)
-domain = domains.Cuboid(r1=box, r2=box, r3=box)
-grid = grids.TensorProductGrid(num_elements=(64, 1, 1))
-derham_opts = DerhamOptions(degree=(3, 1, 1))
-time_opts = Time(dt=0.05, Tend=100.0, split_algo="Strang")
-sim = Simulation(
-    model=model, name="Grad-B drift of charged particles",
-    description=(
-        "Charged particles gyrate more tightly on the stronger-field side of an orbit, "
-        "producing a drift perpendicular to both the magnetic field and its gradient. "
-        "Three test ions demonstrate how the drift grows with perpendicular kinetic energy. "
-        "The magnetic field is externally prescribed; its straight field lines exclude curvature drift."
-        r" Here $$\mathbf{B}(x)=[1+0.3\sin(2\pi x/40)]\mathbf{e}_z,$$"
-        r" and the ions start at :math:`(20,20,20)` with :math:`\mathbf{v}_0=(v_\perp,0,0)`,"
-        r" :math:`v_\perp\in\{0.3,0.6,0.9\}` and :math:`q/m=1`. "
-        r" Their measured drift is compared with the guiding-center approximation :math:`v_{\nabla B,y}=v_\perp^2 B'/(2B^2)`."
-    ),
-    env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="grad_b_drift"),
-    time_opts=time_opts, domain=domain, grid=grid, derham_opts=derham_opts, equil=equil,
-)
+def create_simulation() -> Simulation:
+    equil = PeriodicMagneticSlab(length=box, ripple=ripple)
+    model = Vlasov(charge_number=1, mass_number=1.0)
+    model.kinetic_ions.var.add_background(maxwellians.Maxwellian3D())
+    model.kinetic_ions.set_markers(
+        loading_params=LoadingParameters(Np=len(markers), seed=7, specific_markers=markers),
+        saving_params=SavingParameters(n_markers=len(markers)),
+        boundary_params=BoundaryParameters(),
+    )
+    domain = domains.Cuboid(r1=box, r2=box, r3=box)
+    grid = grids.TensorProductGrid(num_elements=(64, 1, 1))
+    derham_opts = DerhamOptions(degree=(3, 1, 1))
+    time_opts = Time(dt=0.05, Tend=100.0, split_algo="Strang")
+    simulation = Simulation(
+        model=model, name="Grad-B drift of charged particles",
+        description=(
+            "Charged particles gyrate more tightly on the stronger-field side of an orbit, "
+            "producing a drift perpendicular to both the magnetic field and its gradient. "
+            "Three test ions demonstrate how the drift grows with perpendicular kinetic energy. "
+            "The magnetic field is externally prescribed; its straight field lines exclude curvature drift."
+            r" Here $$\mathbf{B}(x)=[1+0.3\sin(2\pi x/40)]\mathbf{e}_z,$$"
+            r" and the ions start at :math:`(20,20,20)` with :math:`\mathbf{v}_0=(v_\perp,0,0)`,"
+            r" :math:`v_\perp\in\{0.3,0.6,0.9\}` and :math:`q/m=1`. "
+            r" Their measured drift is compared with the guiding-center approximation :math:`v_{\nabla B,y}=v_\perp^2 B'/(2B^2)`."
+        ),
+        env=EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="grad_b_drift"),
+        time_opts=time_opts, domain=domain, grid=grid, derham_opts=derham_opts, equil=equil,
+    )
+    return simulation
 
+def pproc(sim: Simulation):
 
-if __name__ == "__main__":
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     # Post-processing otherwise tries to reconstruct this script-local class
     # from Struphy's built-in equilibrium catalogue. Reuse the actual object.
     output.equil = equil
@@ -136,3 +140,15 @@ if __name__ == "__main__":
                                 caption="Subtracting the leading gyration reveals the slow drift. Small oscillations remain because the guiding-center formula neglects finite-Larmor-radius corrections.")]
     merge_metadata(stem, measuredDriftVelocities=measured.tolist(), guidingCenterDriftVelocities=reference.tolist(),
                    maxDriftRateError=drift_error, maxSpeedDrift=speed_drift, figures=figures, **export_profiling(sim, stem))
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

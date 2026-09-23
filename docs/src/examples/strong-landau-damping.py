@@ -11,6 +11,8 @@ Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/stron
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -31,63 +33,65 @@ from struphy import (
 )
 from struphy.models import VlasovAmpereOneSpecies
 
-model = VlasovAmpereOneSpecies(alpha=1.0, epsilon=-1.0, with_B0=False)
-model.em_fields.e_field.save_data = True
 
 # A periodic box of length 4*pi (k = 0.5), resolved by a single, low-degree element row.
-domain = domains.Cuboid(r1=12.56)
-grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
-derham_opts = DerhamOptions()
-time_opts = Time(dt=0.05, Tend=75.0, split_algo="LieTrotter")
 
 # 1000 particles per cell, sorted into boxes for the control-variate weighting.
-model.kinetic_ions.set_markers(
-    loading_params=LoadingParameters(ppc=1000),
-    weights_params=WeightsParameters(control_variate=True),
-    boundary_params=BoundaryParameters(),
-    sorting_params=SortingParameters(boxes_per_dim=(16, 1, 1), do_sort=True),
-    saving_params=SavingParameters(),
-    bufsize=2.0,
-)
 
-model.propagators.push_eta.options = model.propagators.push_eta.Options()
-model.propagators.coupling_va.options = model.propagators.coupling_va.Options()
-model.initial_poisson.options = model.initial_poisson.Options(stab_mat="M0")
 
 # A large-amplitude cosine mode, well past the linear (weak-damping) regime.
 perturbation_amplitude = 0.5
-background = maxwellians.Maxwellian3D(n=(1.0, None))
-model.kinetic_ions.var.add_background(background)
-perturbation = perturbations.ModesCos(amps=(perturbation_amplitude,), ls=(1,))
-model.kinetic_ions.var.add_initial_condition(maxwellians.Maxwellian3D(n=(1.0, perturbation)))
 
-env = EnvironmentOptions(
-    out_folders="struphy_gallery_runs",
-    sim_folder="strong_landau_damping",
-)
-sim = Simulation(
-    model=model,
-    name="Strong Landau damping",
-    description=(
-        "A large-amplitude perturbation drives a Vlasov-Ampère plasma into "
-        "the nonlinear regime — particles trap in the field's potential "
-        "wells, and the field energy bounces instead of decaying smoothly."
-        r" The initial Maxwellian has density $$n(x,0)=1+0.5\cos(2\pi x/L),\qquad L=12.56,$$"
-        r" zero mean velocity and thermal speed :math:`v_{\mathrm{th}}=1`."
-    ),
-    env=env,
-    time_opts=time_opts,
-    domain=domain,
-    grid=grid,
-    derham_opts=derham_opts,
-)
+def create_simulation() -> Simulation:
+    model = VlasovAmpereOneSpecies(alpha=1.0, epsilon=-1.0, with_B0=False)
+    model.em_fields.e_field.save_data = True
+    domain = domains.Cuboid(r1=12.56)
+    grid = grids.TensorProductGrid(num_elements=(32, 1, 1))
+    derham_opts = DerhamOptions()
+    time_opts = Time(dt=0.05, Tend=75.0, split_algo="LieTrotter")
+    model.kinetic_ions.set_markers(
+        loading_params=LoadingParameters(ppc=1000),
+        weights_params=WeightsParameters(control_variate=True),
+        boundary_params=BoundaryParameters(),
+        sorting_params=SortingParameters(boxes_per_dim=(16, 1, 1), do_sort=True),
+        saving_params=SavingParameters(),
+        bufsize=2.0,
+    )
+    model.propagators.push_eta.options = model.propagators.push_eta.Options()
+    model.propagators.coupling_va.options = model.propagators.coupling_va.Options()
+    model.initial_poisson.options = model.initial_poisson.Options(stab_mat="M0")
+    background = maxwellians.Maxwellian3D(n=(1.0, None))
+    model.kinetic_ions.var.add_background(background)
+    perturbation = perturbations.ModesCos(amps=(perturbation_amplitude,), ls=(1,))
+    model.kinetic_ions.var.add_initial_condition(maxwellians.Maxwellian3D(n=(1.0, perturbation)))
+    env = EnvironmentOptions(
+        out_folders="struphy_gallery_runs",
+        sim_folder="strong_landau_damping",
+    )
+    simulation = Simulation(
+        model=model,
+        name="Strong Landau damping",
+        description=(
+            "A large-amplitude perturbation drives a Vlasov-Ampère plasma into "
+            "the nonlinear regime — particles trap in the field's potential "
+            "wells, and the field energy bounces instead of decaying smoothly."
+            r" The initial Maxwellian has density $$n(x,0)=1+0.5\cos(2\pi x/L),\qquad L=12.56,$$"
+            r" zero mean velocity and thermal speed :math:`v_{\mathrm{th}}=1`."
+        ),
+        env=env,
+        time_opts=time_opts,
+        domain=domain,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return simulation
 
-if __name__ == "__main__":
+def pproc(sim: Simulation):
+
     from _gallery import export_profiling, merge_metadata, save_figure
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
-    sim.run(profiling_activated=True)
 
     output = sim.output
     field_energy_array = output.evaluate("electric_energy")
@@ -125,3 +129,15 @@ if __name__ == "__main__":
         bouncePeriod=bounce_period,
         **profiling,
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

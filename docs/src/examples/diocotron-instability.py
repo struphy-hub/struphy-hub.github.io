@@ -14,6 +14,8 @@ Mehrenberger & Vecil (2014), https://doi.org/10.1140/epjd/e2014-50180-9.
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -37,36 +39,16 @@ from struphy import (
 )
 from struphy.models import ToyDrift
 
-model = ToyDrift(epsilon=1.0, alpha=1.0, base_units=BaseUnits(kBT=1.0))
 
 # An annular ring, r in [1, 10], with a uniform background field.
-domain = domains.HollowCylinder(a1=1.0, a2=10.0, Lz=10.0)
-equil = equils.HomogenSlab()
-grid = grids.TensorProductGrid(num_elements=(64, 64, 1), mpi_dims_mask=(False, True, False))
-derham_opts = DerhamOptions(degree=(3, 3, 1), bcs=(("dirichlet", "dirichlet"), None, None))
-time_opts = Time(dt=0.5, Tend=100.0, split_algo="LieTrotter")
 
 # A high-resolution radial-angular density snapshot at every step.  The extra
 # angular samples make the m = 4 ripples legible in the interactive movie.
-density_bins = BinningPlot(slice="e1_e2", n_bins=(192, 256), ranges=((0.0, 1.0), (0.0, 1.0)))
-model.kinetic_ions.set_markers(
-    loading_params=LoadingParameters(ppc=40, loading="sobol_standard", spatial="disc"),
-    weights_params=WeightsParameters(control_variate=True, reject_weights=True, threshold=0.0001),
-    boundary_params=BoundaryParameters(),
-    sorting_params=SortingParameters(boxes_per_dim=(16, 16, 1), do_sort=True, sorting_frequency=5),
-    saving_params=SavingParameters(binning_plots=(density_bins,)),
-    bufsize=2.0,
-)
 
-model.propagators.gc_poisson.options = model.propagators.gc_poisson.Options()
-model.propagators.push_gc_bxe.options = model.propagators.push_gc_bxe.Options(
-    algo="discrete_gradient_1st_order_newton",
-    evaluate_e_field=True,
-)
 
 # A uniform-density ring between r = 4 and r = 5, seeded with a tiny m = 4 azimuthal mode.
+a1, a2 = 1.0, 10.0
 r_minus, r_plus, mode_number = 4.0, 5.0, 4
-a1, a2 = domain.params["a1"], domain.params["a2"]
 eta_minus, eta_plus = (r_minus - a1) / (a2 - a1), (r_plus - a1) / (a2 - a1)
 
 
@@ -75,38 +57,61 @@ def ring_density(etas, r_minus=r_minus, r_plus=r_plus):
     return 1.0 * ((r_minus <= radial) & (radial < r_plus))
 
 
-model.kinetic_ions.var.add_background(maxwellians.GyroMaxwellian2D(n=(0.0, None)))
-perturbation = perturbations.ModesCos(amps=(1e-6,), ms=(mode_number,), perb_domain=((eta_minus, eta_plus), None, None))
-model.kinetic_ions.var.add_initial_condition(maxwellians.GyroMaxwellian2D(n=(ring_density, perturbation)))
 
-env = EnvironmentOptions(
-    out_folders="struphy_gallery_runs",
-    sim_folder="diocotron_instability",
-)
-sim = Simulation(
-    model=model,
-    name="Diocotron instability",
-    description=(
-        "A sheared E×B ring of charge is unstable: a tiny azimuthal "
-        "perturbation grows, rippling the ring's edges — the onset of a "
-        "rotating pattern of vortices."
-        r" The charge ring starts from $$n(r,\theta,0)=\mathbf{1}_{[4,5)}(r)\,[1+10^{-6}\cos(4\theta)],$$"
-        r" inside conducting cylinders at :math:`r=1` and :math:`r=10`; the indicator is one inside the ring and zero outside."
-    ),
-    env=env,
-    time_opts=time_opts,
-    domain=domain,
-    equil=equil,
-    grid=grid,
-    derham_opts=derham_opts,
-)
+def create_simulation() -> Simulation:
+    model = ToyDrift(epsilon=1.0, alpha=1.0, base_units=BaseUnits(kBT=1.0))
+    domain = domains.HollowCylinder(a1=1.0, a2=10.0, Lz=10.0)
+    equil = equils.HomogenSlab()
+    grid = grids.TensorProductGrid(num_elements=(64, 64, 1), mpi_dims_mask=(False, True, False))
+    derham_opts = DerhamOptions(degree=(3, 3, 1), bcs=(("dirichlet", "dirichlet"), None, None))
+    time_opts = Time(dt=0.5, Tend=100.0, split_algo="LieTrotter")
+    density_bins = BinningPlot(slice="e1_e2", n_bins=(192, 256), ranges=((0.0, 1.0), (0.0, 1.0)))
+    model.kinetic_ions.set_markers(
+        loading_params=LoadingParameters(ppc=40, loading="sobol_standard", spatial="disc"),
+        weights_params=WeightsParameters(control_variate=True, reject_weights=True, threshold=0.0001),
+        boundary_params=BoundaryParameters(),
+        sorting_params=SortingParameters(boxes_per_dim=(16, 16, 1), do_sort=True, sorting_frequency=5),
+        saving_params=SavingParameters(binning_plots=(density_bins,)),
+        bufsize=2.0,
+    )
+    model.propagators.gc_poisson.options = model.propagators.gc_poisson.Options()
+    model.propagators.push_gc_bxe.options = model.propagators.push_gc_bxe.Options(
+        algo="discrete_gradient_1st_order_newton",
+        evaluate_e_field=True,
+    )
+    a1, a2 = domain.params["a1"], domain.params["a2"]
+    model.kinetic_ions.var.add_background(maxwellians.GyroMaxwellian2D(n=(0.0, None)))
+    perturbation = perturbations.ModesCos(amps=(1e-6,), ms=(mode_number,), perb_domain=((eta_minus, eta_plus), None, None))
+    model.kinetic_ions.var.add_initial_condition(maxwellians.GyroMaxwellian2D(n=(ring_density, perturbation)))
+    env = EnvironmentOptions(
+        out_folders="struphy_gallery_runs",
+        sim_folder="diocotron_instability",
+    )
+    simulation = Simulation(
+        model=model,
+        name="Diocotron instability",
+        description=(
+            "A sheared E×B ring of charge is unstable: a tiny azimuthal "
+            "perturbation grows, rippling the ring's edges — the onset of a "
+            "rotating pattern of vortices."
+            r" The charge ring starts from $$n(r,\theta,0)=\mathbf{1}_{[4,5)}(r)\,[1+10^{-6}\cos(4\theta)],$$"
+            r" inside conducting cylinders at :math:`r=1` and :math:`r=10`; the indicator is one inside the ring and zero outside."
+        ),
+        env=env,
+        time_opts=time_opts,
+        domain=domain,
+        equil=equil,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return simulation
 
-if __name__ == "__main__":
+def pproc(sim: Simulation):
+
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     # scope-profiler is built into Struphy: this instruments every propagator,
     # pusher and solver call during the run and writes a timing HDF5 file.
-    sim.run(profiling_activated=True)
     output = sim.output.process(create_vtk=False)
 
     density = output.distributions.kinetic_ions.e1_e2_density.f
@@ -279,3 +284,15 @@ if __name__ == "__main__":
         figures=figures,
         **profiling,
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the example.")
+    argparser.add_argument("--pproc", action="store_true", help="Run post-processing on an existing simulation instead of running a new one.")
+    args = argparser.parse_args()
+    simulation = create_simulation()
+    if args.pproc:
+        pproc(simulation)
+    else:
+        simulation.run(profiling_activated=True)
+        pproc(simulation)

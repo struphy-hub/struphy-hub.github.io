@@ -60,9 +60,15 @@ filename.
 
 ## 1. Write the script: `docs/src/examples/<script-stem>.py`
 
-- Build the model, domain, grid, and `Simulation(...)` at **module scope** — not inside
-  `if __name__ == "__main__":`. `generate_examples.py` imports the script without running it
-  to read this setup, so it must be constructible without a compiled Struphy install.
+- Keep hardcoded problem parameters and reusable setup helpers at module scope, but construct
+  the `Simulation(...)` inside `create_simulation()`. `generate_examples.py` imports the script
+  and calls that factory without running the simulation, so construction must be possible
+  without a compiled Struphy install.
+- Expose `create_simulation() -> Simulation` and `pproc(sim: Simulation)` functions. The
+  entrypoint should accept only the `--pproc` flag: without it, run the hardcoded simulation
+  and then call `pproc`; with it, construct the same simulation and post-process its existing
+  output without running time integration. Do not add command-line options for model or run
+  parameters.
 - Pass `name=` and `description=` to `Simulation(...)`. These become the page's title and
   intro text — don't duplicate them anywhere else.
 - Descriptions support inline LaTeX with `` :math:`\gamma \approx -0.1533` `` and
@@ -70,9 +76,9 @@ filename.
   strings (`r"..."`) to preserve LaTeX backslashes; see `weak-landau-damping.py`.
   Equations render on the example page and inline in gallery/model cards. Ordinary
   text is escaped, so descriptions do not accept raw HTML.
-- Put `sim.run()`, post-processing, plotting, and file output behind
-  `if __name__ == "__main__":`. That's the part that needs `struphy compile` and actually
-  takes time to run.
+- Keep the command-line dispatch behind `if __name__ == "__main__":`; simulation execution,
+  post-processing, plotting, and file output belong in the two functions above. The normal
+  branch is the part that needs `struphy compile` and actually takes time to run.
 - Plot with Plotly (`plotly.graph_objects`), not matplotlib. The shared gallery helper
   serializes the completed figure as Plotly JSON; the site renders it with its single shared
   Plotly runtime. See an existing script for layout conventions (margins, slider/button
@@ -197,8 +203,9 @@ in its metadata. No list to edit by hand.
 
 ## Checklist
 
-- [ ] `docs/src/examples/<script-stem>.py` — `Simulation(name=..., description=...)` at
-      module scope, heavy work behind `if __name__ == "__main__":`, Plotly output
+- [ ] `docs/src/examples/<script-stem>.py` — construct `Simulation(name=..., description=...)`
+      and all Struphy setup objects inside `create_simulation()`, with heavy work behind
+      `if __name__ == "__main__":`, Plotly output
 - [ ] Name every file the script writes after the script: `<script-stem>.png`, `<script-stem>.plotly.json`, `<script-stem>.html`
       (and `<script-stem>-<key>.*` for extra figures). The metadata JSON, figures and thumbnails are
       generated and gitignored; check them locally with `python cli.py run <script-stem>`
