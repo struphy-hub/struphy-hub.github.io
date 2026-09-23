@@ -8,7 +8,6 @@ import json
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent.parent
 SELECTION_FILE = ROOT / ".github" / "pitagora-examples.txt"
 SCRIPTS_DIR = ROOT / "docs" / "src" / "examples"
@@ -30,10 +29,14 @@ def selected_examples() -> list[str]:
     examples = [example for example in examples if example]
     if not examples:
         raise ValueError(f"{SELECTION_FILE.relative_to(ROOT)} contains no examples")
-    duplicates = sorted({example for example in examples if examples.count(example) > 1})
+    duplicates = sorted(
+        {example for example in examples if examples.count(example) > 1}
+    )
     if duplicates:
         raise ValueError(f"duplicate Pitagora examples: {', '.join(duplicates)}")
-    missing = [example for example in examples if not (SCRIPTS_DIR / f"{example}.py").is_file()]
+    missing = [
+        example for example in examples if not (SCRIPTS_DIR / f"{example}.py").is_file()
+    ]
     if missing:
         raise ValueError(f"no gallery script for: {', '.join(missing)}")
     return examples
@@ -51,8 +54,14 @@ def artifact_files(example: str) -> list[Path]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--json", action="store_true", help="print the selection as a JSON array")
-    parser.add_argument("--verify-output", action="store_true", help="require figure files for every selected example")
+    parser.add_argument(
+        "--json", action="store_true", help="print the selection as a JSON array"
+    )
+    parser.add_argument(
+        "--verify-output",
+        action="store_true",
+        help="require figure files for every selected example",
+    )
     args = parser.parse_args()
     try:
         examples = selected_examples()
@@ -68,7 +77,9 @@ def main() -> int:
         ]
         missing = [path.name for path in expected_outputs if not path.is_file()]
         if missing:
-            print(f"error: missing Pitagora output: {', '.join(missing)}", file=sys.stderr)
+            print(
+                f"error: missing Pitagora output: {', '.join(missing)}", file=sys.stderr
+            )
             return 1
         print("Downloaded Pitagora artifacts:")
         for example in examples:

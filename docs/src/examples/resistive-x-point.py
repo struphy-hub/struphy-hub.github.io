@@ -8,6 +8,8 @@ resistivity permits reconnection.
 Requires Struphy 3.3 with compiled kernels (``struphy compile``).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -40,81 +42,84 @@ class CompatibleNonlinearSolverParameters(NonlinearSolverParameters):
     def __getitem__(self, key):
         return getattr(self, key)
 
-
-model = ViscoResistiveMHD(with_viscosity=False, with_resistivity=True)
-model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="full")
-model.propagators.variat_resist.options = model.propagators.variat_resist.Options(
-    model="full",
-    eta=resistivity,
-    nonlin_solver=CompatibleNonlinearSolverParameters(type="Newton"),
-)
-
-domain = domains.Cuboid(l1=box_min, r1=box_max, l2=box_min, r2=box_max, l3=0.0, r3=1.0)
-grid = grids.TensorProductGrid(num_elements=(24, 24, 1))
-derham_opts = DerhamOptions(degree=(2, 2, 1))
-time_opts = Time(dt=0.02, Tend=2.0, split_algo="LieTrotter")
-equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=2.0)
-
 # Logical 3-forms include det(DF) = (2*pi)^2, giving physical rho = 1 and
 # uniform entropy density. The evolved magnetic field itself has no guide field.
 volume = period**2
-model.mhd.density.add_background(FieldsBackground(values=(volume,)))
-model.mhd.entropy.add_background(FieldsBackground(values=(0.6 * volume,)))
-model.mhd.velocity.add_background(FieldsBackground(values=(0.0, 0.0, 0.0)))
-model.em_fields.b_field.add_background(FieldsBackground(values=(0.0, 0.0, 0.0)))
-model.em_fields.b_field.add_perturbation(
-    perturbations.ModesSin(
-        ms=(1,), amps=(flux_asymmetry,), Ly=period, comp=0, given_in_basis="physical",
-    )
-)
-model.em_fields.b_field.add_perturbation(
-    perturbations.ModesSin(
-        ls=(1,), amps=(1.0,), Lx=period, comp=1, given_in_basis="physical",
-    )
-)
-
-# Divergence-free strain u = (-u0 sin(x) cos(y), u0 cos(x) sin(y), 0).
-model.mhd.velocity.add_perturbation(
-    perturbations.ModesSinCos(
-        ls=(1,), ms=(1,), amps=(-drive_amplitude,), Lx=period, Ly=period,
-        comp=0, given_in_basis="physical",
-    )
-)
-model.mhd.velocity.add_perturbation(
-    perturbations.ModesCosSin(
-        ls=(1,), ms=(1,), amps=(drive_amplitude,), Lx=period, Ly=period,
-        comp=1, given_in_basis="physical",
-    )
-)
-
-env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="resistive_x_point", max_runtime=3600)
-sim = Simulation(
-    model=model,
-    name="Resistive magnetic X-point",
-    description=(
-        "A periodic magnetic X-point is squeezed by an incompressible strain and evolved "
-        "with Struphy's nonlinear visco-resistive MHD model. Finite resistivity supports an out-of-plane "
-        "electric field at the null, changes the flux connecting the X- and O-points, and converts magnetic "
-        "energy into internal energy while the compatible FEEC discretization controls div B."
-        r" The initial magnetic field and strain are $$\mathbf{B}(x,y,0)=(0.7\sin y,\sin x,0),$$"
-        r" $$\mathbf{u}(x,y,0)=0.2(-\sin x\cos y,\cos x\sin y,0),$$"
-        r" on :math:`[-\pi,\pi)^2`, with resistivity :math:`\eta=0.05`."
-    ),
-    env=env,
-    time_opts=time_opts,
-    domain=domain,
-    equil=equil,
-    grid=grid,
-    derham_opts=derham_opts,
-)
 
 
-if __name__ == "__main__":
+def create_simulation() -> Simulation:
+    model = ViscoResistiveMHD(with_viscosity=False, with_resistivity=True)
+    model.propagators.variat_dens.options = model.propagators.variat_dens.Options(model="full")
+    model.propagators.variat_resist.options = model.propagators.variat_resist.Options(
+        model="full",
+        eta=resistivity,
+        nonlin_solver=CompatibleNonlinearSolverParameters(type="Newton"),
+    )
+
+    domain = domains.Cuboid(l1=box_min, r1=box_max, l2=box_min, r2=box_max, l3=0.0, r3=1.0)
+    grid = grids.TensorProductGrid(num_elements=(24, 24, 1))
+    derham_opts = DerhamOptions(degree=(2, 2, 1))
+    time_opts = Time(dt=0.02, Tend=2.0, split_algo="LieTrotter")
+    equil = equils.HomogenSlab(B0z=1.0, n0=1.0, beta=2.0)
+    model.mhd.density.add_background(FieldsBackground(values=(volume,)))
+    model.mhd.entropy.add_background(FieldsBackground(values=(0.6 * volume,)))
+    model.mhd.velocity.add_background(FieldsBackground(values=(0.0, 0.0, 0.0)))
+    model.em_fields.b_field.add_background(FieldsBackground(values=(0.0, 0.0, 0.0)))
+    model.em_fields.b_field.add_perturbation(
+        perturbations.ModesSin(
+            ms=(1,), amps=(flux_asymmetry,), Ly=period, comp=0, given_in_basis="physical",
+        )
+    )
+    model.em_fields.b_field.add_perturbation(
+        perturbations.ModesSin(
+            ls=(1,), amps=(1.0,), Lx=period, comp=1, given_in_basis="physical",
+        )
+    )
+
+    # Divergence-free strain u = (-u0 sin(x) cos(y), u0 cos(x) sin(y), 0).
+    model.mhd.velocity.add_perturbation(
+        perturbations.ModesSinCos(
+            ls=(1,), ms=(1,), amps=(-drive_amplitude,), Lx=period, Ly=period,
+            comp=0, given_in_basis="physical",
+        )
+    )
+    model.mhd.velocity.add_perturbation(
+        perturbations.ModesCosSin(
+            ls=(1,), ms=(1,), amps=(drive_amplitude,), Lx=period, Ly=period,
+            comp=1, given_in_basis="physical",
+        )
+    )
+
+    env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="resistive_x_point", max_runtime=3600)
+    sim = Simulation(
+        model=model,
+        name="Resistive magnetic X-point",
+        description=(
+            "A periodic magnetic X-point is squeezed by an incompressible strain and evolved "
+            "with Struphy's nonlinear visco-resistive MHD model. Finite resistivity supports an out-of-plane "
+            "electric field at the null, changes the flux connecting the X- and O-points, and converts magnetic "
+            "energy into internal energy while the compatible FEEC discretization controls div B."
+            r" The initial magnetic field and strain are $$\mathbf{B}(x,y,0)=(0.7\sin y,\sin x,0),$$"
+            r" $$\mathbf{u}(x,y,0)=0.2(-\sin x\cos y,\cos x\sin y,0),$$"
+            r" on :math:`[-\pi,\pi)^2`, with resistivity :math:`\eta=0.05`."
+        ),
+        env=env,
+        time_opts=time_opts,
+        domain=domain,
+        equil=equil,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return sim
+
+
+def pproc(sim: Simulation):
+    time_opts = sim.time_opts
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True, celldivide=2)
     if not all(bool(np.isfinite(value).all()) for value in output.scalars.values()):
         raise RuntimeError("Non-finite X-point diagnostics: refusing to publish the run")
@@ -287,3 +292,18 @@ if __name__ == "__main__":
         minDensity=float(rho.min()), figures=figures,
         **export_profiling(sim, "resistive-x-point"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the resistive x point example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+    pproc(simulation)

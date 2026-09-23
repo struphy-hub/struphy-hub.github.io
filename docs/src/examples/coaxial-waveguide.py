@@ -10,6 +10,8 @@ Adapted from Struphy's tutorial (tutorials/tutorial_maxwell.ipynb) and its verif
 Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -28,49 +30,53 @@ length = 2.0
 mode_number = 3
 bessel_ratio = 0.28
 
-model = Maxwell()
-model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
-model.em_fields.e_field.add_perturbation(
-    perturbations.CoaxialWaveguideElectric_r(m=mode_number, a1=inner_radius, a2=outer_radius)
-)
-model.em_fields.e_field.add_perturbation(
-    perturbations.CoaxialWaveguideElectric_theta(m=mode_number, a1=inner_radius, a2=outer_radius)
-)
-model.em_fields.b_field.add_perturbation(
-    perturbations.CoaxialWaveguideMagnetic(m=mode_number, a1=inner_radius, a2=outer_radius)
-)
 
-# The annulus in the (x, y) plane, with conducting walls (Dirichlet conditions) in the radial direction.
-domain = domains.HollowCylinder(a1=inner_radius, a2=outer_radius, Lz=length)
-grid = grids.TensorProductGrid(num_elements=(32, 64, 1))
-derham_opts = DerhamOptions(degree=(3, 3, 1), bcs=(("dirichlet", "dirichlet"), None, None))
+def create_simulation() -> Simulation:
+    model = Maxwell()
+    model.propagators.maxwell.options = model.propagators.maxwell.Options(algo="implicit")
+    model.em_fields.e_field.add_perturbation(
+        perturbations.CoaxialWaveguideElectric_r(m=mode_number, a1=inner_radius, a2=outer_radius)
+    )
+    model.em_fields.e_field.add_perturbation(
+        perturbations.CoaxialWaveguideElectric_theta(m=mode_number, a1=inner_radius, a2=outer_radius)
+    )
+    model.em_fields.b_field.add_perturbation(
+        perturbations.CoaxialWaveguideMagnetic(m=mode_number, a1=inner_radius, a2=outer_radius)
+    )
 
-env = EnvironmentOptions(
-    out_folders="struphy_gallery_runs",
-    sim_folder="coaxial_waveguide",
-)
-sim = Simulation(
-    model=model,
-    name="Coaxial waveguide",
-    description=(
-        "An exact electromagnetic mode between two concentric conducting cylinders "
-        "rotates around the annulus. Struphy's structure-preserving Maxwell solver "
-        "reproduces its shape, its frequency and the conservation of its energy."
-        r" With :math:`F(r)=J_3(r)-0.28Y_3(r)`, the initial mode is $$E_r=-\frac{3F(r)}{r}\cos(3\theta),\qquad E_\theta=F\prime(r)\sin(3\theta),\qquad B_z=F(r)\cos(3\theta),$$"
-        r" between :math:`r=2.326744` and :math:`r=3.686839`; :math:`J_3` and :math:`Y_3` are Bessel functions."
-    ),
-    env=env,
-    time_opts=Time(dt=0.05, Tend=20.0),
-    domain=domain,
-    equil=equils.HomogenSlab(),
-    grid=grid,
-    derham_opts=derham_opts,
-)
+    # The annulus in the (x, y) plane, with conducting walls (Dirichlet conditions) in the radial direction.
+    domain = domains.HollowCylinder(a1=inner_radius, a2=outer_radius, Lz=length)
+    grid = grids.TensorProductGrid(num_elements=(32, 64, 1))
+    derham_opts = DerhamOptions(degree=(3, 3, 1), bcs=(("dirichlet", "dirichlet"), None, None))
 
-if __name__ == "__main__":
+    env = EnvironmentOptions(
+        out_folders="struphy_gallery_runs",
+        sim_folder="coaxial_waveguide",
+    )
+    sim = Simulation(
+        model=model,
+        name="Coaxial waveguide",
+        description=(
+            "An exact electromagnetic mode between two concentric conducting cylinders "
+            "rotates around the annulus. Struphy's structure-preserving Maxwell solver "
+            "reproduces its shape, its frequency and the conservation of its energy."
+            r" With :math:`F(r)=J_3(r)-0.28Y_3(r)`, the initial mode is $$E_r=-\frac{3F(r)}{r}\cos(3\theta),\qquad E_\theta=F\prime(r)\sin(3\theta),\qquad B_z=F(r)\cos(3\theta),$$"
+            r" between :math:`r=2.326744` and :math:`r=3.686839`; :math:`J_3` and :math:`Y_3` are Bessel functions."
+        ),
+        env=env,
+        time_opts=Time(dt=0.05, Tend=20.0),
+        domain=domain,
+        equil=equils.HomogenSlab(),
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return sim
+
+
+def pproc(sim: Simulation):
     from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc(physical=True)
 
     # The axial magnetic field on the (r, theta) evaluation grid, and the exact mode at the same points.
@@ -316,3 +322,18 @@ if __name__ == "__main__":
         figures=figures,
         **profiling,
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the coaxial waveguide example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+    pproc(simulation)

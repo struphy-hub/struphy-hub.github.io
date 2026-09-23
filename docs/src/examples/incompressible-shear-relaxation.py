@@ -13,6 +13,8 @@ Based on the verification test of the model in Struphy
 Requires Struphy 3.3 with compiled kernels (`struphy compile`).
 """
 
+import argparse
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -44,68 +46,71 @@ boxes = 8
 markers_per_box = 16
 bins = 16
 
-model = IncompressibleNavierStokesSPH(with_B0=False, with_viscosity=True)
-model.propagators.push_eta.options = model.propagators.push_eta.Options(
-    butcher=ButcherTableau(algo="forward_euler"),
-)
-model.propagators.push_viscous.options = model.propagators.push_viscous.Options(
-    kernel_type="gaussian_2d", mu=viscosity
-)
 
-domain = domains.Cuboid(r1=1.0, r2=height)
-# The pressure is a finite element field; the walls are free (no boundary condition) for it.
-grid = grids.TensorProductGrid(num_elements=(boxes, boxes, 1))
-derham_opts = DerhamOptions(degree=(2, 2, 1), bcs=(None, ("free", "free"), None))
-
-model.fluid.set_markers(
-    loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
-    weights_params=WeightsParameters(),
-    # Markers reflect off the walls, and the SPH sum sees them as no-slip; x is periodic.
-    boundary_params=BoundaryParameters(
-        bc=("periodic", "reflect", "periodic"), bc_sph=("periodic", "noslip", "periodic")
-    ),
-    sorting_params=SortingParameters(boxes_per_dim=(boxes, boxes, 1), dims_mask=(True, True, False)),
-    saving_params=SavingParameters(
-        binning_plots=(
-            BinningPlot(slice="e2", n_bins=(bins,), ranges=(0.0, 1.0), output_quantity="current_1"),
-            BinningPlot(slice="e1", n_bins=(bins,), ranges=(0.0, 1.0), output_quantity="current_1"),
-        ),
-    ),
-    bufsize=2,
-)
-model.fluid.density.add_background(equils.ConstantVelocity())
-model.fluid.density.add_perturbation(
-    del_u1=GenericPerturbation(
-        fun=lambda e1, e2, e3: shear_amplitude * np.sin(np.pi * e2 / height)
-        + compressive_amplitude * np.sin(2 * np.pi * e1)
+def create_simulation() -> Simulation:
+    model = IncompressibleNavierStokesSPH(with_B0=False, with_viscosity=True)
+    model.propagators.push_eta.options = model.propagators.push_eta.Options(
+        butcher=ButcherTableau(algo="forward_euler"),
     )
-)
+    model.propagators.push_viscous.options = model.propagators.push_viscous.Options(
+        kernel_type="gaussian_2d", mu=viscosity
+    )
 
-env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="incompressible_shear_relaxation")
-sim = Simulation(
-    model=model,
-    name="Incompressible shear relaxation",
-    description=(
-        "A viscous fluid between no-slip walls starts with a shear flow and a compressive wave. "
-        "Incompressible SPH with a pressure projection removes the wave at once and lets the shear decay "
-        "viscously, at the exact rate."
-        r" Before the pressure projection, $$u_x(x,y,0)=0.5\sin(\pi y)+0.2\sin(2\pi x),\qquad u_y(x,y,0)=0,$$"
-        r" with :math:`n=1`, viscosity :math:`\nu=0.1`, and no-slip walls at :math:`y=0,1`."
-    ),
-    env=env,
-    time_opts=Time(dt=0.01, Tend=3.0, split_algo="LieTrotter"),
-    domain=domain,
-    grid=grid,
-    derham_opts=derham_opts,
-)
+    domain = domains.Cuboid(r1=1.0, r2=height)
+    # The pressure is a finite element field; the walls are free (no boundary condition) for it.
+    grid = grids.TensorProductGrid(num_elements=(boxes, boxes, 1))
+    derham_opts = DerhamOptions(degree=(2, 2, 1), bcs=(None, ("free", "free"), None))
+
+    model.fluid.set_markers(
+        loading_params=LoadingParameters(ppb=markers_per_box, loading="tesselation"),
+        weights_params=WeightsParameters(),
+        # Markers reflect off the walls, and the SPH sum sees them as no-slip; x is periodic.
+        boundary_params=BoundaryParameters(
+            bc=("periodic", "reflect", "periodic"), bc_sph=("periodic", "noslip", "periodic")
+        ),
+        sorting_params=SortingParameters(boxes_per_dim=(boxes, boxes, 1), dims_mask=(True, True, False)),
+        saving_params=SavingParameters(
+            binning_plots=(
+                BinningPlot(slice="e2", n_bins=(bins,), ranges=(0.0, 1.0), output_quantity="current_1"),
+                BinningPlot(slice="e1", n_bins=(bins,), ranges=(0.0, 1.0), output_quantity="current_1"),
+            ),
+        ),
+        bufsize=2,
+    )
+    model.fluid.density.add_background(equils.ConstantVelocity())
+    model.fluid.density.add_perturbation(
+        del_u1=GenericPerturbation(
+            fun=lambda e1, e2, e3: shear_amplitude * np.sin(np.pi * e2 / height)
+            + compressive_amplitude * np.sin(2 * np.pi * e1)
+        )
+    )
+
+    env = EnvironmentOptions(out_folders="struphy_gallery_runs", sim_folder="incompressible_shear_relaxation")
+    sim = Simulation(
+        model=model,
+        name="Incompressible shear relaxation",
+        description=(
+            "A viscous fluid between no-slip walls starts with a shear flow and a compressive wave. "
+            "Incompressible SPH with a pressure projection removes the wave at once and lets the shear decay "
+            "viscously, at the exact rate."
+            r" Before the pressure projection, $$u_x(x,y,0)=0.5\sin(\pi y)+0.2\sin(2\pi x),\qquad u_y(x,y,0)=0,$$"
+            r" with :math:`n=1`, viscosity :math:`\nu=0.1`, and no-slip walls at :math:`y=0,1`."
+        ),
+        env=env,
+        time_opts=Time(dt=0.01, Tend=3.0, split_algo="LieTrotter"),
+        domain=domain,
+        grid=grid,
+        derham_opts=derham_opts,
+    )
+    return sim
 
 
-if __name__ == "__main__":
+def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
 
     from _gallery import export_profiling, is_root, merge_metadata, save_figure
 
-    output = sim.run(profiling_activated=True)
+    output = sim.output
     output.pproc()
 
     across = output.evaluate("fluid/e2_current_1/f")  # (t, e2): u_x against y, averaged over x
@@ -178,3 +183,18 @@ if __name__ == "__main__":
         profileError=profile_error, compressiveWaveRemaining=wave_left,
         markers=boxes * boxes * markers_per_box, **export_profiling(sim, "incompressible-shear-relaxation"),
     )
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(description="Run the incompressible shear relaxation example.")
+    argparser.add_argument(
+        "--pproc",
+        action="store_true",
+        help="Run post-processing on an existing simulation instead of running a new one.",
+    )
+    args = argparser.parse_args()
+
+    simulation = create_simulation()
+    if not args.pproc:
+        simulation.run(profiling_activated=True)
+    pproc(simulation)
