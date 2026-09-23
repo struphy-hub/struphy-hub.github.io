@@ -99,7 +99,7 @@ def mode_amplitude(run):
 
 
 def pproc(sim: Simulation):
-    from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
+    from struphy.utils._gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
     runs = {0.5: sim.output}
     for k in wavenumbers:

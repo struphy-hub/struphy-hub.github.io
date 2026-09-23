@@ -103,7 +103,7 @@ def pproc(sim: Simulation):
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
-    from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure, space_time_figure
+    from struphy.utils._gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
     output = sim.output
     output.pproc(physical=True)

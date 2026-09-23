@@ -82,7 +82,7 @@ def pproc(sim: Simulation):
     time_opts = sim.time_opts
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-    from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     # Post-processing otherwise tries to reconstruct this script-local class

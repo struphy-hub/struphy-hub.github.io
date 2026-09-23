@@ -122,7 +122,7 @@ def fixed_theta_amplitudes(output, field_xyz, angles=(0.0, 45.0), sector_mode=-1
 
 def save_fixed_theta_fft_figures(output):
     """Export the two angle comparisons; usable directly with saved output."""
-    from _gallery import save_extra_figure
+    from struphy.utils._gallery import save_extra_figure
 
     figures = []
     for field_name, label, key in (
@@ -218,7 +218,7 @@ def pproc(sim: Simulation):
     """Export the gallery figures from an existing simulation."""
     domain = sim.domain
     grid = sim.grid
-    from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     simulation_seconds = output.profile.summary().attrs["run_time"]

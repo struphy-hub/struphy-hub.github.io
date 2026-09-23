@@ -107,7 +107,7 @@ def create_simulation() -> Simulation:
 
 def pproc(sim: Simulation):
     a1, a2 = sim.domain.params["a1"], sim.domain.params["a2"]
-    from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output.process(create_vtk=False)
 
