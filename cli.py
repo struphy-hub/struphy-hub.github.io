@@ -291,8 +291,10 @@ def clean_scratch() -> None:
             target.unlink()
 
 
-def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts, str]:
-    """Do for one example what CI does. Returns (ok, seconds, artifacts, message)."""
+def run_one(
+    stem: str, args: argparse.Namespace, *, postprocess_only: bool = False
+) -> tuple[bool, float, Artifacts, str]:
+    """Run or post-process one example; returns (ok, seconds, artifacts, message)."""
     started = time.time()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -309,7 +311,8 @@ def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts
                 "metadata generation failed",
             )
 
-    print(dim(f"  2/2 running docs/src/examples/{stem}.py in docs/public/examples/"))
+    action = "post-processing" if postprocess_only else "running"
+    print(dim(f"  2/2 {action} docs/src/examples/{stem}.py in docs/public/examples/"))
     log = None
     if args.quiet:
         log = Path(os.environ.get("TMPDIR", "/tmp")) / f"struphy-gallery-{stem}.log"
@@ -329,7 +332,14 @@ def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts
         else []
     )
     code = run_command(
-        [*launcher, sys.executable, str(SCRIPTS_DIR / f"{stem}.py")], OUTPUT_DIR, log
+        [
+            *launcher,
+            sys.executable,
+            str(SCRIPTS_DIR / f"{stem}.py"),
+            *(["--pproc"] if postprocess_only else []),
+        ],
+        OUTPUT_DIR,
+        log,
     )
     if code:
         tail = ""
@@ -366,7 +376,7 @@ def run_one(stem: str, args: argparse.Namespace) -> tuple[bool, float, Artifacts
             "domain export from run metadata failed",
         )
 
-    if not args.keep_scratch:
+    if not getattr(args, "keep_scratch", False) and not postprocess_only:
         clean_scratch()
 
     artifacts = collect(stem, run_started)
@@ -425,6 +435,41 @@ def cmd_run(args: argparse.Namespace) -> int:
             "\nEverything above is generated and git-ignored; CI rebuilds it. Remove it with: python cli.py clean"
         )
     )
+    return 0 if all(ok for _, ok, _ in results) and len(results) == len(stems) else 1
+
+
+def cmd_pproc(args: argparse.Namespace) -> int:
+    """Post-process existing simulation output without running time integration."""
+    stems = resolve(args.examples, args.all)
+    problem = python_env_problem(need_kernels=False)
+    if problem:
+        fail(problem)
+    if args.mpi > 1 and shutil.which("mpirun") is None:
+        fail("--mpi needs `mpirun` (OpenMPI or MPICH) and mpi4py in this Python.")
+    if args.mpi > 1:
+        os.environ.setdefault("OMP_NUM_THREADS", "1")
+    results = []
+    for number, stem in enumerate(stems, 1):
+        print(bold(f"\n[{number}/{len(stems)}] {stem}"))
+        ok, seconds, artifacts, message = run_one(stem, args, postprocess_only=True)
+        results.append((stem, ok, seconds))
+        if ok:
+            print(green(f"\n  {stem}: post-processing done in {human_time(seconds)}. Generated files:"))
+            print_artifacts(stem, artifacts)
+            if args.open:
+                open_example_page(stem)
+        else:
+            print(red(f"\n  {stem}: FAILED after {human_time(seconds)}: {message}"))
+            if artifacts.all():
+                print_artifacts(stem, artifacts)
+            if not args.keep_going:
+                break
+    if len(stems) > 1 or not all(ok for _, ok, _ in results):
+        print(bold("\nSummary"))
+        for stem, ok, seconds in results:
+            print(
+                f"  {green('ok    ') if ok else red('FAILED')} {stem:<{max(map(len, stems))}}  {human_time(seconds)}"
+            )
     return 0 if all(ok for _, ok, _ in results) and len(results) == len(stems) else 1
 
 
@@ -540,6 +585,44 @@ def build_parser() -> argparse.ArgumentParser:
         help="continue with the next example after a failure",
     )
     p.set_defaults(func=cmd_run)
+
+    p = sub.add_parser(
+        "pproc",
+        help="post-process existing simulation output without running a simulation",
+        description="Regenerate gallery figures from existing Struphy output using each example's --pproc path.",
+    )
+    add_selection(p)
+    p.add_argument(
+        "--open",
+        action="store_true",
+        help=f"open each example page afterwards (expects the docs dev server at {DEV_SERVER})",
+    )
+    p.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="hide post-processing output (shown only on failure)",
+    )
+    p.add_argument(
+        "-n",
+        "--mpi",
+        type=int,
+        default=1,
+        metavar="N",
+        help="post-process on N MPI ranks (default 1)",
+    )
+    p.add_argument(
+        "--skip-metadata",
+        action="store_true",
+        help="do not regenerate the metadata first",
+    )
+    p.add_argument(
+        "-k",
+        "--keep-going",
+        action="store_true",
+        help="continue with the next example after a failure",
+    )
+    p.set_defaults(func=cmd_pproc)
 
     p = sub.add_parser(
         "show", help="print the paths of the files generated by earlier runs"

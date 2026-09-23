@@ -44,12 +44,15 @@ To build the assets of existing examples, use the CLI at the repository root (st
 ```sh
 python cli.py list                    # examples, and which have generated figures
 python cli.py run orszag-tang-vortex  # metadata + run + clean-up, then prints every generated file
+python cli.py pproc orszag-tang-vortex # regenerate figures from existing simulation output
 python cli.py show orszag             # paths of an earlier run (unique prefixes work; --open shows its page)
 python cli.py clean --all             # remove generated figures, profiling data and scratch output
 ```
 
 `run` does what steps 2 and 3 below do by hand, and what CI does per example. Use `python cli.py run --help` for
 `--open`, `--quiet`, `--mpi`, `--keep-scratch` and `--keep-going`.
+Use `python cli.py pproc --help` for the corresponding post-processing options. `pproc` preserves the existing
+raw simulation output so it can be rerun without another simulation.
 
 This walks through adding a new one, using `poisson-source.py` as the worked reference.
 
