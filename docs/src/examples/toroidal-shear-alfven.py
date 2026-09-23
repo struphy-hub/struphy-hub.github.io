@@ -210,6 +210,64 @@ def plot_results(output, simulation_seconds):
         template="plotly_white", margin={"l": 60, "r": 95, "t": 90, "b": 70},
     )
 
+    # A radial ray away from the initial sine-mode node at theta=0. Select
+    # an actual evaluation angle and report it, rather than relabeling it.
+    radii = domain.params["a1"] + (domain.params["a2"] - domain.params["a1"]) * velocity.e1.values
+    angle_probe = int(np.abs(theta - np.pi / 4).argmin())
+    angle_degrees = float(np.degrees(theta[angle_probe]))
+    initial_radius = domain.params["a1"] + 0.5 * (domain.params["a2"] - domain.params["a1"])
+    snapshot_indices = np.unique(np.linspace(0, len(times) - 1, min(5, len(times)), dtype=int))
+    snapshot_colors = ("#0072B2", "#E69F00", "#009E73", "#CC79A7", "#D55E00")
+    radial_profiles = make_subplots(rows=1, cols=3, subplot_titles=titles, horizontal_spacing=0.12)
+    for component, label in enumerate(labels):
+        for snapshot, color in zip(snapshot_indices, snapshot_colors):
+            radial_profiles.add_scatter(
+                x=radii, y=components[snapshot, component, :, angle_probe],
+                mode="lines+markers", name=f"t = {times[snapshot]:g}",
+                legendgroup=str(snapshot), showlegend=component == 0,
+                line={"color": color, "width": 2, "dash": "dash" if snapshot == 0 else "solid"},
+                marker={"size": 4},
+                hovertemplate=f"r=%{{x:.3f}}<br>{label}=%{{y:.3e}}<extra>t={times[snapshot]:g}</extra>",
+                row=1, col=component + 1,
+            )
+        radial_profiles.update_yaxes(
+            title_text=label, exponentformat="power", tickfont={"size": 10}, zeroline=True,
+            row=1, col=component + 1,
+        )
+    radial_profiles.add_vline(x=initial_radius, line_dash="dot", line_color="#9ca3af", line_width=1)
+    radial_profiles.update_xaxes(title_text="Minor radius r", range=[radii[0], radii[-1]])
+    radial_profiles.update_layout(
+        title=f"Radial velocity profiles · θ = {angle_degrees:g}°, φ = 0",
+        template="plotly_white", margin={"l": 85, "r": 35, "t": 110, "b": 105},
+        legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": -0.18},
+    )
+
+    # Angular RMS avoids cancellation between opposite signs of a wave.
+    # Samples are uniform in theta; exclude the duplicate periodic endpoint.
+    # This is an angular average on the phi=0 plane, not a volume average.
+    angular_rms = np.sqrt(np.mean(components[..., periodic] ** 2, axis=-1))
+    radial_history = make_subplots(rows=1, cols=3, subplot_titles=labels, horizontal_spacing=0.12)
+    for component, label in enumerate(labels):
+        radial_history.add_trace(go.Heatmap(
+            x=radii, y=times, z=angular_rms[:, component],
+            zmin=0, zmax=max(float(angular_rms[:, component].max()), 1e-16), colorscale="Viridis",
+            colorbar={
+                "title": f"RMS {label}", "x": (0.28, 0.64, 1.0)[component], "len": 0.8,
+                "thickness": 10, "tickformat": ".1e", "tickfont": {"size": 10},
+            },
+            hovertemplate=f"r=%{{x:.3f}}<br>t=%{{y:g}}<br>RMS {label}=%{{z:.3e}}<extra></extra>",
+        ), row=1, col=component + 1)
+        radial_history.update_yaxes(
+            showticklabels=component == 0, range=[times[0], times[-1]], row=1, col=component + 1,
+        )
+    radial_history.add_vline(x=initial_radius, line_dash="dot", line_color="white", line_width=1)
+    radial_history.update_xaxes(title_text="Minor radius r", range=[radii[0], radii[-1]])
+    radial_history.update_yaxes(title_text="t", row=1, col=1)
+    radial_history.update_layout(
+        title="Radial evolution · poloidal RMS velocity at φ = 0",
+        template="plotly_white", margin={"l": 60, "r": 100, "t": 90, "b": 70},
+    )
+
     energy = go.Figure()
     for key, label in (("en_U", "Kinetic"), ("en_B", "Magnetic"), ("en_thermal", "Compressional")):
         values = output.evaluate(key)
@@ -226,6 +284,20 @@ def plot_results(output, simulation_seconds):
             caption=f"Physical velocity at r={probe_radius:.3f}, φ=0, over the complete run. "
             "The angular structure starts with the m=10,11 perturbations. Each panel uses the same "
             "component color range as the slice animation; interpolated display pixels do not add simulation resolution."),
+        save_extra_figure(radial_profiles, STEM, "radial-profiles",
+            alt="Radial profiles of three physical velocity components at five times",
+            caption=f"Signed physical velocity along a radial ray at θ={angle_degrees:g}°, φ=0, "
+            "from the inner to the outer boundary. Colors identify the same saved times in all three panels; "
+            f"the dotted line marks the initial Gaussian center r={initial_radius:.3f}. "
+            "Markers are spline evaluation points, not additional simulation cells. Velocities use normalized units."),
+        save_extra_figure(radial_history, STEM, "radial-history",
+            alt="Radius–time maps of the poloidal RMS of each physical velocity component",
+            caption="The root-mean-square velocity over poloidal angle at each radius and time: "
+            "sqrt(〈u²〉θ), evaluated on the φ=0 slice. This angular average shows radial localization "
+            "without cancellation between positive and negative wave lobes; it is not a volume or flux-surface average. "
+            "Each component has its own fixed color range in normalized velocity units. "
+            f"The white dotted line marks the initial center r={initial_radius:.3f}; the underlying run still uses "
+            f"only {grid.num_elements[0]} radial elements."),
         save_extra_figure(energy, STEM, "energy",
             alt="Kinetic, magnetic and compressional perturbation energies over time",
             caption="Volume-integrated quadratic perturbation energies from LinearMHD. "
