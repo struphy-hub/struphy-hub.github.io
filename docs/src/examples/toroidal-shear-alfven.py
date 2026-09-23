@@ -328,37 +328,44 @@ def plot_results(output, simulation_seconds):
         template="plotly_white", margin={"l": 60, "r": 95, "t": 90, "b": 70},
     )
 
-    # A radial ray away from the initial sine-mode node at theta=0. Select
-    # an actual evaluation angle and report it, rather than relabeling it.
+    # Compare radial rays at theta=0 and theta=45 degrees on the phi=0 plane.
     radii = domain.params["a1"] + (domain.params["a2"] - domain.params["a1"]) * velocity.e1.values
-    angle_probe = int(np.abs(theta - np.pi / 4).argmin())
-    angle_degrees = float(np.degrees(theta[angle_probe]))
+    angle_probes = (
+        (int(np.abs(theta - 0.0).argmin()), 0.0, "solid"),
+        (int(np.abs(theta - np.pi / 4).argmin()), 45.0, "dash"),
+    )
     initial_radius = domain.params["a1"] + 0.5 * (domain.params["a2"] - domain.params["a1"])
     snapshot_indices = np.unique(np.linspace(0, len(times) - 1, min(5, len(times)), dtype=int))
     snapshot_colors = ("#0072B2", "#E69F00", "#009E73", "#CC79A7", "#D55E00")
-    radial_profiles = make_subplots(rows=1, cols=3, subplot_titles=titles, horizontal_spacing=0.12)
-    for component, label in enumerate(labels):
-        for snapshot, color in zip(snapshot_indices, snapshot_colors):
-            radial_profiles.add_scatter(
-                x=radii, y=components[snapshot, component, :, angle_probe],
-                mode="lines+markers", name=f"t = {times[snapshot]:g}",
-                legendgroup=str(snapshot), showlegend=component == 0,
-                line={"color": color, "width": 2, "dash": "dash" if snapshot == 0 else "solid"},
-                marker={"size": 4},
-                hovertemplate=f"r=%{{x:.3f}}<br>{label}=%{{y:.3e}}<extra>t={times[snapshot]:g}</extra>",
+    radial_profile_figures = []
+    for angle_probe, angle_degrees, angle_dash in angle_probes:
+        radial_profiles = make_subplots(rows=1, cols=3, subplot_titles=titles, horizontal_spacing=0.12)
+        for component, label in enumerate(labels):
+            for snapshot, color in zip(snapshot_indices, snapshot_colors):
+                radial_profiles.add_scatter(
+                    x=radii, y=components[snapshot, component, :, angle_probe],
+                    mode="lines+markers", name=f"t = {times[snapshot]:g}",
+                    legendgroup=str(snapshot), showlegend=component == 0,
+                    line={"color": color, "width": 2, "dash": angle_dash},
+                    marker={"size": 4},
+                    hovertemplate=(
+                        f"r=%{{x:.3f}}<br>{label}=%{{y:.3e}}"
+                        f"<extra>t={times[snapshot]:g}</extra>"
+                    ),
+                    row=1, col=component + 1,
+                )
+            radial_profiles.update_yaxes(
+                title_text=label, exponentformat="power", tickfont={"size": 10}, zeroline=True,
                 row=1, col=component + 1,
             )
-        radial_profiles.update_yaxes(
-            title_text=label, exponentformat="power", tickfont={"size": 10}, zeroline=True,
-            row=1, col=component + 1,
+        radial_profiles.add_vline(x=initial_radius, line_dash="dot", line_color="#9ca3af", line_width=1)
+        radial_profiles.update_xaxes(title_text="Minor radius r", range=[radii[0], radii[-1]])
+        radial_profiles.update_layout(
+            title=f"Radial velocity profiles · θ = {angle_degrees:g}°, φ = 0",
+            template="plotly_white", margin={"l": 85, "r": 35, "t": 110, "b": 105},
+            legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": -0.18},
         )
-    radial_profiles.add_vline(x=initial_radius, line_dash="dot", line_color="#9ca3af", line_width=1)
-    radial_profiles.update_xaxes(title_text="Minor radius r", range=[radii[0], radii[-1]])
-    radial_profiles.update_layout(
-        title=f"Radial velocity profiles · θ = {angle_degrees:g}°, φ = 0",
-        template="plotly_white", margin={"l": 85, "r": 35, "t": 110, "b": 105},
-        legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": -0.18},
-    )
+        radial_profile_figures.append((angle_degrees, radial_profiles))
 
     # Angular RMS avoids cancellation between opposite signs of a wave.
     # Samples are uniform in theta; exclude the duplicate periodic endpoint.
@@ -449,7 +456,7 @@ def plot_results(output, simulation_seconds):
     )
     filtered_probe.update_xaxes(title_text="t")
     filtered_probe.update_layout(
-        title=f"Dominant-band reconstruction · r = {probe_radius:.3f}, θ = {angle_degrees:g}°, φ = 0",
+        title=f"Dominant-band reconstruction · r = {probe_radius:.3f}, θ = 45°, φ = 0",
         template="plotly_white", margin={"l": 85, "r": 35, "t": 100, "b": 100},
         legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": -0.18},
     )
@@ -531,12 +538,17 @@ def plot_results(output, simulation_seconds):
             caption=f"Physical velocity at r={probe_radius:.3f}, φ=0, over the complete run. "
             "The angular structure starts with the m=10,11 perturbations. Each panel uses the same "
             "component color range as the slice animation; interpolated display pixels do not add simulation resolution."),
-        save_extra_figure(radial_profiles, STEM, "radial-profiles",
-            alt="Radial profiles of three physical velocity components at five times",
-            caption=f"Signed physical velocity along a radial ray at θ={angle_degrees:g}°, φ=0, "
-            "from the inner to the outer boundary. Colors identify the same saved times in all three panels; "
-            f"the dotted line marks the initial Gaussian center r={initial_radius:.3f}. "
-            "Markers are spline evaluation points, not additional simulation cells. Velocities use normalized units."),
+        *[
+            save_extra_figure(
+                radial_profiles, STEM, f"radial-profiles-theta-{int(angle_degrees)}",
+                alt=f"Radial profiles of three physical velocity components at theta={angle_degrees:g} degrees on the phi zero plane",
+                caption=f"Signed physical velocity along a radial ray at θ={angle_degrees:g}°, φ=0, "
+                "from the inner to the outer boundary. Colors identify the saved times; "
+                f"the dotted line marks the initial Gaussian center r={initial_radius:.3f}. "
+                "Markers are spline evaluation points, not additional simulation cells. Velocities use normalized units.",
+            )
+            for angle_degrees, radial_profiles in radial_profile_figures
+        ],
         save_extra_figure(radial_history, STEM, "radial-history",
             alt="Radius–time maps of the poloidal RMS of each physical velocity component",
             caption="The root-mean-square velocity over poloidal angle at each radius and time: "
@@ -568,7 +580,7 @@ def plot_results(output, simulation_seconds):
             "The angular average is not weighted by physical volume. Only the actual frequency bins are displayed."),
         save_extra_figure(filtered_probe, STEM, "filtered-velocity",
             alt="Original and dominant-band-filtered velocity traces at a probe on the poloidal slice",
-            caption=f"Original and reconstructed physical velocity at r={probe_radius:.3f}, θ={angle_degrees:g}°, φ=0. "
+            caption=f"Original and reconstructed physical velocity at r={probe_radius:.3f}, θ=45°, φ=0. "
             "Each component's band is chosen from power summed over the whole sampled poloidal plane, then applied "
             "at every point before the inverse time FFT. DC and other bins are removed. "
             "This is a finite-record band-pass diagnostic, not an exact eigenmode; leakage and endpoint ringing remain possible."),
