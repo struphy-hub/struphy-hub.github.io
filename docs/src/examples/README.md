@@ -86,8 +86,8 @@ filename.
   serializes the completed figure as Plotly JSON; the site renders it with its single shared
   Plotly runtime. See an existing script for layout conventions (margins, slider/button
   placement if animated).
-- Save output with the helpers in `_gallery.py` (import them inside the `__main__` block, since
-  `generate_examples.py` runs the module without the examples directory on `sys.path`):
+- Save output with the helpers in `struphy.utils._gallery` (import them inside the `__main__` block):
+  `from struphy.utils._gallery import export_profiling, merge_metadata, save_figure`.
   `save_figure(figure, "<script-stem>")` writes `<script-stem>.png`, `.plotly.json`, and `.html`;
   `export_profiling(sim, "<script-stem>")` writes the profiling files and returns their metadata
   fields; `merge_metadata("<script-stem>", **fields)` adds result fields to the metadata JSON.
@@ -157,9 +157,9 @@ GitHub-hosted runners execute each example directly with Python in a single proc
 For optional local MPI runs: `python cli.py run <example> --mpi 4`, or
 `mpirun -n 4 python ../../src/examples/<script-stem>.py`.
 
-- The simulation, `output.pproc(...)` and the analysis run on every rank; the `_gallery.py` helpers
+- The simulation, `output.pproc(...)` and the analysis run on every rank; the `struphy.utils._gallery` helpers
   (`save_figure`, `save_extra_figure`, `merge_metadata`, `export_profiling`) write on rank 0 only. Write
-  files only through them, or guard the code with `_gallery.is_root()`.
+  files only through them, or import and use `is_root()`.
 - The grid must split over the ranks: with four ranks, keep at least a few cells per rank and direction
   (Orszag–Tang uses 32 × 32 × 1, i.e. 16 × 16 cells per rank).
 - Particle results depend on the rank count (each rank draws its own markers), so measured rates move a little.

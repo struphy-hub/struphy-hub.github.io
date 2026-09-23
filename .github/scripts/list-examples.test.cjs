@@ -13,7 +13,7 @@ async function plan(t, hits, { partial = false, incomplete = false, failure = fa
   process.chdir(root);
   await fs.mkdir('docs/src/examples', { recursive: true });
   await fs.mkdir('docs/public/examples', { recursive: true });
-  for (const name of ['alpha.py', 'beta.py', '_gallery.py', 'poisson-source.py', 'README.md']) {
+  for (const name of ['alpha.py', 'beta.py', 'poisson-source.py', 'README.md']) {
     await fs.writeFile(`docs/src/examples/${name}`, '');
   }
   const outputs = {};
@@ -81,5 +81,5 @@ test('shared keys retain prefix, suffix, example and source hash', async () => {
   assert.equal(result.key, 'pitagora-example-v1-custom-alpha-hash');
   assert.equal(patterns[0], 'docs/src/examples/alpha.py');
   assert.ok(patterns.includes('submodules/struphy/src/struphy/**/*.py'));
-  assert.ok(patterns.includes('docs/src/examples/_gallery.py'));
+  assert.ok(patterns.includes('submodules/struphy/src/struphy/utils/_gallery.py'));
 });
