@@ -33,8 +33,8 @@ from struphy.models import LinearMHD
 STEM = "toroidal-shear-alfven"
 NUM_ELEMENTS = (8, 48, 4)
 DEGREE = (3, 3, 2)
-END_TIME = 20.0
-DT = 0.5
+END_TIME = 40.0
+DT = 0.1
 SAVE_STEP = 2
 
 model = LinearMHD(base_units=BaseUnits())
@@ -91,6 +91,124 @@ sim = Simulation(
     params_path=__file__, env=env, time_opts=time_opts,
     domain=domain, equil=equil, grid=grid, derham_opts=derham_opts,
 )
+
+
+def physical_radial_component(output, field_xyz):
+    """Project Cartesian components onto the local minor-radial unit vector."""
+    params = output.domain.params
+    theta = 2 * np.pi * field_xyz.e2
+    phi = -2 * np.pi * field_xyz.e3 / params["tor_period"]
+    fx, fy, fz = (field_xyz.isel(component=c, drop=True) for c in range(3))
+    return (fx * np.cos(phi) + fy * np.sin(phi)) * np.cos(theta) + fz * np.sin(theta)
+
+
+def radial_mode_amplitudes(output, field_xyz, poloidal_modes=(9, 10, 11, 12), sector_mode=-1):
+    """Normalized radial profiles of physical (m, n_sector) Fourier amplitudes.
+
+    ``field_xyz`` is one saved Cartesian vector-field snapshot over the whole
+    toroidal sector. Normalize all requested harmonics together, preserving their
+    relative strengths. This is a spatial FFT, not a temporal band selection.
+    """
+    params = output.domain.params
+    radial = physical_radial_component(output, field_xyz)
+    # Convert to the rotating radial basis BEFORE transforming in toroidal angle.
+    # Cartesian components themselves are not periodic across the sector seam.
+    radial = radial.isel({dim: np.flatnonzero(radial[dim].values < 1.0 - 1e-12)
+                          for dim in ("e2", "e3")})
+    coefficients = output.fft(output.fft(radial, dim="e2"), dim="e3")
+    selected = coefficients.sel(
+        k_e2=2 * np.pi * np.asarray(poloidal_modes), k_e3=2 * np.pi * sector_mode,
+        method="nearest",
+    )
+    if (not np.allclose(selected.k_e2.values / (2 * np.pi), poloidal_modes)
+            or not np.isclose(float(selected.k_e3) / (2 * np.pi), sector_mode)):
+        raise ValueError("Angular sampling does not resolve the requested Fourier modes.")
+    amplitude = 2 * abs(selected)  # Conjugate-pair amplitude of a real spatial harmonic.
+    if not np.isfinite(amplitude.values).all():
+        raise RuntimeError("Non-finite radial Fourier amplitude.")
+    peak = float(amplitude.max())
+    normalized = (amplitude / (peak if peak > 0 else 1.0)).rename({"k_e2": "m"})
+    normalized = normalized.assign_coords(
+        m=list(poloidal_modes),
+        radius=params["a1"] + (params["a2"] - params["a1"]) * normalized.e1,
+    ).rename("normalized_fft_amplitude")
+    normalized.attrs.update(normalization_amplitude=peak, sector_mode=sector_mode,
+                            full_torus_mode=abs(sector_mode * params["tor_period"]),
+                            snapshot_time=float(field_xyz.t))
+    return normalized
+
+
+def fixed_theta_amplitudes(output, field_xyz, angles=(0.0, 45.0), sector_mode=-1):
+    """Toroidal Fourier amplitudes at fixed poloidal angles (in degrees).
+
+    Retain the coherent sum of all poloidal harmonics. One normalization over
+    both angles and all radii preserves the difference between the two rays.
+    """
+    radial = physical_radial_component(output, field_xyz)
+    # Interpolate the physical radial field only if an angle is off the display
+    # grid. The default 0 and 45 degree rays lie exactly on that grid.
+    rays = radial.interp(e2=np.asarray(angles) / 360.0)
+    rays = rays.isel(e3=np.flatnonzero(rays.e3.values < 1.0 - 1e-12))
+    coefficients = output.fft(rays, dim="e3")
+    selected = coefficients.sel(k_e3=2 * np.pi * sector_mode, method="nearest")
+    if not np.isclose(float(selected.k_e3) / (2 * np.pi), sector_mode):
+        raise ValueError("Toroidal sampling does not resolve the requested Fourier mode.")
+    amplitude = 2 * abs(selected)
+    if not np.isfinite(amplitude.values).all():
+        raise RuntimeError("Non-finite fixed-angle Fourier amplitude.")
+    peak = float(amplitude.max())
+    normalized = (amplitude / (peak if peak > 0 else 1.0)).rename({"e2": "theta_degrees"})
+    params = output.domain.params
+    normalized = normalized.assign_coords(
+        theta_degrees=list(angles),
+        radius=params["a1"] + (params["a2"] - params["a1"]) * normalized.e1,
+    ).rename("normalized_fft_amplitude")
+    normalized.attrs.update(normalization_amplitude=peak, snapshot_time=float(field_xyz.t),
+                            full_torus_mode=abs(sector_mode * params["tor_period"]))
+    return normalized
+
+
+def save_fixed_theta_fft_figures(output):
+    """Export the two angle comparisons; usable directly with saved output."""
+    from _gallery import save_extra_figure
+
+    figures = []
+    for field_name, label, key in (
+        ("mhd/velocity_xyz", "u_r", "fixed-theta-fft-velocity"),
+        ("em_fields/b_field_xyz", "δB_r", "fixed-theta-fft-magnetic"),
+    ):
+        profiles = fixed_theta_amplitudes(output, output.evaluate(field_name, isel={"t": -1}))
+        time = profiles.attrs["snapshot_time"]
+        toroidal_mode = profiles.attrs["full_torus_mode"]
+        figure = go.Figure()
+        for angle, color, dash in ((0.0, "#0072B2", "solid"), (45.0, "#D55E00", "dash")):
+            figure.add_scatter(
+                x=profiles.radius.values, y=profiles.sel(theta_degrees=angle).values,
+                mode="lines+markers", name=f"θ={angle:g}°", marker={"size": 4},
+                line={"color": color, "dash": dash, "width": 2.5},
+                hovertemplate=f"θ={angle:g}°<br>r=%{{x:.3f}}<br>Normalized amplitude=%{{y:.4f}}<extra></extra>",
+            )
+        figure.update_layout(
+            title=f"Fixed-angle radial FFT amplitude · {label} · |n|={toroidal_mode:g}, t={time:g}",
+            xaxis_title="Minor radius r", yaxis_title="Normalized FFT amplitude",
+            xaxis={"range": [float(profiles.radius[0]), float(profiles.radius[-1])]},
+            yaxis={"range": [0, 1.05]}, template="plotly_white",
+            margin={"l": 85, "r": 35, "t": 95, "b": 75},
+            legend={"title": {"text": "Poloidal angle"}},
+        )
+        figures.append(save_extra_figure(
+            figure, STEM, key,
+            alt=f"Normalized toroidal FFT amplitude of {label} versus radius at theta zero and 45 degrees",
+            caption=f"Physical {label} at θ=0° and θ=45°, at the final saved time t={time:g}. "
+            f"The FFT is taken only in toroidal angle, selecting sector mode −1 (full-torus |n|={toroidal_mode:g}). "
+            "All poloidal harmonics contribute coherently at each angle; there is no poloidal or time FFT. "
+            "The duplicate toroidal endpoint is excluded. Both curves share the same maximum-amplitude "
+            "normalization over the two angles and all radii, separately for each field. "
+            "The magnetic field is the perturbation. The requested angles lie on the default evaluation grid; "
+            "other grids use linear interpolation of the physical radial field where needed.",
+        ))
+    return figures
+
 
 def plot_results(output, simulation_seconds):
     """Export the gallery figures; also usable with an existing Struphy Output."""
@@ -210,37 +328,44 @@ def plot_results(output, simulation_seconds):
         template="plotly_white", margin={"l": 60, "r": 95, "t": 90, "b": 70},
     )
 
-    # A radial ray away from the initial sine-mode node at theta=0. Select
-    # an actual evaluation angle and report it, rather than relabeling it.
+    # Compare radial rays at theta=0 and theta=45 degrees on the phi=0 plane.
     radii = domain.params["a1"] + (domain.params["a2"] - domain.params["a1"]) * velocity.e1.values
-    angle_probe = int(np.abs(theta - np.pi / 4).argmin())
-    angle_degrees = float(np.degrees(theta[angle_probe]))
+    angle_probes = (
+        (int(np.abs(theta - 0.0).argmin()), 0.0, "solid"),
+        (int(np.abs(theta - np.pi / 4).argmin()), 45.0, "dash"),
+    )
     initial_radius = domain.params["a1"] + 0.5 * (domain.params["a2"] - domain.params["a1"])
     snapshot_indices = np.unique(np.linspace(0, len(times) - 1, min(5, len(times)), dtype=int))
     snapshot_colors = ("#0072B2", "#E69F00", "#009E73", "#CC79A7", "#D55E00")
-    radial_profiles = make_subplots(rows=1, cols=3, subplot_titles=titles, horizontal_spacing=0.12)
-    for component, label in enumerate(labels):
-        for snapshot, color in zip(snapshot_indices, snapshot_colors):
-            radial_profiles.add_scatter(
-                x=radii, y=components[snapshot, component, :, angle_probe],
-                mode="lines+markers", name=f"t = {times[snapshot]:g}",
-                legendgroup=str(snapshot), showlegend=component == 0,
-                line={"color": color, "width": 2, "dash": "dash" if snapshot == 0 else "solid"},
-                marker={"size": 4},
-                hovertemplate=f"r=%{{x:.3f}}<br>{label}=%{{y:.3e}}<extra>t={times[snapshot]:g}</extra>",
+    radial_profile_figures = []
+    for angle_probe, angle_degrees, angle_dash in angle_probes:
+        radial_profiles = make_subplots(rows=1, cols=3, subplot_titles=titles, horizontal_spacing=0.12)
+        for component, label in enumerate(labels):
+            for snapshot, color in zip(snapshot_indices, snapshot_colors):
+                radial_profiles.add_scatter(
+                    x=radii, y=components[snapshot, component, :, angle_probe],
+                    mode="lines+markers", name=f"t = {times[snapshot]:g}",
+                    legendgroup=str(snapshot), showlegend=component == 0,
+                    line={"color": color, "width": 2, "dash": angle_dash},
+                    marker={"size": 4},
+                    hovertemplate=(
+                        f"r=%{{x:.3f}}<br>{label}=%{{y:.3e}}"
+                        f"<extra>t={times[snapshot]:g}</extra>"
+                    ),
+                    row=1, col=component + 1,
+                )
+            radial_profiles.update_yaxes(
+                title_text=label, exponentformat="power", tickfont={"size": 10}, zeroline=True,
                 row=1, col=component + 1,
             )
-        radial_profiles.update_yaxes(
-            title_text=label, exponentformat="power", tickfont={"size": 10}, zeroline=True,
-            row=1, col=component + 1,
+        radial_profiles.add_vline(x=initial_radius, line_dash="dot", line_color="#9ca3af", line_width=1)
+        radial_profiles.update_xaxes(title_text="Minor radius r", range=[radii[0], radii[-1]])
+        radial_profiles.update_layout(
+            title=f"Radial velocity profiles · θ = {angle_degrees:g}°, φ = 0",
+            template="plotly_white", margin={"l": 85, "r": 35, "t": 110, "b": 105},
+            legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": -0.18},
         )
-    radial_profiles.add_vline(x=initial_radius, line_dash="dot", line_color="#9ca3af", line_width=1)
-    radial_profiles.update_xaxes(title_text="Minor radius r", range=[radii[0], radii[-1]])
-    radial_profiles.update_layout(
-        title=f"Radial velocity profiles · θ = {angle_degrees:g}°, φ = 0",
-        template="plotly_white", margin={"l": 85, "r": 35, "t": 110, "b": 105},
-        legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": -0.18},
-    )
+        radial_profile_figures.append((angle_degrees, radial_profiles))
 
     # Angular RMS avoids cancellation between opposite signs of a wave.
     # Samples are uniform in theta; exclude the duplicate periodic endpoint.
@@ -331,7 +456,7 @@ def plot_results(output, simulation_seconds):
     )
     filtered_probe.update_xaxes(title_text="t")
     filtered_probe.update_layout(
-        title=f"Dominant-band reconstruction · r = {probe_radius:.3f}, θ = {angle_degrees:g}°, φ = 0",
+        title=f"Dominant-band reconstruction · r = {probe_radius:.3f}, θ = 45°, φ = 0",
         template="plotly_white", margin={"l": 85, "r": 35, "t": 100, "b": 100},
         legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": -0.18},
     )
@@ -357,6 +482,46 @@ def plot_results(output, simulation_seconds):
         template="plotly_white", margin={"l": 85, "r": 35, "t": 100, "b": 70},
     )
 
+    # Radial mode structures in the style of Fig. 5 of arXiv:2510.04385:
+    # spatial (m,n) amplitudes at a single time, for velocity and perturbed B.
+    radial_mode_figures = []
+    for field_name, label, key in (
+        ("mhd/velocity_xyz", "u_r", "radial-fft-velocity"),
+        ("em_fields/b_field_xyz", "δB_r", "radial-fft-magnetic"),
+    ):
+        snapshot = output.evaluate(field_name, isel={"t": -1})
+        profiles = radial_mode_amplitudes(output, snapshot)
+        snapshot_time = profiles.attrs["snapshot_time"]
+        toroidal_mode = profiles.attrs["full_torus_mode"]
+        radial_mode_plot = go.Figure()
+        for m, color in zip(profiles.m.values, ("#0072B2", "#D55E00", "#009E73", "#CC79A7")):
+            radial_mode_plot.add_scatter(
+                x=profiles.radius.values, y=profiles.sel(m=m).values,
+                mode="lines+markers", name=f"m={m}",
+                line={"color": color, "width": 2.5}, marker={"size": 4},
+                hovertemplate=f"m={m}<br>r=%{{x:.3f}}<br>Normalized amplitude=%{{y:.4f}}<extra></extra>",
+            )
+        radial_mode_plot.update_layout(
+            title=f"Radial Fourier mode structure · {label} · |n|={toroidal_mode:g}, t={snapshot_time:g}",
+            xaxis_title="Minor radius r", yaxis_title="Normalized FFT amplitude",
+            xaxis={"range": [radii[0], radii[-1]]}, yaxis={"range": [0, 1.05]},
+            template="plotly_white", margin={"l": 85, "r": 35, "t": 95, "b": 75},
+            legend={"title": {"text": "Poloidal harmonic"}},
+        )
+        radial_mode_figures.append(save_extra_figure(
+            radial_mode_plot, STEM, key,
+            alt=f"Normalized radial Fourier amplitudes of {label} for m=9,10,11,12 at fixed toroidal mode",
+            caption=f"Physical {label} at the final saved time t={snapshot_time:g}. "
+            "A two-dimensional spatial FFT in poloidal and toroidal angle selects sector mode −1 "
+            f"(full-torus |n|={toroidal_mode:g}) and m=9,10,11,12. Both duplicate periodic endpoints are excluded. "
+            "All four amplitude curves share one normalization: the largest amplitude over these harmonics "
+            "and all sampled radii, separately for velocity and magnetic perturbation. "
+            "This preserves relative harmonic strengths; the magnetic field excludes the equilibrium. "
+            "Markers are spline evaluation points. Inspired by Figure 5 of arXiv:2510.04385 "
+            "(https://arxiv.org/abs/2510.04385); this is the present LinearMHD run, with no comparison "
+            "between filtered and unfiltered kinetic simulations and no temporal FFT selection.",
+        ))
+
     energy = go.Figure()
     for key, label in (("en_U", "Kinetic"), ("en_B", "Magnetic"), ("en_thermal", "Compressional")):
         values = output.evaluate(key)
@@ -373,12 +538,17 @@ def plot_results(output, simulation_seconds):
             caption=f"Physical velocity at r={probe_radius:.3f}, φ=0, over the complete run. "
             "The angular structure starts with the m=10,11 perturbations. Each panel uses the same "
             "component color range as the slice animation; interpolated display pixels do not add simulation resolution."),
-        save_extra_figure(radial_profiles, STEM, "radial-profiles",
-            alt="Radial profiles of three physical velocity components at five times",
-            caption=f"Signed physical velocity along a radial ray at θ={angle_degrees:g}°, φ=0, "
-            "from the inner to the outer boundary. Colors identify the same saved times in all three panels; "
-            f"the dotted line marks the initial Gaussian center r={initial_radius:.3f}. "
-            "Markers are spline evaluation points, not additional simulation cells. Velocities use normalized units."),
+        *[
+            save_extra_figure(
+                radial_profiles, STEM, f"radial-profiles-theta-{int(angle_degrees)}",
+                alt=f"Radial profiles of three physical velocity components at theta={angle_degrees:g} degrees on the phi zero plane",
+                caption=f"Signed physical velocity along a radial ray at θ={angle_degrees:g}°, φ=0, "
+                "from the inner to the outer boundary. Colors identify the saved times; "
+                f"the dotted line marks the initial Gaussian center r={initial_radius:.3f}. "
+                "Markers are spline evaluation points, not additional simulation cells. Velocities use normalized units.",
+            )
+            for angle_degrees, radial_profiles in radial_profile_figures
+        ],
         save_extra_figure(radial_history, STEM, "radial-history",
             alt="Radius–time maps of the poloidal RMS of each physical velocity component",
             caption="The root-mean-square velocity over poloidal angle at each radius and time: "
@@ -392,6 +562,8 @@ def plot_results(output, simulation_seconds):
             caption="Poloidal FFT of the initial logical H(div) radial velocity at φ=0. "
             "The duplicate periodic endpoint is excluded. Positive-mode amplitudes are 2|FFT|/N, "
             "followed by RMS over sampled radii, with no volume weighting. Dotted lines identify the seeded m=10,11 modes."),
+        *radial_mode_figures,
+        *save_fixed_theta_fft_figures(output),
         save_extra_figure(frequency_plot, STEM, "time-fft",
             alt="Temporal spectra of three physical velocity components with selected dominant frequency bands",
             caption="One-sided power per frequency bin from the signed velocity, averaged over sampled points "
@@ -408,7 +580,7 @@ def plot_results(output, simulation_seconds):
             "The angular average is not weighted by physical volume. Only the actual frequency bins are displayed."),
         save_extra_figure(filtered_probe, STEM, "filtered-velocity",
             alt="Original and dominant-band-filtered velocity traces at a probe on the poloidal slice",
-            caption=f"Original and reconstructed physical velocity at r={probe_radius:.3f}, θ={angle_degrees:g}°, φ=0. "
+            caption=f"Original and reconstructed physical velocity at r={probe_radius:.3f}, θ=45°, φ=0. "
             "Each component's band is chosen from power summed over the whole sampled poloidal plane, then applied "
             "at every point before the inverse time FFT. DC and other bins are removed. "
             "This is a finite-record band-pass diagnostic, not an exact eigenmode; leakage and endpoint ringing remain possible."),
