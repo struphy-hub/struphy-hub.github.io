@@ -15,9 +15,6 @@ from time import perf_counter
 import argparse
 
 import numpy as np
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from scipy.ndimage import map_coordinates
 
 from struphy import (
     BaseUnits,
