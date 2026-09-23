@@ -33,8 +33,8 @@ from struphy.models import LinearMHD
 STEM = "toroidal-shear-alfven"
 NUM_ELEMENTS = (8, 48, 4)
 DEGREE = (3, 3, 2)
-END_TIME = 20.0
-DT = 0.5
+END_TIME = 40.0
+DT = 0.1
 SAVE_STEP = 2
 
 model = LinearMHD(base_units=BaseUnits())
@@ -91,6 +91,46 @@ sim = Simulation(
     params_path=__file__, env=env, time_opts=time_opts,
     domain=domain, equil=equil, grid=grid, derham_opts=derham_opts,
 )
+
+
+def radial_mode_amplitudes(output, field_xyz, poloidal_modes=(9, 10, 11, 12), sector_mode=-1):
+    """Normalized radial profiles of physical (m, n_sector) Fourier amplitudes.
+
+    ``field_xyz`` is one saved Cartesian vector-field snapshot over the whole
+    toroidal sector. Normalize all requested harmonics together, preserving their
+    relative strengths. This is a spatial FFT, not a temporal band selection.
+    """
+    params = output.domain.params
+    theta = 2 * np.pi * field_xyz.e2
+    phi = -2 * np.pi * field_xyz.e3 / params["tor_period"]
+    fx, fy, fz = (field_xyz.isel(component=c, drop=True) for c in range(3))
+    radial = (fx * np.cos(phi) + fy * np.sin(phi)) * np.cos(theta) + fz * np.sin(theta)
+    # Convert to the rotating radial basis BEFORE transforming in toroidal angle.
+    # Cartesian components themselves are not periodic across the sector seam.
+    radial = radial.isel({dim: np.flatnonzero(radial[dim].values < 1.0 - 1e-12)
+                          for dim in ("e2", "e3")})
+    coefficients = output.fft(output.fft(radial, dim="e2"), dim="e3")
+    selected = coefficients.sel(
+        k_e2=2 * np.pi * np.asarray(poloidal_modes), k_e3=2 * np.pi * sector_mode,
+        method="nearest",
+    )
+    if (not np.allclose(selected.k_e2.values / (2 * np.pi), poloidal_modes)
+            or not np.isclose(float(selected.k_e3) / (2 * np.pi), sector_mode)):
+        raise ValueError("Angular sampling does not resolve the requested Fourier modes.")
+    amplitude = 2 * abs(selected)  # Conjugate-pair amplitude of a real spatial harmonic.
+    if not np.isfinite(amplitude.values).all():
+        raise RuntimeError("Non-finite radial Fourier amplitude.")
+    peak = float(amplitude.max())
+    normalized = (amplitude / (peak if peak > 0 else 1.0)).rename({"k_e2": "m"})
+    normalized = normalized.assign_coords(
+        m=list(poloidal_modes),
+        radius=params["a1"] + (params["a2"] - params["a1"]) * normalized.e1,
+    ).rename("normalized_fft_amplitude")
+    normalized.attrs.update(normalization_amplitude=peak, sector_mode=sector_mode,
+                            full_torus_mode=abs(sector_mode * params["tor_period"]),
+                            snapshot_time=float(field_xyz.t))
+    return normalized
+
 
 def plot_results(output, simulation_seconds):
     """Export the gallery figures; also usable with an existing Struphy Output."""
@@ -357,6 +397,46 @@ def plot_results(output, simulation_seconds):
         template="plotly_white", margin={"l": 85, "r": 35, "t": 100, "b": 70},
     )
 
+    # Radial mode structures in the style of Fig. 5 of arXiv:2510.04385:
+    # spatial (m,n) amplitudes at a single time, for velocity and perturbed B.
+    radial_mode_figures = []
+    for field_name, label, key in (
+        ("mhd/velocity_xyz", "u_r", "radial-fft-velocity"),
+        ("em_fields/b_field_xyz", "δB_r", "radial-fft-magnetic"),
+    ):
+        snapshot = output.evaluate(field_name, isel={"t": -1})
+        profiles = radial_mode_amplitudes(output, snapshot)
+        snapshot_time = profiles.attrs["snapshot_time"]
+        toroidal_mode = profiles.attrs["full_torus_mode"]
+        radial_mode_plot = go.Figure()
+        for m, color in zip(profiles.m.values, ("#0072B2", "#D55E00", "#009E73", "#CC79A7")):
+            radial_mode_plot.add_scatter(
+                x=profiles.radius.values, y=profiles.sel(m=m).values,
+                mode="lines+markers", name=f"m={m}",
+                line={"color": color, "width": 2.5}, marker={"size": 4},
+                hovertemplate=f"m={m}<br>r=%{{x:.3f}}<br>Normalized amplitude=%{{y:.4f}}<extra></extra>",
+            )
+        radial_mode_plot.update_layout(
+            title=f"Radial Fourier mode structure · {label} · |n|={toroidal_mode:g}, t={snapshot_time:g}",
+            xaxis_title="Minor radius r", yaxis_title="Normalized FFT amplitude",
+            xaxis={"range": [radii[0], radii[-1]]}, yaxis={"range": [0, 1.05]},
+            template="plotly_white", margin={"l": 85, "r": 35, "t": 95, "b": 75},
+            legend={"title": {"text": "Poloidal harmonic"}},
+        )
+        radial_mode_figures.append(save_extra_figure(
+            radial_mode_plot, STEM, key,
+            alt=f"Normalized radial Fourier amplitudes of {label} for m=9,10,11,12 at fixed toroidal mode",
+            caption=f"Physical {label} at the final saved time t={snapshot_time:g}. "
+            "A two-dimensional spatial FFT in poloidal and toroidal angle selects sector mode −1 "
+            f"(full-torus |n|={toroidal_mode:g}) and m=9,10,11,12. Both duplicate periodic endpoints are excluded. "
+            "All four amplitude curves share one normalization: the largest amplitude over these harmonics "
+            "and all sampled radii, separately for velocity and magnetic perturbation. "
+            "This preserves relative harmonic strengths; the magnetic field excludes the equilibrium. "
+            "Markers are spline evaluation points. Inspired by Figure 5 of arXiv:2510.04385 "
+            "(https://arxiv.org/abs/2510.04385); this is the present LinearMHD run, with no comparison "
+            "between filtered and unfiltered kinetic simulations and no temporal FFT selection.",
+        ))
+
     energy = go.Figure()
     for key, label in (("en_U", "Kinetic"), ("en_B", "Magnetic"), ("en_thermal", "Compressional")):
         values = output.evaluate(key)
@@ -392,6 +472,7 @@ def plot_results(output, simulation_seconds):
             caption="Poloidal FFT of the initial logical H(div) radial velocity at φ=0. "
             "The duplicate periodic endpoint is excluded. Positive-mode amplitudes are 2|FFT|/N, "
             "followed by RMS over sampled radii, with no volume weighting. Dotted lines identify the seeded m=10,11 modes."),
+        *radial_mode_figures,
         save_extra_figure(frequency_plot, STEM, "time-fft",
             alt="Temporal spectra of three physical velocity components with selected dominant frequency bands",
             caption="One-sided power per frequency bin from the signed velocity, averaged over sampled points "
