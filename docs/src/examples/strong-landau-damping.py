@@ -89,7 +89,7 @@ def create_simulation() -> Simulation:
 
 
 def pproc(sim: Simulation):
-    from _gallery import export_profiling, merge_metadata, save_figure
+    from struphy.utils._gallery import export_profiling, merge_metadata, save_figure
 
     output = sim.output
     field_energy_array = output.evaluate("electric_energy")

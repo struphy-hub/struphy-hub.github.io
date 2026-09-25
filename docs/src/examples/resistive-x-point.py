@@ -117,7 +117,7 @@ def pproc(sim: Simulation):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
 
-    from _gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc(physical=True, celldivide=2)

@@ -72,7 +72,7 @@ def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
     from scipy.interpolate import griddata
 
-    from _gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
+    from struphy.utils._gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
     errors = {}  # (alpha, degree) -> rms errors against the resolution
     for alpha in (distortion, 0.0):

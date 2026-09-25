@@ -112,7 +112,7 @@ def pproc(sim: Simulation):
     time_opts = sim.time_opts
     import xarray as xr
     from scipy.ndimage import map_coordinates
-    from _gallery import export_profiling, heatmap_movie, merge_metadata, save_extra_figure, save_figure
+    from struphy.utils._gallery import export_profiling, heatmap_movie, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc()
