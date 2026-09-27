@@ -8,7 +8,9 @@ handedness relative to their direction of propagation, so the packet splits into
 other way: the L packet is fast, the R packet slow and spreading, since the whistler frequency depends strongly on k. The measured speed of
 each packet is compared with the analytic group velocity d omega / d k of the cold-plasma dispersion relation.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -96,10 +98,29 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    time_opts = sim.time_opts
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
+    time_opts = sim.time_opts
 
     output = sim.output
     output.pproc(physical=True)
@@ -140,9 +161,8 @@ def pproc(sim: Simulation):
         tracks[wave] = side * (positions - center)
     if not all(np.isfinite(list(measured.values()))):
         raise RuntimeError("A packet speed could not be fitted")
-    if is_root():
-        for wave in tracked:
-            print(f"{wave}: group velocity {measured[wave]:.4f} (exact {exact_speed[wave]:.4f}), omega = {exact_frequency[wave]:.4f}")
+    for wave in tracked:
+        print(f"{wave}: group velocity {measured[wave]:.4f} (exact {exact_speed[wave]:.4f}), omega = {exact_frequency[wave]:.4f}")
 
     # The energy density in space and time, with the analytic characteristics on top.
     figure = go.Figure(go.Heatmap(z=np.sqrt(density / density.max()), x=z, y=times, colorscale="Plasma", zmin=0.0, zmax=1.0,
@@ -159,7 +179,7 @@ def pproc(sim: Simulation):
     )
     figure.update_xaxes(range=[0.0, length])
     figure.update_yaxes(range=[0.0, time_opts.Tend])
-    save_figure(figure, "cold-plasma-wave-packet", width=1100, height=750)
+    save(figure, "cold-plasma-wave-packet", width=1100, height=750, show=show)
 
     centroids = go.Figure()
     colors = {"whistler": "#168aad", "R wave": "#2a9d8f", "L wave": "#d62828"}
@@ -176,26 +196,7 @@ def pproc(sim: Simulation):
     )
     centroids.update_xaxes(range=[0.0, time_opts.Tend])
     centroids.update_yaxes(range=[0.0, center])
-    figures = [
-        save_extra_figure(
-            centroids, "cold-plasma-wave-packet", "centroid",
-            alt="Distance travelled by the L-wave and whistler packets against time, on straight lines of the analytic group velocity",
-            caption=(
-                "The position of the energy peak of each of the two packets, against time, on the straight line of the group velocity "
-                "d ω / d k of the cold-plasma dispersion relation. The L-wave packet is fast; the R-type packet is slow and disperses "
-                "as it goes, and its two branches, the whistler and the upper R wave, have almost the same group velocity here "
-                "(0.45 and 0.43); the fit is compared with the whistler value."
-            ),
-        ),
-    ]
-
-    merge_metadata(
-        "cold-plasma-wave-packet",
-        carrierWavenumber=k0,
-        groupVelocities={wave: {"measured": measured[wave], "exact": exact_speed[wave]} for wave in tracked},
-        figures=figures,
-        **export_profiling(sim, "cold-plasma-wave-packet"),
-    )
+    save(centroids, "cold-plasma-wave-packet-centroid", show=show)
 
 
 if __name__ == "__main__":
@@ -205,9 +206,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

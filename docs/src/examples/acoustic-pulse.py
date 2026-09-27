@@ -7,7 +7,9 @@ each other after the box has been traversed (the box is periodic), and reunite. 
 d'Alembert's, rho - 1 = (f(x - c t) + f(x + c t)) / 2. Struphy's variational discretization conserves the total energy: the pulse
 starts as pure thermodynamic energy, which the running pulses share with kinetic energy.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -102,10 +104,27 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from plotly.subplots import make_subplots
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+def pproc(sim: Simulation, show: bool = False):
+    from plotly.subplots import make_subplots
 
     output = sim.output
     output.pproc(physical=True)
@@ -157,33 +176,21 @@ def pproc(sim: Simulation):
     figure.update_yaxes(title_text="density", range=[1 - 0.3 * amplitude, 1 + 1.1 * amplitude], row=1, col=1)
     figure.update_xaxes(title_text="t", row=2, col=1)
     figure.update_yaxes(title_text="energy change / largest kinetic energy", row=2, col=1)
-    save_figure(figure, "acoustic-pulse", width=900, height=850)
+    save(figure, "acoustic-pulse", width=900, height=850, show=show)
 
     density_change = rho.copy(data=density - 1.0)
-    space_time = space_time_figure(
-        density_change, space="eta1", x_values=x, xaxis_title="x", title="Acoustic pulse: density change ρ − 1",
-        colorbar_title="ρ − 1",
+    space_time = density_change.assign_coords(eta1=x).struphy.plot.slice(
+        x="eta1",
+        y="t",
+        symmetric=True,
+        cmap="RdBu_r",
+        title="Acoustic pulse: density change ρ − 1",
+        xlabel="x",
+        ylabel="t [a.u.]",
+        colorbar_label="ρ − 1",
+        backend="plotly",
     )
-    figures = [
-        save_extra_figure(
-            space_time, "acoustic-pulse", "space-time",
-            alt="Space-time map of the density change of an acoustic pulse splitting into two",
-            caption=(
-                "The density change of the run above along x, over time. The pulse splits into two, and the two travelling "
-                "pulses leave straight lines whose slope is the speed of sound, c = 1; because the box is periodic, they meet "
-                "again on the opposite side at t = L / (2c)."
-            ),
-        ),
-    ]
-
-    merge_metadata(
-        "acoustic-pulse",
-        soundSpeed=sound_speed,
-        maxRelativeError=error,
-        maxEnergyDrift=energy_drift,
-        figures=figures,
-        **export_profiling(sim, "acoustic-pulse"),
-    )
+    save(space_time, "acoustic-pulse-space-time", show=show)
 
 
 if __name__ == "__main__":
@@ -193,9 +200,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

@@ -12,6 +12,7 @@ interface ExampleFigure {
   thumbnail: string;
   alt: string;
   caption: string;
+  aspect?: string;
 }
 
 const { slug, figures: listed = [], texts } = Astro.props as {
@@ -32,7 +33,7 @@ const htmlHref = (interactive: string) => interactive.replace(/\.plotly\.json$/,
 
 {figures.map((figure) => (
   <figure class="extra">
-    <div class="plot-frame"><PlotlyFigure src={figure.interactive.replace(/\.html$/, '.plotly.json')} title={figure.alt} /></div>
+    <div class="plot-frame" style={figure.aspect ? `aspect-ratio:${figure.aspect};width:min(100%,${figure.aspect.split('/')[0]}px)` : undefined}><PlotlyFigure src={figure.interactive.replace(/\.html$/, '.plotly.json')} title={figure.alt} /></div>
     <img class="plot-static" src={figure.thumbnail} alt={figure.alt} width="2200" height="1300" />
     <figcaption>
       {figure.caption}

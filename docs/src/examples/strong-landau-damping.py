@@ -8,7 +8,9 @@ forth, a signature of nonlinear kinetic trapping.
 
 Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/strong_Landau_damping).
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -88,8 +90,8 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_figure
+def pproc(sim: Simulation, show: bool = False):
+    from struphy_plots.plotly_plots import save_figure
 
     output = sim.output
     field_energy_array = output.scalars["electric_energy"]
@@ -118,15 +120,7 @@ def pproc(sim: Simulation):
         margin={"l": 70, "r": 30, "t": 80, "b": 60},
     )
 
-    save_figure(figure, "strong-landau-damping")
-
-    profiling = export_profiling(sim, "strong-landau-damping")
-
-    merge_metadata(
-        "strong-landau-damping",
-        bouncePeriod=bounce_period,
-        **profiling,
-    )
+    save_figure(figure, "strong-landau-damping", show=show)
 
 
 if __name__ == "__main__":
@@ -136,10 +130,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        # Profile every propagator, pusher and solver call in the simulation.
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

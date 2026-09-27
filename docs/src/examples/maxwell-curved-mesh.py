@@ -7,7 +7,9 @@ still the periodic rectangle, the exact solution is known: a Gaussian pulse of E
 each oscillating at omega = c |k|, and it can be compared with the numerical field at every point of the distorted mesh. The
 energy, which the structure-preserving scheme conserves for any mesh, is followed as well.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -26,10 +28,10 @@ max_mode = 6  # cosine modes per direction in the Fourier series of the Gaussian
 x0, y0 = 0.5 * lx, 0.5 * ly
 
 # The Gaussian pulse as a cosine series about its centre, E_z = sum c_lm cos(kx (x - x0)) cos(ky (y - y0)) without the mean (l, m) = (0, 0).
-modes = [(l, m) for l in range(max_mode + 1) for m in range(max_mode + 1) if (l, m) != (0, 0)]
-kx = np.array([2 * np.pi * l / lx for l, _ in modes])
+modes = [(ell, m) for ell in range(max_mode + 1) for m in range(max_mode + 1) if (ell, m) != (0, 0)]
+kx = np.array([2 * np.pi * ell / lx for ell, _ in modes])
 ky = np.array([2 * np.pi * m / ly for _, m in modes])
-weights = np.array([(1 if l == 0 else 2) * (1 if m == 0 else 2) for l, m in modes])
+weights = np.array([(1 if ell == 0 else 2) * (1 if m == 0 else 2) for ell, m in modes])
 coefficients = weights * 2 * np.pi * width**2 / (lx * ly) * np.exp(-0.5 * width**2 * (kx**2 + ky**2))
 frequencies = np.hypot(kx, ky)
 
@@ -73,11 +75,30 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     from plotly.subplots import make_subplots
     from scipy.interpolate import griddata
-
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc(physical=True)
@@ -133,7 +154,10 @@ def pproc(sim: Simulation):
     )
     figure.update_xaxes(range=[0, lx], constrain="domain")
     figure.update_yaxes(range=[0, ly], scaleanchor="x")
-    save_figure(figure, "maxwell-curved-mesh", width=750, height=1000, static_z=resample(numeric[len(times) // 5]))
+    # The image shows the pulse at a fifth of the run, when the ring has spread; the page keeps the animation.
+    still = go.Figure(data=figure.data, layout=figure.layout)
+    still.data[0].z = resample(numeric[len(times) // 5])
+    save(figure, "maxwell-curved-mesh", width=750, height=1000, still=still, show=show)
 
     diagnostics = make_subplots(rows=2, cols=1, vertical_spacing=0.18,
                                 subplot_titles=("Error of E_z against the exact solution", "Total energy"))
@@ -145,26 +169,7 @@ def pproc(sim: Simulation):
     diagnostics.update_yaxes(title_text="rms error / initial rms", type="log", row=1, col=1)
     diagnostics.update_yaxes(title_text="relative change", exponentformat="e", row=2, col=1)
     diagnostics.update_xaxes(title_text="t", row=2, col=1)
-    figures = [
-        save_extra_figure(
-            diagnostics, "maxwell-curved-mesh", "diagnostics",
-            alt="Error of the electric field against the exact solution and change of the total energy over time",
-            caption=(
-                f"Top: the root-mean-square difference between the computed E_z and the exact solution at the points of the distorted mesh, "
-                f"relative to the rms of the initial pulse; its largest value is {error.max():.1e}. Bottom: the change of the total "
-                f"energy, at most {energy_drift:.1e} in relative terms: the scheme conserves it whatever the shape of the mesh."
-            ),
-        ),
-    ]
-
-    merge_metadata(
-        "maxwell-curved-mesh",
-        distortion=distortion,
-        maxRelativeError=float(error.max()),
-        maxEnergyDrift=energy_drift,
-        figures=figures,
-        **export_profiling(sim, "maxwell-curved-mesh"),
-    )
+    save(diagnostics, "maxwell-curved-mesh-diagnostics", show=show)
 
 
 if __name__ == "__main__":
@@ -174,9 +179,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

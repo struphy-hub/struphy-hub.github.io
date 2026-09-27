@@ -7,7 +7,9 @@ magnetosonic branches, and the speeds fitted to them are compared with the exact
 
 Adapted from Struphy's tutorial (tutorials/tutorial_linear_mhd_slab_waves_1d.ipynb).
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -70,15 +72,33 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from plotly.subplots import make_subplots
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_figure
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
+    from plotly.subplots import make_subplots
 
     output = sim.output
     output.pproc(physical=True)
 
-    disp_params = {"B0x": B0x, "B0y": B0y, "B0z": B0z, "p0": p0, "n0": n0, "gamma": gamma}
     from struphy_plots.analysis import fit_dispersion_branches, power_spectrum
 
     length = output.domain.params["r3"] - output.domain.params["l3"]
@@ -145,15 +165,7 @@ def pproc(sim: Simulation):
         title="Three MHD wave branches in a magnetized slab", template="plotly_white",
         legend={"orientation": "h", "y": -0.2}, margin={"l": 70, "r": 40, "t": 90, "b": 110},
     )
-    save_figure(figure, "mhd-slab-waves", width=1300, height=650)
-
-    merge_metadata(
-        "mhd-slab-waves",
-        measuredAlfvenSpeed=measured_speeds["alfven"], exactAlfvenSpeed=float(exact_speeds["alfven"]),
-        measuredSlowSpeed=measured_speeds["slow"], exactSlowSpeed=float(exact_speeds["slow"]),
-        measuredFastSpeed=measured_speeds["fast"], exactFastSpeed=float(exact_speeds["fast"]),
-        **export_profiling(sim, "mhd-slab-waves"),
-    )
+    save(figure, "mhd-slab-waves", width=1300, height=650, show=show)
 
 
 if __name__ == "__main__":
@@ -163,9 +175,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

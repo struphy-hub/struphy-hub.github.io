@@ -7,7 +7,9 @@ This periodic initial-value experiment measures propagating modes, not reflectio
 from an interface. The cutoff is the k -> 0 limit of the dispersion relation.
 
 Reference: https://farside.ph.utexas.edu/teaching/315/Waveshtml/node75.html
-Requires the pinned Struphy with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -56,10 +58,30 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
     output = sim.output
     output.pproc(physical=True)
@@ -83,6 +105,7 @@ def pproc(sim: Simulation):
     frequency_error = float(np.max(np.abs(measured / frequencies - 1.0)))
     mode_error = float(np.max(np.abs(signals - reference)) / amplitude)
     energy_drift = float(np.max(np.abs(energy.values / energy.values[0] - 1.0)))
+    print(f"Measured frequencies: {np.round(measured, 4).tolist()} (exact: {np.round(frequencies, 4).tolist()})")
     if frequency_error > 0.01 or mode_error > 0.1 or energy_drift > 1e-6:
         raise RuntimeError(f"Ordinary-mode check failed: frequency={frequency_error:.3g}, field={mode_error:.3g}, energy={energy_drift:.3g}")
 
@@ -106,14 +129,12 @@ def pproc(sim: Simulation):
     figure.update_yaxes(title_text="E-mode / A + vertical offset", row=1, col=2)
     figure.update_layout(title="Ordinary electromagnetic waves in a cold plasma", template="plotly_white",
                          legend={"orientation": "h", "y": -0.2}, margin={"l": 70, "r": 30, "t": 100, "b": 140})
-    save_figure(figure, stem, height=650)
-    space_time = space_time_figure(field, space="eta1", x_values=x, xaxis_title="x",
-                                   title="Superposed ordinary waves: E_z(x, t)", colorbar_title="E_z")
-    figures = [save_extra_figure(space_time, stem, "space-time", alt="Space-time map of four superposed ordinary electromagnetic waves",
-                                caption="The longer waves oscillate near the plasma frequency; shorter waves oscillate faster.")]
-    merge_metadata(stem, measuredFrequencies=measured.tolist(), exactFrequencies=frequencies.tolist(),
-                   maxFrequencyError=frequency_error, maxModeError=mode_error, maxEnergyDrift=energy_drift,
-                   figures=figures, **export_profiling(sim, stem))
+    save(figure, stem, height=650, show=show)
+    space_time = field.assign_coords(eta1=x).struphy.plot.slice(
+        x="eta1", y="t", symmetric=True, cmap="RdBu_r", title="Superposed ordinary waves: E_z(x, t)",
+        xlabel="x", ylabel="t [a.u.]", colorbar_label="E_z", backend="plotly",
+    )
+    save(space_time, f"{stem}-space-time", show=show)
 
 
 if __name__ == "__main__":
@@ -123,9 +144,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

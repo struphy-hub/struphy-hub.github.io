@@ -7,7 +7,9 @@ falls at least as fast as h^(p+1) in the root-mean-square norm when the mesh is 
 the curved one. The slopes are measured from the runs and compared with p + 1: on the straight mesh they are close to it, and on the curved mesh,
 whose coarse meshes are not yet in the asymptotic range, they are steeper.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -74,11 +76,30 @@ def potential_error(run, celldivide):
     return phi.X.values, phi.Y.values, phi.values, phi.values - exact_potential(phi.X.values, phi.Y.values)
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     from plotly.subplots import make_subplots
     from scipy.interpolate import griddata
-
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
     errors = {}  # (alpha, degree) -> rms errors against the resolution
     for alpha in (distortion, 0.0):
@@ -98,10 +119,9 @@ def pproc(sim: Simulation):
     h = 1.0 / n
     # The slope of the last four resolutions, before the error reaches the level of the solver.
     slopes = {key: float(np.polyfit(np.log(h[-4:]), np.log(v[-4:]), 1)[0]) for key, v in errors.items()}
-    if is_root():
-        for (alpha, degree), slope in slopes.items():
-            print(f"alpha = {alpha}, degree {degree}: slope {slope:.2f} (expected {degree + 1}), error at n = {resolutions[-1]}: "
-                  f"{errors[(alpha, degree)][-1]:.2e}")
+    for (alpha, degree), slope in slopes.items():
+        print(f"alpha = {alpha}, degree {degree}: slope {slope:.2f} (expected {degree + 1}), error at n = {resolutions[-1]}: "
+              f"{errors[(alpha, degree)][-1]:.2e}")
 
     colors = {1: "#168aad", 2: "#f77f00", 3: "#d62828"}
     figure = go.Figure()
@@ -123,7 +143,7 @@ def pproc(sim: Simulation):
         xaxis_title="cells in x, n = 1 / h", yaxis_title="rms error of φ", xaxis_type="log", yaxis_type="log",
         legend={"x": 1.02, "y": 0.5}, margin={"l": 80, "r": 30, "t": 80, "b": 65},
     )
-    save_figure(figure, "poisson-convergence", width=1300, height=650)
+    save(figure, "poisson-convergence", width=1300, height=650, show=show)
 
     # The solution and its error on the distorted mesh, at degree 2 and 8 x 12 cells.
     run = create_simulation(2, 8, distortion, "poisson_convergence_map").output
@@ -146,26 +166,7 @@ def pproc(sim: Simulation):
         maps.update_xaxes(title_text="x", range=[0, lx], constrain="domain", row=1, col=column)
         maps.update_yaxes(title_text="y", range=[0, ly], scaleanchor=f"x{column}" if column > 1 else "x", row=1, col=column)
     maps.update_layout(template="plotly_white", autosize=True, margin={"l": 70, "r": 30, "t": 80, "b": 60})
-    figures = [
-        save_extra_figure(
-            maps, "poisson-convergence", "maps",
-            alt="Computed potential and its error on a distorted mesh of 8 by 12 cells with splines of degree 2",
-            caption=(
-                "The potential (left) and its error against the exact solution (right) for splines of degree 2 on the distorted mesh of "
-                f"8 × 12 cells. The largest error is {limit:.1e}, {100 * limit / np.abs(potential).max():.2f} % of the peak of the potential, "
-                "and it follows the pattern of the mesh."
-            ),
-        ),
-    ]
-
-    merge_metadata(
-        "poisson-convergence",
-        distortion=distortion,
-        convergenceSlopes={f"degree {degree}": {"distorted": slopes[(distortion, degree)], "straight": slopes[(0.0, degree)],
-                                                "expected": degree + 1} for degree in degrees},
-        figures=figures,
-        **export_profiling(sim, "poisson-convergence"),
-    )
+    save(maps, "poisson-convergence-maps", show=show)
 
 
 if __name__ == "__main__":
@@ -175,14 +176,15 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
+        simulation.run()
         for alpha in (distortion, 0.0):
             for degree in degrees:
                 for cells in resolutions:
                     create_simulation(degree, cells, alpha, f"poisson_convergence_p{degree}_n{cells}_a{alpha}").run()
         create_simulation(2, 8, distortion, "poisson_convergence_map").run()
-    pproc(simulation)
+    pproc(simulation, show=args.show)

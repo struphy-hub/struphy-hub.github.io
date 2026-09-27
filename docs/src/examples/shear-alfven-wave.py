@@ -6,7 +6,9 @@ linearized MHD induction/momentum equations with FEEC, and the numerical
 dispersion relation is compared against the exact Alfvén speed
 v_A = B0 / sqrt(n0) = 1.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -76,15 +78,29 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     domain = sim.domain
-    from struphy_plots.gallery import (
-        export_profiling,
-        merge_metadata,
-        save_extra_figure,
-        save_figure,
-        space_time_figure,
-    )
 
     # Run, evaluate the FEEC fields on a grid, and load the result.
     output = sim.output.pproc(create_vtk=False)
@@ -157,7 +173,7 @@ def pproc(sim: Simulation):
     figure.update_xaxes(range=[0, float(kvec[-1])])
     figure.update_yaxes(range=[0, float(kvec[-1])])
 
-    save_figure(figure, "shear-alfven-wave")
+    save(figure, "shear-alfven-wave", show=show)
 
     # The same field along z, over time: waves travelling in both directions leave diagonal
     # stripes, whose slope is the wave speed.
@@ -165,35 +181,18 @@ def pproc(sim: Simulation):
         "mhd/velocity", eta1=0.0, eta2=0.0, eta3=np.linspace(0.0, 1.0, output.grid.num_elements[2] + 1),
         representation="2",
     ).isel(component=0)  # (t, eta3)
-    space_time = space_time_figure(
-        transverse,
-        space="eta3",
-        x_values=transverse.eta3.values * domain.params["r3"],
-        xaxis_title="z [a.u.]",
+    space_time = transverse.assign_coords(eta3=transverse.eta3.values * domain.params["r3"]).struphy.plot.slice(
+        x="eta3",
+        y="t",
+        symmetric=True,
+        cmap="RdBu_r",
         title="Shear-Alfvén waves: transverse velocity u(z, t)",
-        colorbar_title="u₁ (logical component)",
+        xlabel="z [a.u.]",
+        ylabel="t [a.u.]",
+        colorbar_label="u₁ (logical component)",
+        backend="plotly",
     )
-    figures = [
-        save_extra_figure(
-            space_time,
-            "shear-alfven-wave",
-            "space-time",
-            alt="Space-time map of the transverse velocity of shear-Alfvén waves",
-            caption=(
-                "The transverse velocity of the run above along z, over time. The broadband noise launches shear-Alfvén waves in both directions, which appear as criss-crossing diagonal stripes; their slope is the Alfvén speed, v_A = 1 in these units. The colors show the first logical component of the velocity."
-            ),
-        ),
-    ]
-
-    profiling = export_profiling(sim, "shear-alfven-wave")
-
-    merge_metadata(
-        "shear-alfven-wave",
-        measuredAlfvenSpeed=phase_velocity,
-        exactAlfvenSpeed=1.0,
-        figures=figures,
-        **profiling,
-    )
+    save(space_time, "shear-alfven-wave-space-time", show=show)
 
 
 if __name__ == "__main__":
@@ -203,10 +202,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        # Profile every propagator, pusher and solver call in the simulation.
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

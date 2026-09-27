@@ -10,7 +10,9 @@ moves fastest and magnetic a quarter period later when the field lines are bent 
 so each channel oscillates at twice the wave frequency while their sum stays constant. Struphy's
 propagator is a Crank-Nicolson step, which conserves that sum up to the tolerance of the linear solver.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -68,8 +70,8 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
+def pproc(sim: Simulation, show: bool = False):
+    from struphy_plots.plotly_plots import save_figure
 
     output = sim.output
     output.pproc(physical=True)
@@ -113,7 +115,7 @@ def pproc(sim: Simulation):
         margin={"l": 75, "r": 30, "t": 80, "b": 100},
     )
     figure.update_yaxes(range=[-0.05, 1.15])
-    save_figure(figure, "alfven-standing-wave")
+    save_figure(figure, "alfven-standing-wave", show=show)
 
     # The velocity along z over time: a standing wave keeps its nodes, so the stripes are vertical,
     # unlike the diagonal stripes of the travelling waves in `shear-alfven-wave`.
@@ -121,37 +123,14 @@ def pproc(sim: Simulation):
     velocity = output.evaluate(
         "mhd/velocity", eta1=0.0, eta2=0.0, eta3=np.linspace(0.0, 1.0, cells + 1), representation="2"
     ).isel(component=0)
-    space_time = space_time_figure(
-        velocity,
+    space_time = velocity.assign_coords(eta3=velocity.eta3.values * length).struphy.plotly.space_time(
         space="eta3",
-        x_values=velocity.eta3.values * length,
         xaxis_title="z [a.u.]",
+        yaxis_title="t [a.u.]",
         title="Standing Alfvén wave: transverse velocity u(z, t)",
         colorbar_title="u₁ (logical component)",
     )
-    figures = [
-        save_extra_figure(
-            space_time, "alfven-standing-wave", "space-time",
-            alt="Space-time map of the transverse velocity of a standing Alfvén wave, with fixed nodes",
-            caption=(
-                "The transverse velocity along z, over time. The nodes stay at the same z while the profile "
-                "changes sign every half period: the signature of a standing wave, in contrast with the "
-                "criss-crossing diagonal stripes of the travelling waves in the broadband example. The "
-                f"relative drift of the total energy over {4 * period:.0f} time units stays below "
-                f"{relative_drift:.1e}."
-            ),
-        ),
-    ]
-
-    merge_metadata(
-        "alfven-standing-wave",
-        measuredExchangePeriod=measured_period,
-        exactExchangePeriod=0.5 * period,
-        exchangePeriodError=period_error,
-        relativeEnergyDrift=relative_drift,
-        figures=figures,
-        **export_profiling(sim, "alfven-standing-wave"),
-    )
+    save_figure(space_time, "alfven-standing-wave-space-time", show=show)
 
 
 if __name__ == "__main__":
@@ -161,9 +140,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

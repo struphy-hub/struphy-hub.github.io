@@ -8,7 +8,9 @@ follows the free surface with markers alone, without a grid.
 
 Adapted from Struphy's tutorial (tutorials/tutorial_dam_break_sph.ipynb).
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -105,8 +107,8 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+def pproc(sim: Simulation, show: bool = False):
+    from struphy_plots.plotly_plots import save_figure
 
     output = sim.output
     output.pproc()
@@ -220,7 +222,12 @@ def pproc(sim: Simulation):
     # The still image shows the collapse under way (t = 0.5) rather than the initial column.
     still_index = int(np.argmin(abs(times - 0.5)))
     save_figure(
-        figure, "dam-break", height=750, static_data=frame_traces(still_index, webgl=False), static_active=still_index
+        figure,
+        "dam-break",
+        height=750,
+        still_data=frame_traces(still_index, webgl=False),
+        still_active=still_index,
+        show=show,
     )
 
     trajectory = go.Figure()
@@ -247,32 +254,7 @@ def pproc(sim: Simulation):
         legend={"x": 0.98, "y": 0.5, "xanchor": "right", "bgcolor": "rgba(255,255,255,0.82)"},
         margin={"l": 70, "r": 30, "t": 80, "b": 60},
     )
-    figures = [
-        save_extra_figure(
-            trajectory,
-            "dam-break",
-            "front",
-            alt="Position of the fluid front and height of the centre of mass over time",
-            caption=(
-                f"The front of the fluid (the largest marker x) and the height of its centre of mass. The front "
-                f"reaches the far wall at t ≈ {arrival_time:.2f} and stays there. The centre of mass falls from 0.5 "
-                "to about 0.15 by t ≈ 0.4, close to the free-fall time of 0.32, rises slightly as the fluid rebounds, "
-                "and then settles slowly towards a layer at the bottom."
-            ),
-        ),
-    ]
-
-    profiling = export_profiling(sim, "dam-break")
-
-    merge_metadata(
-        "dam-break",
-        arrivalTime=arrival_time,
-        markers=int(x.sizes["marker"]),
-        markersInBox=in_box,
-        kernel="Gaussian, 2D",
-        figures=figures,
-        **profiling,
-    )
+    save_figure(trajectory, "dam-break-front", show=show)
 
 
 if __name__ == "__main__":
@@ -282,9 +264,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

@@ -10,7 +10,9 @@ own velocity, so the exact density at any time follows from the Lagrangian map x
 The SPH density estimate is compared with it. This is the classic test of pressureless SPH, and the
 first stage of the Zel'dovich approximation for structure formation.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -103,10 +105,27 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from plotly.subplots import make_subplots
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_figure
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+def pproc(sim: Simulation, show: bool = False):
+    from plotly.subplots import make_subplots
 
     output = sim.output
     output.pproc()
@@ -129,9 +148,8 @@ def pproc(sim: Simulation):
     after = times > 1.2 * caustic_time
     error_before, error_after = float(error[before].mean()), float(error[after].mean())
     peak_time = float(times[np.argmax(density.values.max(axis=1))])
-    if is_root():
-        print(f"caustic at t = {caustic_time:.3f}; SPH density peaks at t = {peak_time:.3f}")
-        print(f"density error: {100 * error_before:.1f}% before, {100 * error_after:.1f}% after the caustic")
+    print(f"caustic at t = {caustic_time:.3f}; SPH density peaks at t = {peak_time:.3f}")
+    print(f"density error: {100 * error_before:.1f}% before, {100 * error_after:.1f}% after the caustic")
 
     # Every markers' phase-space position is drawn, so the fold is visible without the exact curve.
     step = max(1, positions.shape[1] // 1500)
@@ -166,15 +184,7 @@ def pproc(sim: Simulation):
     figure.update_yaxes(title_text="ρ", range=[0, density_ceiling], row=1, col=1)
     figure.update_yaxes(title_text="u", range=[-1.1 * amplitude, 1.1 * amplitude], row=2, col=1)
     late = int(np.argmin(np.abs(times - 1.5 * caustic_time)))
-    save_figure(figure, "zeldovich-caustic", width=900, height=850, static_data=traces(late),
-                static_active=int(np.argmin(np.abs(picks - late))))
-
-    merge_metadata(
-        "zeldovich-caustic",
-        causticTime=caustic_time, sphPeakTime=peak_time, densityErrorBefore=error_before,
-        densityErrorAfter=error_after, markers=int(positions.shape[1]),
-        **export_profiling(sim, "zeldovich-caustic"),
-    )
+    save(figure, "zeldovich-caustic", width=900, height=850, frame=int(np.argmin(np.abs(picks - late))), show=show)
 
 
 if __name__ == "__main__":
@@ -184,9 +194,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

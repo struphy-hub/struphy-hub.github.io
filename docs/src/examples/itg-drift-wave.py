@@ -11,7 +11,9 @@ Adapted from Struphy's maintained example
 (examples/DriftKineticElectrostaticAdiabatic/itg_cylindre), at reduced
 resolution and run length to keep it a quick gallery run.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -209,18 +211,29 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from plotly.subplots import make_subplots
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
-    from struphy_plots.gallery import (
-        export_profiling,
-        heatmap_figure,
-        heatmap_movie,
-        merge_metadata,
-        save_extra_figure,
-        save_figure,
-        space_time_figure,
-    )
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
+    from plotly.subplots import make_subplots
 
     output = sim.output.pproc(create_vtk=False)
 
@@ -251,7 +264,7 @@ def pproc(sim: Simulation):
         margin={"l": 70, "r": 30, "t": 80, "b": 60},
     )
 
-    save_figure(figure, "itg-drift-wave")
+    save(figure, "itg-drift-wave", show=show)
 
     # ---- further figures: the potential and its Fourier modes --------------------------------------------
     # the grid points of the cells and the periodic endpoints, which mode_amplitudes drops
@@ -261,40 +274,25 @@ def pproc(sim: Simulation):
         raise RuntimeError("Non-finite electrostatic potential: refusing to publish the run")
     radius = minor_radius(phi)
     spectrum = mode_amplitudes(phi)
-    figures = []
 
     # The potential on a poloidal cross section (radius against angle) at the start of the axis.
     potential = phi.isel(eta3=0, drop=True)
     limit = float(np.percentile(np.abs(potential.values), 99.7))
     still_index = int(0.9 * (potential.sizes["t"] - 1))  # the middle of the run is still too faint on this scale
-    movie, _ = heatmap_movie(
-        potential,
+    movie = potential.assign_coords({"eta1": radius, "eta2": 2 * np.pi * np.asarray(potential.eta2)}).struphy.plot.animation(
         x="eta1",
         y="eta2",
-        x_values=radius,
-        y_values=2 * np.pi * np.asarray(potential.eta2),
+        max_frames=150,
+        vmin=-limit,
+        vmax=limit,
+        cmap="RdBu_r",
         title="ITG drift wave: electrostatic potential φ",
-        xaxis_title="r [a.u.]",
-        yaxis_title="θ [rad]",
-        colorbar_title="φ [a.u.]",
-        colorscale="RdBu",
-        zmin=-limit,
-        zmax=limit,
+        xlabel="r [a.u.]",
+        ylabel="θ [rad]",
+        colorbar_label="φ [a.u.]",
+        backend="plotly",
     )
-    figures.append(
-        save_extra_figure(
-            movie,
-            "itg-drift-wave",
-            "potential",
-            alt="Animated electrostatic potential in radius and poloidal angle",
-            caption=(
-                "The electrostatic potential at z = 0 against radius and poloidal angle. The colour scale is "
-                "fixed and symmetric about zero, so growth of the perturbation shows up as deepening colour."
-            ),
-            static_z=potential.transpose("t", "eta2", "eta1").values[still_index],
-            static_active=still_index,
-        )
-    )
+    save(movie, "itg-drift-wave-potential", frame=still_index, show=show)
 
     # Amplitude of each poloidal mode (radial rms at the seeded axial mode number) and its growth rate.
     amplitude = radial_rms(spectrum.sel(n=mode_toroidal)).sel(m=slice(1, MAX_POLOIDAL_MODE))
@@ -330,19 +328,7 @@ def pproc(sim: Simulation):
         margin={"l": 80, "r": 30, "t": 90, "b": 60},
         legend={"orientation": "h", "y": -0.22, "x": 0.0, "xanchor": "left"},
     )
-    figures.append(
-        save_extra_figure(
-            growth_figure,
-            "itg-drift-wave",
-            "mode-growth",
-            alt="Amplitudes of the poloidal Fourier modes against time and their fitted growth rates",
-            caption=(
-                "Left: radial rms amplitude of the potential's poloidal Fourier modes at the seeded axial mode "
-                f"number, with the seeded m = {mode_poloidal} in bold. Right: exponential growth rate of each, "
-                f"fitted for {GROWTH_WINDOW[0]:g} < t < {GROWTH_WINDOW[1]:g}, against the poloidal wavenumber."
-            ),
-        )
-    )
+    save(growth_figure, "itg-drift-wave-mode-growth", show=show)
 
     # The (m, n) spectrum at the first and last saved time.
     both = radial_rms(spectrum.isel(t=[0, -1])).sel(m=slice(0, MAX_POLOIDAL_MODE))
@@ -376,15 +362,7 @@ def pproc(sim: Simulation):
         spectrum_figure.update_xaxes(title_text="poloidal m", row=1, col=column)
     spectrum_figure.update_yaxes(title_text="axial n", dtick=1, row=1, col=1)
     spectrum_figure.update_layout(title="ITG drift wave: Fourier spectrum of φ", template="plotly_white", margin={"l": 70, "r": 30, "t": 90, "b": 60})
-    figures.append(
-        save_extra_figure(
-            spectrum_figure,
-            "itg-drift-wave",
-            "spectrum",
-            alt="Poloidal and axial Fourier spectrum of the potential at the first and last time",
-            caption="Radial rms of the potential's Fourier amplitudes in the poloidal (m) and axial (n) mode numbers, on a logarithmic colour scale, at the first and last saved time.",
-        )
-    )
+    save(spectrum_figure, "itg-drift-wave-spectrum", show=show)
 
     # Radial structure of the seeded mode.
     interior = slice(1, -1)  # phi = 0 at the Dirichlet boundaries r = a1, a2, which a log axis cannot show
@@ -401,69 +379,43 @@ def pproc(sim: Simulation):
         template="plotly_white",
         margin={"l": 80, "r": 30, "t": 80, "b": 60},
     )
-    figures.append(
-        save_extra_figure(
-            radial_figure,
-            "itg-drift-wave",
-            "radial-structure",
-            alt="Radial profile of the seeded potential mode at several times",
-            caption="Radial profile of the seeded Fourier mode of the potential at evenly spaced times, on a logarithmic axis.",
-        )
-    )
+    save(radial_figure, "itg-drift-wave-radial-structure", show=show)
 
     # Where and when does the potential grow?
     rms = np.sqrt((phi**2).mean(("eta2", "eta3"))).isel(eta1=interior)
-    rms_map = heatmap_figure(
-        xr.DataArray(log10_or_nan(rms.values), dims=("t", "eta1"), coords={"t": rms.t, "eta1": rms.eta1}),
-        x="eta1",
-        y="t",
-        x_values=radius[interior],
-        title="ITG drift wave: where the potential grows",
-        xaxis_title="r [a.u.]",
-        yaxis_title="t [a.u.]",
-        colorbar_title="log₁₀ φ<sub>rms</sub>",
-    )
-    figures.append(
-        save_extra_figure(
-            rms_map,
-            "itg-drift-wave",
-            "radial-time",
-            alt="Root-mean-square potential over flux surfaces as a function of radius and time",
-            caption="The root-mean-square of the potential over each flux surface (poloidal angle and axis), against radius and time, on a logarithmic colour scale.",
+    rms_map = (
+        xr.DataArray(log10_or_nan(rms.values), dims=("t", "eta1"), coords={"t": rms.t, "eta1": rms.eta1})
+        .assign_coords(eta1=radius[interior])
+        .struphy.plot.slice(
+            x="eta1",
+            y="t",
+            title="ITG drift wave: where the potential grows",
+            xlabel="r [a.u.]",
+            ylabel="t [a.u.]",
+            colorbar_label="log₁₀ φ<sub>rms</sub>",
+            cmap="viridis",
+            backend="plotly",
         )
     )
+    save(rms_map, "itg-drift-wave-radial-time", show=show)
 
     # The flux-surface-averaged (m = n = 0) density change: does the profile flatten?
     density = output.evaluate("diagnostics/rho", **points)
     density = density.isel(component=0, drop=True) if "component" in density.dims else density
     zonal = density.isel(eta2=slice(None, -1), eta3=slice(None, -1)).mean(("eta2", "eta3"))
     zonal = zonal - zonal.isel(t=0)
-    figures.append(
-        save_extra_figure(
-            space_time_figure(
-                zonal,
-                space="eta1",
-                x_values=radius,
-                title="ITG drift wave: change of the flux-surface-averaged density",
-                colorbar_title="δ⟨ρ⟩ [a.u.]",
-                xaxis_title="r [a.u.]",
-            ),
-            "itg-drift-wave",
-            "profile-change",
-            alt="Change of the flux-surface-averaged density against radius and time",
-            caption="The density projected on the field grid, averaged over each flux surface, minus its initial value: the change of the radial profile as the wave grows.",
-        )
+    profile_change = zonal.assign_coords(eta1=radius).struphy.plot.slice(
+        x="eta1",
+        y="t",
+        symmetric=True,
+        cmap="RdBu_r",
+        title="ITG drift wave: change of the flux-surface-averaged density",
+        xlabel="r [a.u.]",
+        ylabel="t [a.u.]",
+        colorbar_label="δ⟨ρ⟩ [a.u.]",
+        backend="plotly",
     )
-
-    profiling = export_profiling(sim, "itg-drift-wave")
-
-    merge_metadata(
-        "itg-drift-wave",
-        measuredGrowthRate=growth_rate,
-        modeNumbers=[mode_poloidal, mode_toroidal],
-        figures=figures,
-        **profiling,
-    )
+    save(profile_change, "itg-drift-wave-profile-change", show=show)
 
 
 if __name__ == "__main__":
@@ -473,10 +425,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        # Profile every propagator, pusher and solver call in the simulation.
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

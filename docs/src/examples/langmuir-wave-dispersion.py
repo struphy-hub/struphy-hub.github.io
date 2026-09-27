@@ -10,7 +10,9 @@ with the plasma dispersion function Z. Four runs with wavenumbers between 0.3 an
 frequency and the damping rate of the electric field, and compare them with this root. The fluid estimate omega^2 = 1 + 3 k^2 (Bohm-Gross) is
 shown for reference: it ignores the kinetic effects and misses the frequency by several per cent already at k = 0.5.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -101,9 +103,28 @@ def mode_amplitude(run):
     return e_x.t.values, 2.0 * np.mean(e_x.values[:, :-1] * np.sin(2 * np.pi * e1[:-1]), axis=1)
 
 
-def pproc(sim: Simulation):
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     runs = {0.5: sim.output}
     for k in wavenumbers:
         if k != 0.5:
@@ -132,10 +153,9 @@ def pproc(sim: Simulation):
         measured_rate[k] = float(np.polyfit(times[peaks], np.log(magnitude[peaks]), 1)[0])
     if not (np.isfinite(list(measured_frequency.values())).all() and np.isfinite(list(measured_rate.values())).all()):
         raise RuntimeError("A frequency or a damping rate could not be measured")
-    if is_root():
-        for k in sorted(runs):
-            print(f"k = {k}: omega_r = {measured_frequency[k]:.4f} (kinetic {exact[k][0]:.4f}), "
-                  f"gamma = {measured_rate[k]:.4f} (kinetic {exact[k][1]:.4f})")
+    for k in sorted(runs):
+        print(f"k = {k}: omega_r = {measured_frequency[k]:.4f} (kinetic {exact[k][0]:.4f}), "
+              f"gamma = {measured_rate[k]:.4f} (kinetic {exact[k][1]:.4f})")
 
     from plotly.subplots import make_subplots
 
@@ -165,7 +185,7 @@ def pproc(sim: Simulation):
     figure.update_xaxes(title_text="wavenumber k λ_D")
     figure.update_yaxes(title_text="ω_r / ω_p", row=1, col=1)
     figure.update_yaxes(title_text="γ / ω_p", row=1, col=2)
-    save_figure(figure, "langmuir-wave-dispersion", width=1200, height=560)
+    save(figure, "langmuir-wave-dispersion", width=1200, height=560, show=show)
 
     colors = {0.3: "#168aad", 0.4: "#2a9d8f", 0.5: "#f77f00", 0.6: "#d62828"}
     signals = go.Figure()
@@ -185,26 +205,7 @@ def pproc(sim: Simulation):
         xaxis_title="t [1/ω_p]", yaxis_title="amplitude of the sin(kx) mode of E_x",
         margin={"l": 75, "r": 30, "t": 80, "b": 60},
     )
-    figures = [
-        save_extra_figure(
-            signals, "langmuir-wave-dispersion", "signals",
-            alt="Electric field of Langmuir waves at four wavenumbers, damped inside their Landau envelopes",
-            caption=(
-                "The amplitude of the electric field mode in the four runs, with the Landau envelope exp(γt) (γ from the kinetic dispersion "
-                "relation, scaled to the first peak) as dashed lines. The wave oscillates faster and dies out sooner as k grows. The first "
-                "time units hold a transient of phase-mixing modes that are not the Langmuir wave, so the frequencies and rates above are "
-                "read from t = 1 to t = 12."
-            ),
-        ),
-    ]
-
-    merge_metadata(
-        "langmuir-wave-dispersion",
-        waves={str(k): {"measuredFrequency": measured_frequency[k], "kineticFrequency": float(exact[k][0]),
-                        "measuredRate": measured_rate[k], "kineticRate": float(exact[k][1])} for k in ks},
-        figures=figures,
-        **export_profiling(sim, "langmuir-wave-dispersion"),
-    )
+    save(signals, "langmuir-wave-dispersion-signals", show=show)
 
 
 if __name__ == "__main__":
@@ -214,12 +215,13 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
+        simulation.run()
         for k in wavenumbers:
             if k != 0.5:
                 create_simulation(k, f"langmuir_wave_dispersion_k{k}").run()
-    pproc(simulation)
+    pproc(simulation, show=args.show)

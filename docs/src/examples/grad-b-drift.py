@@ -9,7 +9,9 @@ the full-orbit speed is an exact invariant in this benchmark. Run on one rank
 because this example needs the complete trajectories of individually tracked markers.
 
 Reference: https://farside.ph.utexas.edu/teaching/plasma/lectures/node19.html
-Requires the pinned Struphy with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -77,12 +79,13 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def pproc(sim: Simulation, show: bool = False):
     equil = sim.equil
     time_opts = sim.time_opts
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+
+    from struphy_plots.plotly_plots import save_figure
 
     output = sim.output
     # Post-processing otherwise tries to reconstruct this script-local class
@@ -109,6 +112,7 @@ def pproc(sim: Simulation):
     gradient = -ripple * 2 * np.pi / box  # at x_gc = box/2, B = 1
     reference = 0.5 * speed[0]**2 * gradient
     drift_error = float(np.max(np.abs(measured / reference - 1.0)))
+    print(f"Measured drift velocities: {np.round(measured, 5).tolist()} (guiding center: {np.round(reference, 5).tolist()})")
     if speed_drift > 1e-8 or drift_error > 0.08:
         raise RuntimeError(f"Grad-B benchmark failed: speed drift={speed_drift:.3g}, drift-rate error={drift_error:.3g}")
 
@@ -129,7 +133,7 @@ def pproc(sim: Simulation):
     figure.update_yaxes(title_text="mean drift velocity in y", row=1, col=2)
     figure.update_layout(title="Grad-B drift in a straight magnetic field", template="plotly_white",
                          legend={"orientation": "h", "y": -0.2}, margin={"l": 70, "r": 35, "t": 100, "b": 120})
-    save_figure(figure, stem, height=650)
+    save_figure(figure, stem, height=650, show=show)
     drift = go.Figure()
     for j, color in enumerate(palette):
         drift.add_scatter(x=times, y=center_y[:, j] - center_y[0, j], name=f"v⊥ = {speed[0, j]:.1f}", line={"color": color})
@@ -138,10 +142,7 @@ def pproc(sim: Simulation):
     drift.update_layout(title="Guiding-center displacement extracted from full orbits", template="plotly_white",
                          xaxis_title="t", yaxis_title="Y_gc(t) − Y_gc(0)",
                          legend={"orientation": "h", "y": -0.2}, margin={"l": 80, "r": 30, "t": 80, "b": 110})
-    figures = [save_extra_figure(drift, stem, "drift", alt="Approximate guiding centers drifting steadily across the magnetic field",
-                                caption="Subtracting the leading gyration reveals the slow drift. Small oscillations remain because the guiding-center formula neglects finite-Larmor-radius corrections.")]
-    merge_metadata(stem, measuredDriftVelocities=measured.tolist(), guidingCenterDriftVelocities=reference.tolist(),
-                   maxDriftRateError=drift_error, maxSpeedDrift=speed_drift, figures=figures, **export_profiling(sim, stem))
+    save_figure(drift, f"{stem}-drift", show=show)
 
 
 if __name__ == "__main__":
@@ -151,9 +152,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

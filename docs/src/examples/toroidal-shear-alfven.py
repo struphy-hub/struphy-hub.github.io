@@ -3,7 +3,9 @@
 Run from the repository root with:
     .venv/bin/python cli.py run toroidal-shear-alfven
 
-Requires compiled Struphy kernels and Plotly's PNG exporter (see README.md).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 The default is an exploratory local run, not a converged ITPA TAE benchmark.
 Increase NUM_ELEMENTS to (24, 96, 16), DEGREE to (3, 3, 3), and END_TIME
 to 500.0 to recover the supplied spatial/time resolution. The equilibrium,
@@ -11,7 +13,6 @@ sector, mode numbers, Gaussian profiles and amplitudes are retained.
 """
 
 import argparse
-from time import perf_counter
 
 import numpy as np
 import plotly.graph_objects as go
@@ -120,11 +121,10 @@ def fixed_theta_amplitudes(output, field_xyz, angles=(0.0, 45.0), sector_mode=-1
     return normalized
 
 
-def save_fixed_theta_fft_figures(output):
-    """Export the two angle comparisons; usable directly with saved output."""
-    from struphy_plots.gallery import save_extra_figure
+def save_fixed_theta_fft_figures(output, show=False):
+    """Save (and show) the two angle comparisons; usable directly with saved output."""
+    from struphy_plots.plotly_plots import save_figure
 
-    figures = []
     for field_name, label, key in (
         ("mhd/velocity_xyz", "u_r", "fixed-theta-fft-velocity"),
         ("em_fields/b_field_xyz", "δB_r", "fixed-theta-fft-magnetic"),
@@ -148,18 +148,7 @@ def save_fixed_theta_fft_figures(output):
             margin={"l": 85, "r": 35, "t": 95, "b": 75},
             legend={"title": {"text": "Poloidal angle"}},
         )
-        figures.append(save_extra_figure(
-            figure, STEM, key,
-            alt=f"Normalized toroidal FFT amplitude of {label} versus radius at theta zero and 45 degrees",
-            caption=f"Physical {label} at θ=0° and θ=45°, at the final saved time t={time:g}. "
-            f"The FFT is taken only in toroidal angle, selecting sector mode −1 (full-torus |n|={toroidal_mode:g}). "
-            "All poloidal harmonics contribute coherently at each angle; there is no poloidal or time FFT. "
-            "The duplicate toroidal endpoint is excluded. Both curves share the same maximum-amplitude "
-            "normalization over the two angles and all radii, separately for each field. "
-            "The magnetic field is the perturbation. The requested angles lie on the default evaluation grid; "
-            "other grids use linear interpolation of the physical radial field where needed.",
-        ))
-    return figures
+        save_figure(figure, f"{STEM}-{key}", show=show)
 
 
 def create_simulation() -> Simulation:
@@ -214,15 +203,13 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    """Export the gallery figures from an existing simulation."""
+def pproc(sim: Simulation, show: bool = False):
+    """Save (and show) the figures from an existing simulation."""
     domain = sim.domain
     grid = sim.grid
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.plotly_plots import save_figure
 
     output = sim.output
-    simulation_seconds = output.profile.summary().attrs["run_time"]
-    started = perf_counter()
     # More samples improve the display of the spline, not the simulation resolution.
     output.pproc(physical=True, celldivide=(3, 3, 1), create_vtk=False)
     velocity = output.evaluate("mhd/velocity_xyz").isel(eta3=0).transpose("t", "component", "eta1", "eta2")
@@ -314,7 +301,7 @@ def pproc(sim: Simulation):
     )
     # A later snapshot also shows the generated toroidal component in the thumbnail.
     still = len(frame_indices) // 2
-    save_figure(figure, STEM, static_data=traces(frame_indices[still]), static_active=still)
+    save_figure(figure, STEM, still_data=traces(frame_indices[still]), still_active=still, show=show)
 
     radial_probe = int(np.abs(velocity.eta1.values - 0.5).argmin())
     probe_radius = domain.params["a1"] + (domain.params["a2"] - domain.params["a1"]) * float(velocity.eta1.values[radial_probe])
@@ -499,7 +486,6 @@ def pproc(sim: Simulation):
 
     # Radial mode structures in the style of Fig. 5 of arXiv:2510.04385:
     # spatial (m,n) amplitudes at a single time, for velocity and perturbed B.
-    radial_mode_figures = []
     for field_name, label, key in (
         ("mhd/velocity_xyz", "u_r", "radial-fft-velocity"),
         ("em_fields/b_field_xyz", "δB_r", "radial-fft-magnetic"),
@@ -523,19 +509,7 @@ def pproc(sim: Simulation):
             template="plotly_white", margin={"l": 85, "r": 35, "t": 95, "b": 75},
             legend={"title": {"text": "Poloidal harmonic"}},
         )
-        radial_mode_figures.append(save_extra_figure(
-            radial_mode_plot, STEM, key,
-            alt=f"Normalized radial Fourier amplitudes of {label} for m=9,10,11,12 at fixed toroidal mode",
-            caption=f"Physical {label} at the final saved time t={snapshot_time:g}. "
-            "A two-dimensional spatial FFT in poloidal and toroidal angle selects sector mode −1 "
-            f"(full-torus |n|={toroidal_mode:g}) and m=9,10,11,12. Both duplicate periodic endpoints are excluded. "
-            "All four amplitude curves share one normalization: the largest amplitude over these harmonics "
-            "and all sampled radii, separately for velocity and magnetic perturbation. "
-            "This preserves relative harmonic strengths; the magnetic field excludes the equilibrium. "
-            "Markers are spline evaluation points. Inspired by Figure 5 of arXiv:2510.04385 "
-            "(https://arxiv.org/abs/2510.04385); this is the present LinearMHD run, with no comparison "
-            "between filtered and unfiltered kinetic simulations and no temporal FFT selection.",
-        ))
+        save_figure(radial_mode_plot, f"{STEM}-{key}", show=show)
 
     energy = go.Figure()
     for key, label in (("en_U", "Kinetic"), ("en_B", "Magnetic"), ("en_thermal", "Compressional")):
@@ -547,73 +521,18 @@ def pproc(sim: Simulation):
         title="Perturbation energies", xaxis_title="t", yaxis_title="Energy [normalized units]",
         template="plotly_white", margin={"l": 80, "r": 30, "t": 80, "b": 65},
     )
-    figures = [
-        save_extra_figure(history, STEM, "velocity-history",
-            alt="Time histories of three physical velocity components around a poloidal ring",
-            caption=f"Physical velocity at r={probe_radius:.3f}, φ=0, over the complete run. "
-            "The angular structure starts with the m=10,11 perturbations. Each panel uses the same "
-            "component color range as the slice animation; interpolated display pixels do not add simulation resolution."),
-        *[
-            save_extra_figure(
-                radial_profiles, STEM, f"radial-profiles-theta-{int(angle_degrees)}",
-                alt=f"Radial profiles of three physical velocity components at theta={angle_degrees:g} degrees on the phi zero plane",
-                caption=f"Signed physical velocity along a radial ray at θ={angle_degrees:g}°, φ=0, "
-                "from the inner to the outer boundary. Colors identify the saved times; "
-                f"the dotted line marks the initial Gaussian center r={initial_radius:.3f}. "
-                "Markers are spline evaluation points, not additional simulation cells. Velocities use normalized units.",
-            )
-            for angle_degrees, radial_profiles in radial_profile_figures
-        ],
-        save_extra_figure(radial_history, STEM, "radial-history",
-            alt="Radius–time maps of the poloidal RMS of each physical velocity component",
-            caption="The root-mean-square velocity over poloidal angle at each radius and time: "
-            "sqrt(〈u²〉θ), evaluated on the φ=0 slice. This angular average shows radial localization "
-            "without cancellation between positive and negative wave lobes; it is not a volume or flux-surface average. "
-            "Each component has its own fixed color range in normalized velocity units. "
-            f"The white dotted line marks the initial center r={initial_radius:.3f}; the underlying run still uses "
-            f"only {grid.num_elements[0]} radial elements."),
-        save_extra_figure(mode_plot, STEM, "poloidal-fft",
-            alt="Initial logical radial velocity Fourier amplitudes with the seeded m=10 and m=11 modes",
-            caption="Poloidal FFT of the initial logical H(div) radial velocity at φ=0. "
-            "The duplicate periodic endpoint is excluded. Positive-mode amplitudes are 2|FFT|/N, "
-            "followed by RMS over sampled radii, with no volume weighting. Dotted lines identify the seeded m=10,11 modes."),
-        *radial_mode_figures,
-        *save_fixed_theta_fft_figures(output),
-        save_extra_figure(frequency_plot, STEM, "time-fft",
-            alt="Temporal spectra of three physical velocity components with selected dominant frequency bands",
-            caption="One-sided power per frequency bin from the signed velocity, averaged over sampled points "
-            "in the φ=0 plane. DC is omitted and each panel is normalized to its own largest nonzero-frequency bin. "
-            "Orange shading shows the contiguous half-power band used for reconstruction (no padding). "
-            f"Saved spacing Δt={temporal.attrs['sample_spacing']:g}, N={len(times)}, Δω=2π/(NΔt)={frequency_resolution:.3f}, "
-            f"and Nyquist frequency {temporal.attrs['nyquist_frequency']:.3f}. "
-            "This short, untapered record has coarse frequency resolution and spectral leakage; its largest bin is not a converged TAE frequency."),
-        save_extra_figure(radius_spectrum, STEM, "radial-time-fft",
-            alt="Temporal velocity power as a function of minor radius and angular frequency",
-            caption="Time FFT at each spatial point, followed by poloidal averaging of the power. "
-            "Transforming the signed components before squaring avoids the frequency doubling of quadratic diagnostics. "
-            "Colors show log₁₀(P/Pmax) separately for each component, clipped at −6; DC is omitted. "
-            "The angular average is not weighted by physical volume. Only the actual frequency bins are displayed."),
-        save_extra_figure(filtered_probe, STEM, "filtered-velocity",
-            alt="Original and dominant-band-filtered velocity traces at a probe on the poloidal slice",
-            caption=f"Original and reconstructed physical velocity at r={probe_radius:.3f}, θ=45°, φ=0. "
-            "Each component's band is chosen from power summed over the whole sampled poloidal plane, then applied "
-            "at every point before the inverse time FFT. DC and other bins are removed. "
-            "This is a finite-record band-pass diagnostic, not an exact eigenmode; leakage and endpoint ringing remain possible."),
-        save_extra_figure(energy, STEM, "energy",
-            alt="Kinetic, magnetic and compressional perturbation energies over time",
-            caption="Volume-integrated quadratic perturbation energies from LinearMHD. "
-            "These exclude the equilibrium magnetic and thermal energies. They show the response of "
-            "both the shear-Alfvén and magnetosonic propagators in the nonuniform toroidal equilibrium; "
-            "this short coarse run does not establish a converged TAE frequency or growth rate."),
-    ]
-    merge_metadata(
-        STEM, figures=figures, simulationSeconds=simulation_seconds,
-        fftFrequencyResolution=frequency_resolution,
-        fftDominantFrequencies=[float(value) if np.isfinite(value) else None
-                               for value in band.spectrum.dominant_frequency.values],
-        finalTime=float(times[-1]), savedFrames=len(times), **export_profiling(sim, STEM),
-    )
-    print(f"Simulation: {simulation_seconds:.1f} s; run and plots: {simulation_seconds + perf_counter() - started:.1f} s")
+    save_figure(history, f"{STEM}-velocity-history", show=show)
+    for angle_degrees, radial_profiles in radial_profile_figures:
+        save_figure(radial_profiles, f"{STEM}-radial-profiles-theta-{int(angle_degrees)}", show=show)
+    save_figure(radial_history, f"{STEM}-radial-history", show=show)
+    save_figure(mode_plot, f"{STEM}-poloidal-fft", show=show)
+    save_fixed_theta_fft_figures(output, show=show)
+    save_figure(frequency_plot, f"{STEM}-time-fft", show=show)
+    save_figure(radius_spectrum, f"{STEM}-radial-time-fft", show=show)
+    save_figure(filtered_probe, f"{STEM}-filtered-velocity", show=show)
+    save_figure(energy, f"{STEM}-energy", show=show)
+    dominant = ", ".join(f"{label} {value:.3f}" for label, value in zip(labels, band.spectrum.dominant_frequency.values))
+    print(f"Dominant temporal frequencies: {dominant} (resolution {frequency_resolution:.3f})")
 
 
 if __name__ == "__main__":
@@ -623,9 +542,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

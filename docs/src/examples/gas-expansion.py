@@ -8,7 +8,9 @@ result can be compared.
 Adapted from Struphy's tutorial (tutorials/tutorial_gas_expansion_sph.ipynb), reduced to one dimension
 so that an exact solution exists.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy 3.2 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -109,10 +111,29 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from plotly.subplots import make_subplots
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
+    from plotly.subplots import make_subplots
 
     output = sim.output
     output.pproc()
@@ -255,13 +276,7 @@ def pproc(sim: Simulation):
         ],
     )
     still_index = int(np.argmin(np.abs(times - 0.8)))
-    save_figure(
-        figure,
-        "gas-expansion",
-        height=750,
-        static_data=frame_traces(still_index, webgl=False),
-        static_active=still_index,
-    )
+    save(figure, "gas-expansion", height=750, frame=still_index, show=show)
 
     # A spatial view of every SPH particle. Fixed display lanes separate overlapping particles;
     # only x is a physical coordinate in this one-dimensional simulation.
@@ -323,15 +338,7 @@ def pproc(sim: Simulation):
     )
     particles.add_vline(x=release_point, line_dash="dash", line_color="#64748b",
                         annotation_text="initial gas edge", annotation_position="top right")
-    particle_figure = save_extra_figure(
-        particles, "gas-expansion", "particles",
-        alt="Animation of SPH particles expanding into vacuum, colored by velocity",
-        caption=(
-            "The 768 SPH particles move from the initially filled region into the vacuum; color shows velocity. "
-            "The dashed line marks the initial gas edge. Vertical lanes only separate the particles visually: "
-            "this simulation is one-dimensional. Press Play, Pause, or drag the time slider."
-        ),
-    )
+    save(particles, "gas-expansion-particles", show=show)
 
     # The same data against the similarity variable xi = (x - x0) / t, where every time falls on one curve.
     similarity = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1)
@@ -419,56 +426,8 @@ def pproc(sim: Simulation):
         margin={"l": 70, "r": 30, "t": 80, "b": 60},
     )
 
-    figures = [
-        particle_figure,
-        save_extra_figure(
-            similarity,
-            "gas-expansion",
-            "similarity",
-            alt="Density and velocity against the similarity variable at four times, on the exact curve",
-            caption=(
-                "The density (top) and the marker velocities (bottom) at four times against the similarity variable "
-                "(x − x₀) / t, with the exact solution dashed. From ξ = −1, where the rarefaction starts, up to "
-                "ξ ≈ 2 the four times fall on one curve. The earliest time is smoothed around ξ = −1 because the "
-                "release is smoothed over the kernel width. Beyond ξ ≈ 2, where the density is below about 0.05, only "
-                "a few markers are left: they move more slowly than the exact solution and their density estimate is "
-                "noisy."
-            ),
-        ),
-        save_extra_figure(
-            error_figure,
-            "gas-expansion",
-            "error",
-            alt="Density and velocity error of the SPH result against time",
-            caption=(
-                f"The error of the SPH result against the exact solution for t ≥ 0.1. The density error, the L1 "
-                f"difference relative to the exact density, stays between {100 * density_errors.min():.1f}% and "
-                f"{100 * density_errors.max():.1f}%. The rms error of the marker velocity grows to "
-                f"{100 * velocity_errors[-1]:.1f}% of the sound speed, but the median marker is off by only "
-                f"{100 * velocity_median_final:.1f}% at the end: the rms is dominated by the few fast markers in the "
-                "low-density tail."
-            ),
-        ),
-    ]
-
-    profiling = export_profiling(sim, "gas-expansion")
-
-    merge_metadata(
-        "gas-expansion",
-        soundSpeed=sound_speed,
-        releasePoint=release_point,
-        boxLength=box_length,
-        markers=int(marker_position.shape[1]),
-        kernel="Gaussian, 1D",
-        densityErrorMean=float(density_errors.mean()),
-        densityErrorFinal=float(density_errors[-1]),
-        velocityErrorMean=float(velocity_errors.mean()),
-        velocityErrorFinal=float(velocity_errors[-1]),
-        velocityMedianErrorFinal=velocity_median_final,
-        massError=mass_error,
-        figures=figures,
-        **profiling,
-    )
+    save(similarity, "gas-expansion-similarity", show=show)
+    save(error_figure, "gas-expansion-error", show=show)
 
 
 if __name__ == "__main__":
@@ -478,9 +437,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

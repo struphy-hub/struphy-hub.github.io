@@ -2,6 +2,8 @@
 export interface ExampleFigureText {
   alt: string;
   caption: string;
+  /** The figure's width/height, e.g. '1500/560', if it is not the default 1100/650. */
+  aspect?: string;
 }
 
 export interface ExamplePageConfig {
@@ -11,6 +13,8 @@ export interface ExamplePageConfig {
   plotAlt: string;
   /** The additional figures, `<slug>-<key>.*`, in page order: their alt texts and captions, by key. */
   figures?: Record<string, ExampleFigureText>;
+  /** The Struphy tutorial the example is adapted from. */
+  tutorial?: string;
 }
 
 /** Small, hand-written presentation layer for the generated example results. */

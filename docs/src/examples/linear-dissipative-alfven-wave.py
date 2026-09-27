@@ -6,7 +6,9 @@ b_x = A exp(-nu*k**2*t) cos(k*z) sin(k*t), for B0 = rho0 = 1.
 The linear model dissipates the quadratic wave energy; heating is second order
 and is not part of this linear perturbation system.
 
-Requires the pinned Struphy with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -56,11 +58,30 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
-
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
     output = sim.output
     output.pproc(physical=True)
@@ -80,6 +101,7 @@ def pproc(sim: Simulation):
     wave_energy = kinetic.values + magnetic_energy.values
     exact_energy = np.exp(-2.0 * diffusivity * energy_time)
     energy_error = float(np.max(np.abs(wave_energy / wave_energy[0] - exact_energy)))
+    print(f"Maximum relative error against the exact solution: field {error:.2e}, energy {energy_error:.2e}")
     if max(error, energy_error) > 0.03:
         raise RuntimeError(f"The dissipative Alfvén wave differs from its exact solution: field={error:.3g}, energy={energy_error:.3g}")
     # The periodic evaluation grid repeats its endpoint; exclude it from mode projections.
@@ -102,13 +124,12 @@ def pproc(sim: Simulation):
     figure.update_yaxes(title_text="energy / initial wave energy", row=2, col=1)
     figure.update_layout(title="Viscous and resistive damping of a linear Alfvén wave", template="plotly_white",
                          legend={"orientation": "h", "y": -0.18}, margin={"l": 85, "r": 30, "t": 90, "b": 140})
-    save_figure(figure, stem, height=800)
-    space_time = space_time_figure(velocity, space="eta3", x_values=z, xaxis_title="z",
-                                   title="A standing Alfvén wave with a fading amplitude", colorbar_title="u_x")
-    figures = [save_extra_figure(space_time, stem, "space-time", alt="Standing Alfvén wave fading under viscosity and resistivity",
-                                caption="The nodes remain fixed while viscosity and resistivity damp the wave.")]
-    merge_metadata(stem, maxRelativeFieldError=error, maxRelativeEnergyError=energy_error,
-                   figures=figures, **export_profiling(sim, stem))
+    save(figure, stem, height=800, show=show)
+    space_time = velocity.assign_coords(eta3=z).struphy.plot.slice(
+        x="eta3", y="t", symmetric=True, cmap="RdBu_r", title="A standing Alfvén wave with a fading amplitude",
+        xlabel="z", ylabel="t [a.u.]", colorbar_label="u_x", backend="plotly",
+    )
+    save(space_time, f"{stem}-space-time", show=show)
 
 
 if __name__ == "__main__":
@@ -118,9 +139,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

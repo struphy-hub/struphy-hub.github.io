@@ -5,7 +5,9 @@ test. A cosine-mode charge density oscillates in time; Struphy's FEEC solver
 recovers the potential at every step, compared here against the closed-form
 solution.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -60,10 +62,28 @@ def create_simulation() -> Simulation:
     return simulation
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_figure
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
 
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     output = sim.output.pproc(create_vtk=False)
     domain = sim.domain
 
@@ -183,15 +203,7 @@ def pproc(sim: Simulation):
         ],
     )
 
-    save_figure(figure, "poisson-source")
-
-    profiling = export_profiling(sim, "poisson-source")
-
-    merge_metadata(
-        "poisson-source",
-        maxRelativeError=max_relative_error,
-        **profiling,
-    )
+    save(figure, "poisson-source", show=show)
 
 
 if __name__ == "__main__":
@@ -201,12 +213,13 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
 
     if args.pproc_only:
-        pproc(simulation)
+        pproc(simulation, show=args.show)
     else:
-        simulation.run(profiling_activated=True)
-        pproc(simulation)
+        simulation.run()
+        pproc(simulation, show=args.show)

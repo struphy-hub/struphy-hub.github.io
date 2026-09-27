@@ -68,10 +68,30 @@ def create_simulation() -> Simulation:
     return sim
 
 
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
 def pproc(sim: Simulation, show: bool = False):
     """Measure the speed of light from the (k, omega) spectrum, and save (and show) the figures."""
-    from struphy_plots.analysis import fit_dispersion_branches, power_spectrum
-    from struphy_plots.plotly_plots import save_figure
+    from struphy_plots.analysis import power_spectrum
 
     output = sim.output
     length = sim.domain.params["r3"] - sim.domain.params["l3"]
@@ -86,22 +106,30 @@ def pproc(sim: Simulation, show: bool = False):
     # The branch of the (k, omega) power spectrum: its peaks count above half the peak amplitude of their
     # k, i.e. a quarter of its peak power.
     spectrum = power_spectrum(e_x, dim="z")
-    branch = fit_dispersion_branches(spectrum, n_branches=1, noise_level=0.5**2, order=10)[0]
+    branch = spectrum.struphy.analysis.fit_branches(n_branches=1, noise_level=0.5**2, order=10)[0]
     print(f"Measured phase velocity: {branch.velocity:.5f} (exact: 1.0)")
 
-    dispersion = spectrum.struphy.plotly.dispersion(
+    dispersion = spectrum.struphy.plot.dispersion(
+        kmin=0,
         branches={"light wave, c = 1": lambda k: k},
         fits=[branch],
+        dynamic_range=15,
         omega_max=float(spectrum.k.max()),
         title="Maxwell light-wave dispersion",
+        backend="plotly",
     )
     # Waves travelling in both directions leave diagonal stripes, whose slope is the wave speed.
-    space_time = e_x.struphy.plotly.space_time(title="Maxwell light waves: electric field E(z, t)", colorbar_title="E_x")
-
-    for name, figure in (("maxwell-wave", dispersion), ("maxwell-wave-space-time", space_time)):
-        if show:
-            figure.show()
-        save_figure(figure, name)
+    space_time = e_x.struphy.plot.slice(
+        x="z",
+        y="t",
+        symmetric=True,
+        cmap="RdBu_r",
+        title="Maxwell light waves: electric field E(z, t)",
+        colorbar_label="E_x",
+        backend="plotly",
+    )
+    save(dispersion, "maxwell-wave", show=show)
+    save(space_time, "maxwell-wave-space-time", show=show)
 
 
 if __name__ == "__main__":

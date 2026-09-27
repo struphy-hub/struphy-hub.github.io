@@ -12,7 +12,9 @@ with particles in two ways:
 
 Both start from the same markers and are compared with the exact decay.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -99,10 +101,27 @@ def create_simulation(method="Random walk") -> Simulation:
     )
 
 
-def pproc(sim: Simulation):
-    from plotly.subplots import make_subplots
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_figure
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+def pproc(sim: Simulation, show: bool = False):
+    from plotly.subplots import make_subplots
 
     runs = {
         "Random walk": sim.output,
@@ -131,9 +150,8 @@ def pproc(sim: Simulation):
     }
     if not all(np.isfinite(rate) for rate in fitted_rate.values()):
         raise RuntimeError("A decay rate could not be fitted")
-    if is_root():
-        for name in runs:
-            print(f"{name}: decay rate {fitted_rate[name]:.3f} (exact {decay_rate:.3f}), density rms error {rms_error[name]:.4f}")
+    for name in runs:
+        print(f"{name}: decay rate {fitted_rate[name]:.3f} (exact {decay_rate:.3f}), density rms error {rms_error[name]:.4f}")
 
     colors = {"Random walk": "#d62828", "Deterministic": "#168aad"}
     dense_x = np.linspace(0.0, 1.0, 401)
@@ -171,15 +189,7 @@ def pproc(sim: Simulation):
     figure.update_yaxes(title_text="density", range=[0.4, 1.6], row=1, col=1)
     figure.update_xaxes(title_text="t", row=2, col=1)
     figure.update_yaxes(title_text="amplitude", type="log", row=2, col=1)
-    save_figure(figure, "diffusion-methods", width=900, height=850)
-
-    merge_metadata(
-        "diffusion-methods",
-        diffusionCoefficient=diffusion, exactDecayRate=decay_rate,
-        randomDecayRate=fitted_rate["Random walk"], deterministicDecayRate=fitted_rate["Deterministic"],
-        randomRmsError=rms_error["Random walk"], deterministicRmsError=rms_error["Deterministic"],
-        markers=markers, **export_profiling(sim, "diffusion-methods"),
-    )
+    save(figure, "diffusion-methods", width=900, height=850, show=show)
 
 
 if __name__ == "__main__":
@@ -189,10 +199,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
+        simulation.run()
         create_simulation("Deterministic").run()
-    pproc(simulation)
+    pproc(simulation, show=args.show)

@@ -9,7 +9,9 @@ toroidal momentum of every particle are conserved, which checks the guiding-cent
 
 Adapted from Struphy's particle-tracing tutorial (tutorials/tutorial_particle_tracing.ipynb).
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy 3.2 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -93,12 +95,32 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     domain = sim.domain
     equil = sim.equil
     b_start = float(equil.absB0(start_eta1, 0.0, 0.0, squeeze_out=True))
     model = sim.model
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc()
@@ -148,7 +170,6 @@ def pproc(sim: Simulation):
     momentum_scale = np.abs(major_radius[0] * v_parallel[0] * b_toroidal[0]) + np.abs(flux[0] / epsilon)
     momentum_drift = np.abs(momentum - momentum[0]) / momentum_scale
     print(f"Largest relative drift: energy {energy_drift.max():.2e}, canonical momentum {momentum_drift.max():.2e}")
-    lost = int(output.scalars["n_lost_particles"].max())
 
     # The half period between two reflections is the time a trapped particle needs to go from one
     # mirror point to the other.
@@ -283,14 +304,10 @@ def pproc(sim: Simulation):
     )
 
     # The still image shows the end of the run, with all trails.
-    still_traces = list(figure.data[:first_moving]) + moving_traces(len(times) - 1)
-    save_figure(
-        figure,
-        "guiding-center-orbits",
-        height=750,
-        static_data=still_traces,
-        static_active=len(frames) - 1,
-    )
+    # (A frame names only the moving traces, so the still is built from them and the fixed ones.)
+    still = go.Figure(data=list(figure.data[:first_moving]) + moving_traces(len(times) - 1), layout=figure.layout)
+    still.layout.sliders[0].active = len(frames) - 1
+    save(figure, "guiding-center-orbits", height=750, still=still, show=show)
 
     # One panel per particle: the orbit in the poloidal plane.
     panels = make_subplots(rows=2, cols=4, subplot_titles=labels, horizontal_spacing=0.03, vertical_spacing=0.12)
@@ -386,47 +403,9 @@ def pproc(sim: Simulation):
         margin={"l": 70, "r": 30, "t": 100, "b": 60},
     )
 
-    figures = [
-        save_extra_figure(
-            panels,
-            "guiding-center-orbits",
-            "panels",
-            alt="Poloidal-plane orbits of eight guiding centers, one panel each",
-            caption='The eight orbits start at the same position and speed, with different parallel velocity fractions. Four reflect and form banana-shaped paths; four pass around the magnetic axis. Grey curves mark flux surfaces and the open circle marks the initial position.',
-        ),
-        save_extra_figure(
-            velocity,
-            "guiding-center-orbits",
-            "velocity",
-            alt="Parallel velocity of the guiding centers against time",
-            caption='The parallel velocity changes sign at each mirror reflection for trapped particles (solid curves). Passing particles (dotted curves) retain their initial sign. The normalization uses the common initial speed, not the instantaneous parallel speed.',
-        ),
-        save_extra_figure(
-            conservation,
-            "guiding-center-orbits",
-            "conservation",
-            alt="Relative change of energy and canonical toroidal momentum against time",
-            caption='Changes in energy and canonical toroidal momentum evaluated using the analytic equilibrium along the computed orbits. Energy is normalized to its initial value. Momentum is normalized to the sum of the magnitudes of its initial mechanical and magnetic-flux contributions, since their sum can nearly cancel. Values below 1e-12 are clipped for the logarithmic display. These diagnostics include equilibrium projection and time-integration errors.',
-        ),
-    ]
-
-    profiling = export_profiling(sim, "guiding-center-orbits")
-
-    merge_metadata(
-        "guiding-center-orbits",
-        markers=n_markers,
-        nTrapped=int(trapped.sum()),
-        nPassing=int((~trapped).sum()),
-        boundaryPitch=boundary_pitch,
-        bouncePeriod=bounce_period,
-        maxEnergyDrift=float(energy_drift.max()),
-        maxMomentumDrift=float(momentum_drift.max()),
-        lostMarkers=lost,
-        speed=speed,
-        equilibrium="AdhocTorus (a = 1, R0 = 3, B0 = 2)",
-        figures=figures,
-        **profiling,
-    )
+    save(panels, "guiding-center-orbits-panels", show=show)
+    save(velocity, "guiding-center-orbits-velocity", show=show)
+    save(conservation, "guiding-center-orbits-conservation", show=show)
 
 
 if __name__ == "__main__":
@@ -436,9 +415,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

@@ -7,7 +7,9 @@ population to the growing field until particle trapping saturates it.
 
 Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/bump_on).
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -91,16 +93,29 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     domain = sim.domain
-    from struphy_plots.gallery import (
-        export_profiling,
-        heatmap_figure,
-        heatmap_movie,
-        merge_metadata,
-        save_extra_figure,
-        save_figure,
-    )
 
     output = sim.output
 
@@ -131,7 +146,7 @@ def pproc(sim: Simulation):
         margin={"l": 70, "r": 30, "t": 80, "b": 60},
     )
 
-    save_figure(figure, "bump-on-tail")
+    save(figure, "bump-on-tail", show=show)
 
     # Evaluate the saved products on their grids, then look at them in more than one way.
     output.pproc()
@@ -141,59 +156,35 @@ def pproc(sim: Simulation):
     # The distribution averaged over space, f(v, t): how the whole velocity distribution changes,
     # with less sampling noise than the individual x-v bins.
     f_of_v = f.struphy.analysis.spatial_average()
-    velocity_time = heatmap_figure(
-        f_of_v,
+    velocity_time = f_of_v.struphy.plot.slice(
         x="t",
         y="v1",
         title="Bump-on-tail instability: space-averaged distribution f(v, t)",
-        xaxis_title="t [a.u.]",
-        yaxis_title="v [a.u.]",
-        colorbar_title="f(v)",
-        zmin=0.0,
+        xlabel="t [a.u.]",
+        ylabel="v [a.u.]",
+        colorbar_label="f(v)",
+        cmap="viridis",
+        vmin=0.0,
+        backend="plotly",
     )
 
     # The x-v phase space as a movie.
-    phase_space, phase_static = heatmap_movie(
-        f,
+    phase_space = f.assign_coords(eta1=f.eta1.values * length).struphy.plot.animation(
         x="eta1",
         y="v1",
-        x_values=f.eta1.values * length,
+        max_frames=150,
+        vmin=0.0,
+        shared_clim=False,
+        cmap="viridis",
         title="Bump-on-tail instability: phase-space density f(x, v)",
-        xaxis_title="x [a.u.]",
-        yaxis_title="v [a.u.]",
-        colorbar_title="f(x, v)",
+        xlabel="x [a.u.]",
+        ylabel="v [a.u.]",
+        colorbar_label="f(x, v)",
+        backend="plotly",
     )
 
-    figures = [
-        save_extra_figure(
-            phase_space,
-            "bump-on-tail",
-            "phasespace",
-            static_z=phase_static,
-            alt="Phase-space density of the bump-on-tail instability",
-            caption=(
-                "The phase-space density f(x, v) of the run above, resolved on 64 spatial cells and displayed in 128 × 128 bins; drag the slider or press Play. Initially the bulk (v ≈ 3) and the bump (v ≈ −4.5) are almost uniform in x. The frame shown is from the middle of the run, where both populations have developed strong structure in x and spread far beyond their initial velocity widths."
-            ),
-        ),
-        save_extra_figure(
-            velocity_time,
-            "bump-on-tail",
-            "velocity-time",
-            alt="Space-averaged velocity distribution as a function of time",
-            caption=(
-                "The distribution averaged over space, f(v, t) (the mean of the binned f over the 64 cells). The bulk (v ≈ 3, peak f ≈ 0.36) and the much smaller bump (v ≈ −4.5, peak f ≈ 0.08) start as separate populations. As the wave grows, both broaden and the region between them fills in."
-            ),
-        ),
-    ]
-
-    profiling = export_profiling(sim, "bump-on-tail")
-
-    merge_metadata(
-        "bump-on-tail",
-        measuredGrowthRate=growth_rate,
-        figures=figures,
-        **profiling,
-    )
+    save(phase_space, "bump-on-tail-phasespace", frame=len(phase_space.fig.frames) // 2, show=show)
+    save(velocity_time, "bump-on-tail-velocity-time", show=show)
 
 
 if __name__ == "__main__":
@@ -203,10 +194,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        # Profile every propagator, pusher and solver call in the simulation.
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

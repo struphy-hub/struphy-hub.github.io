@@ -4,7 +4,9 @@ Without pressure, a uniform velocity transports any smooth density profile
 unchanged. Here rho = 1 + A cos(x - U t) makes one circuit of a periodic box.
 This is an exact nonlinear solution, without characteristic crossing.
 
-Requires the pinned Struphy with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -54,11 +56,30 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
-
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
     output = sim.output
     output.pproc(physical=True)
@@ -77,6 +98,7 @@ def pproc(sim: Simulation):
     # Sampled mass uses the periodic evaluation grid, dropping its repeated endpoint.
     mass = length * np.mean(density[:, :-1], axis=1)
     mass_drift = float(np.max(np.abs(mass / mass[0] - 1.0)))
+    print(f"Maximum profile error against exact transport: {errors.max():.2e} (relative to A)")
     if errors.max() > 0.05 or velocity_error > 0.01 or max(energy_drift, mass_drift) > 1e-3:
         raise RuntimeError("Pressureless transport failed its profile or conservation checks")
 
@@ -97,14 +119,12 @@ def pproc(sim: Simulation):
     figure.update_yaxes(title_text="absolute relative error", row=2, col=1)
     figure.update_layout(title="Pressureless transport at constant velocity", template="plotly_white",
                          legend={"orientation": "h", "y": -0.18}, margin={"l": 85, "r": 30, "t": 90, "b": 140})
-    save_figure(figure, stem, height=800)
-    movie = space_time_figure(rho, space="eta1", x_values=x, xaxis_title="x",
-                              title="Density transported around a periodic box", colorbar_title="ρ")
-    figures = [save_extra_figure(movie, stem, "space-time", alt="Density ripple translating at constant speed",
-                                caption="The diagonal bands travel at speed 0.5 and wrap through the periodic boundary.")]
-    merge_metadata(stem, maxRelativeProfileError=float(errors.max()), maxRelativeVelocityError=velocity_error,
-                   maxEnergyDrift=energy_drift, maxSampledMassDrift=mass_drift,
-                   figures=figures, **export_profiling(sim, stem))
+    save(figure, stem, height=800, show=show)
+    movie = rho.assign_coords(eta1=x).struphy.plot.slice(
+        x="eta1", y="t", symmetric=True, cmap="RdBu_r", title="Density transported around a periodic box",
+        xlabel="x", ylabel="t [a.u.]", colorbar_label="ρ", backend="plotly",
+    )
+    save(movie, f"{stem}-space-time", show=show)
 
 
 if __name__ == "__main__":
@@ -114,9 +134,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)
