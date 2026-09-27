@@ -138,15 +138,14 @@ def pproc(sim: Simulation, show: bool = False):
     profile_exact = 1.0 + exact_amplitude[:, None] * np.cos(wavenumber * x)
 
     # The amplitude of the cosine mode relative to the mean. A bin average lowers a mode by sinc(k dx / 2).
-    bin_average = np.sinc(wavenumber * (1.0 / bins) / 2 / np.pi)
-
-    def mode_amplitude(values):
-        return 2 * np.mean(values * np.cos(wavenumber * x), axis=1) / np.mean(values, axis=1) / bin_average
-
-    measured = {name: mode_amplitude(values.values) for name, values in density.items()}
-    fitted_rate = {name: float(-np.polyfit(times, np.log(np.abs(amp)), 1)[0]) for name, amp in measured.items()}
+    measured = {
+        name: values.struphy.analysis.project_mode(dim="eta1", number=1, kind="cos", bin_correction=True)
+        / values.mean("eta1")
+        for name, values in density.items()
+    }
+    fitted_rate = {name: -abs(amp).struphy.analysis.growth_rate().rate for name, amp in measured.items()}
     rms_error = {
-        name: float(np.sqrt(np.mean((values.values - profile_exact) ** 2))) for name, values in density.items()
+        name: float(values.struphy.analysis.error(profile_exact, dims=("t", "eta1"))) for name, values in density.items()
     }
     if not all(np.isfinite(rate) for rate in fitted_rate.values()):
         raise RuntimeError("A decay rate could not be fitted")
@@ -174,7 +173,7 @@ def pproc(sim: Simulation, show: bool = False):
     figure.add_scatter(x=times, y=exact_amplitude, mode="lines", name="exact decay", showlegend=False,
                        line={"color": "#111", "width": 2, "dash": "dash"}, row=2, col=1)
     for name, amp in measured.items():
-        figure.add_scatter(x=times, y=np.abs(amp), mode="lines", name=name, showlegend=False,
+        figure.add_scatter(x=times, y=np.abs(amp.values), mode="lines", name=name, showlegend=False,
                            line={"color": colors[name], "width": 2}, row=2, col=1)
     figure.frames = [go.Frame(name=f"{times[i]:.3f}", data=traces(i), traces=[0, 1, 2]) for i in picks]
     figure.update_layout(

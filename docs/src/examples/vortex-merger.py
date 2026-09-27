@@ -16,7 +16,6 @@ directory (`--show` shows them first).
 import argparse
 
 import numpy as np
-import plotly.graph_objects as go
 
 from struphy import (
     BaseUnits,
@@ -164,20 +163,20 @@ def pproc(sim: Simulation, show: bool = False):
     movie = mapped.struphy.plot.animation(
         x="x", y="y", max_frames=150, vmin=0.0, vmax=float(density.max()), cmap="viridis",
         title="Vortex merger: binned charge density", xlabel="x", ylabel="y", colorbar_label="density",
-        backend="plotly",
+        equal_aspect=True, backend="plotly",
     )
-    movie.fig.update_xaxes(range=[-a2, a2], constrain="domain")
-    movie.fig.update_yaxes(range=[-a2, a2], scaleanchor="x", scaleratio=1)
     save(movie, "vortex-merger", height=750, frame=len(movie.fig.frames) // 2, show=show)
 
     # The first Poisson solve initializes the field energy after t=0. Compare
     # subsequent field energies to that first solved state, not to the zero placeholder.
     energy = output.scalars["en_phi"].isel(t=slice(1, None))
-    drift = (energy / energy.isel(t=0) - 1).values
-    energy_figure = go.Figure(go.Scatter(x=energy.t.values, y=drift, mode="lines", name="field energy"))
-    energy_figure.update_layout(title="Vortex merger: electrostatic-energy change", template="plotly_white",
-                               xaxis_title="t", yaxis_title="(W − W₁) / W₁", margin={"l": 80, "r": 30, "t": 80, "b": 60})
-    print(f"Maximum relative drift of the electrostatic energy: {np.abs(drift).max():.2e}")
+    change = energy.struphy.analysis.drift() / energy.isel(t=0)
+    change.attrs.update(label="(W − W₁) / W₁", units="")
+    energy_figure = change.struphy.plot.timeseries(
+        logy=False, title="Vortex merger: electrostatic-energy change", backend="plotly"
+    )
+    drift = float(energy.struphy.analysis.relative_error().max())
+    print(f"Maximum relative drift of the electrostatic energy: {drift:.2e}")
     save(energy_figure, "vortex-merger-energy", show=show)
 
 

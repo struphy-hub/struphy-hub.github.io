@@ -154,8 +154,8 @@ def pproc(sim: Simulation, show: bool = False):
     density_limit = float(density.max())
 
     def frame_traces(index, webgl=True):
-        # In an animation, plotly.js 3.7 stops drawing a heatmap that shares the figure with SVG scatter
-        # frames, so the markers of the interactive figure are drawn with WebGL.
+        # The interactive figure draws its many markers with WebGL, which is faster; the still image
+        # draws them as SVG.
         markers = go.Scattergl if webgl else go.Scatter
         return [
             markers(

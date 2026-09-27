@@ -143,7 +143,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     # The relative L1 error of the density estimate, before the caustic (a smooth density) and after it.
     exact = np.array([exact_density(edges, t) for t in times])
-    error = np.abs(density.values - exact).sum(axis=1) / exact.sum(axis=1)
+    error = density.struphy.analysis.error(exact, norm="l1", relative=True).values
     before = times < 0.8 * caustic_time
     after = times > 1.2 * caustic_time
     error_before, error_after = float(error[before].mean()), float(error[after].mean())

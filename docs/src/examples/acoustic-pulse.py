@@ -134,14 +134,14 @@ def pproc(sim: Simulation, show: bool = False):
     x = rho.eta1.values * length
     density = rho.values
     exact = np.array([exact_density(x, t) for t in times])
-    error = float(np.max(np.abs(density - exact)) / amplitude)
+    error = float(rho.struphy.analysis.error(exact, norm="max", dims=("t", "eta1"))) / amplitude
     print(f"Maximum error of the density, relative to the pulse height: {error:.3f}")
 
     kinetic = np.asarray(output.scalars["en_U"])
     thermo = np.asarray(output.scalars["en_thermo"])
     total = np.asarray(output.scalars["en_tot"])
     scalar_times = np.asarray(output.time)[: len(total)]
-    energy_drift = float(np.max(np.abs(total / total[0] - 1.0)))
+    energy_drift = float(output.scalars["en_tot"].struphy.analysis.relative_error().max())
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")
     energy_scale = float(kinetic.max())  # the largest kinetic energy the pulse reaches
 

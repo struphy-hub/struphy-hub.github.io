@@ -15,7 +15,6 @@ directory (`--show` shows them first).
 import argparse
 
 import numpy as np
-import plotly.graph_objects as go
 
 from struphy import (
     BoundaryParameters,
@@ -129,38 +128,11 @@ def pproc(sim: Simulation, show: bool = False):
     measured_rate = field_energy.struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True).rate
     print(f"Measured damping rate: {measured_rate:.4f} (exact: -0.1533)")
 
-    figure = go.Figure(
-        data=[
-            go.Scatter(
-                x=time,
-                y=np.asarray(field_energy),
-                mode="lines",
-                name="Struphy (PIC)",
-                line={"color": "#168aad", "width": 3},
-            ),
-            go.Scatter(
-                x=time,
-                y=field_energy_exact(time),
-                mode="lines",
-                name="Exact envelope",
-                line={"color": "#d62828", "width": 2, "dash": "dot"},
-            ),
-        ],
-    )
-    figure.update_layout(
+    figure = field_energy.struphy.plot.timeseries(
+        logy=True,
+        reference={"Exact envelope": (time, field_energy_exact(time))},
         title="Weak Landau damping: electric field energy",
-        xaxis_title="t [a.u.]",
-        yaxis_title="E² / 2 [a.u.]",
-        yaxis={"type": "log"},
-        template="plotly_white",
-        autosize=True,
-        legend={
-            "x": 0.98,
-            "y": 0.98,
-            "xanchor": "right",
-            "bgcolor": "rgba(255,255,255,0.82)",
-        },
-        margin={"l": 70, "r": 30, "t": 80, "b": 60},
+        backend="plotly",
     )
 
     save(figure, "weak-landau-damping", show=show)

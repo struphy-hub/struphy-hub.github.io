@@ -16,7 +16,6 @@ directory (`--show` shows them first).
 import argparse
 
 import numpy as np
-import plotly.graph_objects as go
 
 from struphy import (
     BoundaryParameters,
@@ -114,8 +113,6 @@ def save(figure, name: str, *, show: bool = False, frame: int | None = None, sti
 def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     field_energy_array = output.scalars["electric_energy"]
-    time = np.asarray(field_energy_array.t)
-    field_energy = np.asarray(field_energy_array)
 
     # The bounce period of trapped particles shows up as the spacing between
     # local maxima in the field energy, once the initial (linear) damping
@@ -124,19 +121,8 @@ def pproc(sim: Simulation, show: bool = False):
     bounce_period = float(np.mean(np.diff(maxima_t))) if len(maxima_t) > 1 else float("nan")
     print(f"Estimated trapped-particle bounce period: {bounce_period:.2f}")
 
-    figure = go.Figure(
-        data=[
-            go.Scatter(x=time, y=field_energy, mode="lines", name="Struphy (PIC)", line={"color": "#168aad", "width": 3}),
-        ],
-    )
-    figure.update_layout(
-        title="Strong Landau damping: electric field energy",
-        xaxis_title="t [a.u.]",
-        yaxis_title="E² / 2 [a.u.]",
-        yaxis={"type": "log"},
-        template="plotly_white",
-        autosize=True,
-        margin={"l": 70, "r": 30, "t": 80, "b": 60},
+    figure = field_energy_array.struphy.plot.timeseries(
+        logy=True, title="Strong Landau damping: electric field energy", backend="plotly",
     )
 
     save(figure, "strong-landau-damping", show=show)

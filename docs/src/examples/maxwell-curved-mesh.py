@@ -103,17 +103,19 @@ def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc(physical=True)
 
-    e_z = output.evaluate("em_fields/e_field_xyz").isel(component=2, eta3=0)  # (t, e1, e2), on the mesh points
+    # (t, e1, e2), on the mesh points
+    e_z = output.evaluate("em_fields/e_field_xyz").isel(component=2, eta3=0).transpose("t", "eta1", "eta2")
     times = e_z.t.values
     mesh_x, mesh_y = e_z.X.values, e_z.Y.values
-    numeric = e_z.transpose("t", "eta1", "eta2").values
+    numeric = e_z.values
     exact = np.array([exact_field(mesh_x, mesh_y, t) for t in times])
     scale = float(np.abs(exact[0]).max())
-    error = np.sqrt(np.mean((numeric - exact) ** 2, axis=(1, 2))) / np.sqrt(np.mean(exact[0] ** 2))
+    # The rms error over the mesh points at each time, relative to the rms of the initial pulse.
+    error = (e_z.struphy.analysis.error(exact) / np.sqrt(np.mean(exact[0] ** 2))).values
     if not np.isfinite(error).all():
         raise RuntimeError("Non-finite field")
     total = output.scalars["total_energy"].values
-    energy_drift = float(np.max(np.abs(total / total[0] - 1.0)))
+    energy_drift = float(output.scalars["total_energy"].struphy.analysis.relative_error().max())
     print(f"Largest rms error of E_z, relative to the initial rms: {error.max():.3e}")
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")
 

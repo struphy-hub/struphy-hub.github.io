@@ -31,10 +31,11 @@ cyclotron_frequency = B0z / epsilon
 
 
 def hall_branches(k):
-    """Parallel Hall-MHD branches: omega = sqrt(v_A^2 k^2 + h^2) +- h with h = v_A^2 k^2 / (2 Omega_i), and sound."""
-    h = alfven_speed**2 * k**2 / (2.0 * cyclotron_frequency)
-    root = np.sqrt(alfven_speed**2 * k**2 + h**2)
-    return {"whistler": root + h, "ion-cyclotron": root - h, "sound": sound_speed * k}
+    """Parallel Hall-MHD branches: omega = v_A k (sqrt(1 + k^2 d_i^2 / 4) +- k d_i / 2) with d_i = v_A / Omega_i, and sound."""
+    from struphy_plots.theory.waves import hall_mhd_parallel
+
+    hall = hall_mhd_parallel(k, alfven_speed=alfven_speed, ion_inertial_length=alfven_speed / cyclotron_frequency)
+    return {"whistler": hall["whistler"].real, "ion-cyclotron": hall["ion cyclotron"].real, "sound": sound_speed * k}
 
 
 def create_simulation() -> Simulation:

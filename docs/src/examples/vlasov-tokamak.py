@@ -116,8 +116,9 @@ def pproc(sim: Simulation, show: bool = False):
 
     # A magnetic field alone does no work, so each particle's speed should be
     # conserved -- a genuine accuracy check on the pusher, not just a demo.
-    speed = np.linalg.norm(np.asarray(output.orbits.kinetic_ions.to_dataarray("quantity").transpose("t", "marker", "quantity").sel(quantity=["v1", "v2", "v3"])), axis=2)
-    max_relative_speed_drift = float(np.max(np.abs(speed - speed[0]) / speed[0]))
+    velocity = output.orbits.kinetic_ions.to_dataarray("quantity").sel(quantity=["v1", "v2", "v3"])
+    speed = velocity.struphy.analysis.norm(dims=["quantity"])
+    max_relative_speed_drift = float(speed.struphy.analysis.relative_error().max())
     print(f"Max relative drift in particle speed (should be ~0): {max_relative_speed_drift:.5f}")
 
     # The plasma boundary (outer flux surface), for visual context around the orbits.

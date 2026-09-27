@@ -155,20 +155,14 @@ def pproc(sim: Simulation, show: bool = False):
         difference = np.abs(density.isel(t=index).values - exact_density)
         return np.trapezoid(difference[window], grid[window]) / np.trapezoid(exact_density[window], grid[window])
 
-    def velocity_error(index):
-        _, exact_velocity = exact_solution(marker_position[index], times[index])
-        return np.sqrt(np.mean((marker_velocity[index] - exact_velocity) ** 2)) / sound_speed
-
-    def velocity_median_error(index):
-        _, exact_velocity = exact_solution(marker_position[index], times[index])
-        return np.median(np.abs(marker_velocity[index] - exact_velocity)) / sound_speed
-
     compared = np.flatnonzero(times >= 0.1)
     density_errors = np.array([density_error(i) for i in compared])
-    velocity_errors = np.array([velocity_error(i) for i in compared])
-    velocity_median_final = float(velocity_median_error(compared[-1]))
-    mass = np.array([np.trapezoid(density.isel(t=i).values, grid) for i in range(len(times))])
-    mass_error = float(np.max(np.abs(mass / (gas_density * release_point) - 1.0)))
+    exact_velocity = np.array([exact_solution(marker_position[i], times[i])[1] for i in compared])  # (t, marker)
+    velocity_errors = orbits.sel(quantity="v1").isel(t=compared).struphy.analysis.error(exact_velocity, dims="marker")
+    velocity_errors = velocity_errors.values / sound_speed
+    velocity_median_final = float(np.median(np.abs(marker_velocity[compared[-1]] - exact_velocity[-1])) / sound_speed)
+    mass = density.integrate("eta1") * box_length
+    mass_error = float(mass.struphy.analysis.relative_error(ref=gas_density * release_point, skip_first=False).max())
     print(
         f"Density error (relative L1): mean {density_errors.mean():.4f}, final {density_errors[-1]:.4f}; "
         f"velocity error (rms, units of c): mean {velocity_errors.mean():.4f}, final {velocity_errors[-1]:.4f}, "

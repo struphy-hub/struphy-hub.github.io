@@ -13,7 +13,6 @@ directory (`--show` shows them first).
 import argparse
 
 import numpy as np
-import plotly.graph_objects as go
 from struphy import (EnvironmentOptions, Simulation, Time, domains, grids,
                      perturbations)
 from struphy.models import Poisson
@@ -98,109 +97,20 @@ def pproc(sim: Simulation, show: bool = False):
     phi_line = phi.isel(eta2=0, eta3=0)
     if "component" in phi_line.dims:
         phi_line = phi_line.isel(component=0)
-    x = np.asarray(phi_line.X)
-    times = np.asarray(phi_line.t)
-
+    # The largest pointwise error over the whole run, relative to the amplitude of the exact potential.
     phi_scale = AMPLITUDE / k**2
-    max_relative_error = 0.0
-    frames = []
-    for t in times:
-        phi_h = np.asarray(phi_line.sel(t=t))
-        phi_e = phi_exact(x, t)
-        max_relative_error = max(
-            max_relative_error, float(np.max(np.abs(phi_h - phi_e))) / phi_scale
-        )
-        frames.append(
-            go.Frame(
-                name=f"{t:.2f}",
-                data=[
-                    go.Scatter(x=x, y=phi_h),
-                    go.Scatter(x=x, y=phi_e),
-                ],
-            ),
-        )
-
+    max_error = phi_line.struphy.analysis.error(phi_exact, norm="max", dims=("t", "eta1"), args=("X", "t"))
+    max_relative_error = float(max_error) / phi_scale
     print(f"Max relative error over the run: {max_relative_error:.5f}")
 
-    figure = go.Figure(
-        data=[
-            go.Scatter(
-                x=x,
-                y=np.asarray(phi_line.isel(t=0)),
-                mode="lines",
-                name="Struphy (FEEC)",
-                line={"color": "#168aad", "width": 3},
-            ),
-            go.Scatter(
-                x=x,
-                y=phi_exact(x, times[0]),
-                mode="lines",
-                name="Exact",
-                line={"color": "#d62828", "width": 2, "dash": "dot"},
-            ),
-        ],
-        frames=frames,
-    )
-    figure.update_layout(
+    figure = phi_line.struphy.plot.line_animation(
+        x="eta1",
+        reference={"Exact": phi_exact},
+        x_of=lambda eta1: domain.params["l1"] + Lx * eta1,
+        xlabel="x [a.u.]",
+        ylim=(-1.15 * phi_scale, 1.15 * phi_scale),
         title="Poisson potential: FEEC solution vs. exact",
-        xaxis_title="x [a.u.]",
-        yaxis_title="φ [a.u.]",
-        template="plotly_white",
-        autosize=True,
-        yaxis={"range": [-1.15 * phi_scale, 1.15 * phi_scale]},
-        legend={
-            "x": 0.02,
-            "y": 0.98,
-            "bgcolor": "rgba(255,255,255,0.82)",
-            "bordercolor": "rgba(44,62,80,0.25)",
-            "borderwidth": 1,
-        },
-        margin={"l": 60, "r": 30, "t": 80, "b": 130},
-        updatemenus=[
-            {
-                "type": "buttons",
-                "showactive": False,
-                "x": 0.0,
-                "xanchor": "left",
-                "y": -0.32,
-                "yanchor": "top",
-                "buttons": [
-                    {
-                        "label": "Play",
-                        "method": "animate",
-                        "args": [
-                            None,
-                            {
-                                "frame": {"duration": 30, "redraw": True},
-                                "fromcurrent": True,
-                            },
-                        ],
-                    },
-                ],
-            },
-        ],
-        sliders=[
-            {
-                "steps": [
-                    {
-                        "args": [
-                            [frame.name],
-                            {
-                                "frame": {"duration": 0, "redraw": True},
-                                "mode": "immediate",
-                            },
-                        ],
-                        "label": frame.name,
-                        "method": "animate",
-                    }
-                    for frame in frames
-                ],
-                "x": 0.12,
-                "len": 0.88,
-                "y": -0.2,
-                "currentvalue": {"prefix": "t = "},
-            },
-        ],
+        backend="plotly",
     )
 
     save(figure, "poisson-source", show=show)

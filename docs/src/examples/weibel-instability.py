@@ -17,7 +17,6 @@ directory (`--show` shows them first).
 import argparse
 
 import numpy as np
-import plotly.graph_objects as go
 
 from struphy import (
     BinningPlot,
@@ -134,37 +133,22 @@ def pproc(sim: Simulation, show: bool = False):
 
     # Total magnetic (B3) field energy at each saved time, summed over the grid.
     b_field = output.fields.em_fields.b_field
-    times = np.asarray(b_field.t)
     grid_shape = tuple(b_field.sizes[dim] for dim in ("eta1", "eta2", "eta3"))
     cell_volume = float(np.prod([1.0 / max(n - 1, 1) for n in grid_shape]))
-    magnetic_energy = np.asarray((b_field.isel(component=2) ** 2).sum(("eta1", "eta2", "eta3"))) * cell_volume / 2
-    time = np.asarray(times)
+    magnetic_energy = (b_field.isel(component=2) ** 2).sum(("eta1", "eta2", "eta3")) * cell_volume / 2
+    magnetic_energy.attrs = {"label": "|B₃|² / 2"}
+    time = np.asarray(magnetic_energy.t)
 
     # Fit the growth rate over the clean exponential window (roughly the
     # middle third of the run, before saturation).
     growth_window = (time > time[-1] / 5) & (time < 2 * time[-1] / 5)
-    growth_rate = float(np.polyfit(time[growth_window], np.log(magnetic_energy[growth_window]), 1)[0] / 2)
+    growth_rate = float(np.polyfit(time[growth_window], np.log(magnetic_energy.values[growth_window]), 1)[0] / 2)
     print(f"Measured growth rate (in |B3|, from the energy fit): {growth_rate:.5f}")
 
-    figure = go.Figure(
-        data=[
-            go.Scatter(
-                x=time,
-                y=magnetic_energy,
-                mode="lines",
-                name="|B₃|² / 2 (Struphy)",
-                line={"color": "#168aad", "width": 3},
-            ),
-        ],
-    )
-    figure.update_layout(
+    figure = magnetic_energy.struphy.plot.timeseries(
+        logy=True,
         title="Weibel instability: magnetic field energy",
-        xaxis_title="t [a.u.]",
-        yaxis_title="|B₃|² / 2 [a.u.]",
-        yaxis={"type": "log"},
-        template="plotly_white",
-        autosize=True,
-        margin={"l": 70, "r": 30, "t": 80, "b": 60},
+        backend="plotly",
     )
 
     save(figure, "weibel-instability", show=show)
@@ -188,21 +172,11 @@ def pproc(sim: Simulation, show: bool = False):
     f = output.evaluate("kinetic_ions/v1_v2_density/f")  # (t, v1, v2)
     moments = f.struphy.analysis.velocity_moments()
     anisotropy = moments.variance_v2 / moments.variance_v1
-    anisotropy_figure = go.Figure(
-        go.Scatter(
-            x=anisotropy.t.values,
-            y=anisotropy.values,
-            mode="lines",
-            line={"color": "#168aad", "width": 3},
-        ),
-    )
-    anisotropy_figure.update_layout(
+    anisotropy.attrs = {"label": "⟨(v₂ − u₂)²⟩ / ⟨(v₁ − u₁)²⟩"}
+    anisotropy_figure = anisotropy.struphy.plot.timeseries(
+        logy=False,
         title="Weibel instability: temperature anisotropy",
-        xaxis_title="t [a.u.]",
-        yaxis_title="⟨(v₂ − u₂)²⟩ / ⟨(v₁ − u₁)²⟩",
-        template="plotly_white",
-        autosize=True,
-        margin={"l": 70, "r": 30, "t": 80, "b": 60},
+        backend="plotly",
     )
 
     save(space_time, "weibel-instability-space-time", show=show)

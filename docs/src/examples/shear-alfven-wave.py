@@ -14,7 +14,6 @@ directory (`--show` shows them first).
 import argparse
 
 import numpy as np
-import plotly.graph_objects as go
 
 from struphy import (
     DerhamOptions,
@@ -106,72 +105,28 @@ def pproc(sim: Simulation, show: bool = False):
     output = sim.output.pproc(create_vtk=False)
 
     # The (k, omega) power spectrum of u_x along z, and a fit of its branch.
-    from struphy_plots.analysis import fit_dispersion_branches, power_spectrum
+    from struphy_plots.analysis import power_spectrum
 
     velocity = output.fields.mhd.velocity
     u_x = velocity.isel(component=0, eta1=0, eta2=0)
     u_x = u_x.assign_coords(eta3=u_x.eta3 * (domain.params["r3"] - domain.params["l3"]))  # physical z
     spectrum = power_spectrum(u_x, dim="eta3")
     # Peaks count above half the column's peak amplitude, i.e. a quarter of its peak power.
-    branch = fit_dispersion_branches(spectrum, n_branches=1, noise_level=0.5**2, order=10)[0]
+    branch = spectrum.struphy.analysis.fit_branches(n_branches=1, noise_level=0.5**2, order=10)[0]
     phase_velocity = float(branch.velocity)
     print(f"Measured Alfvén speed: {phase_velocity:.5f} (exact: 1.0)")
 
-    # Build an interactive Plotly view of the normalized power spectrum, for omega, k >= 0.
-    quadrant = spectrum.sel(omega=spectrum.omega >= 0, k=spectrum.k >= 0)
-    omega = quadrant.omega.values
-    kvec = quadrant.k.values
-    power = quadrant.values / float(quadrant.max())
-    log_power = np.log10(np.clip(power, 1e-15, None))
-    fit = phase_velocity * kvec
-
-    figure = go.Figure(
-        go.Heatmap(
-            x=kvec,
-            y=omega,
-            z=log_power,
-            zmin=-15,
-            zmax=-1,
-            colorscale="Plasma",
-            colorbar={
-                "title": {"text": "log₁₀ P"},
-                "tickvals": [-15, -12, -9, -6, -3],
-                "ticktext": ["10⁻¹⁵", "10⁻¹²", "10⁻⁹", "10⁻⁶", "10⁻³"],
-            },
-            hovertemplate="k=%{x:.3f}<br>ω=%{y:.3f}<br>log₁₀ P=%{z:.2f}<extra></extra>",
-        ),
-    )
-    figure.add_scatter(
-        x=kvec,
-        y=kvec,
-        mode="lines",
-        name="Alfvén wave, v_A = 1",
-        line={"color": "#168aad", "width": 3, "dash": "dash"},
-    )
-    figure.add_scatter(
-        x=kvec,
-        y=fit,
-        mode="lines",
-        name=f"Struphy fit, v_A = {phase_velocity:.5f}",
-        line={"color": "#d62828", "width": 3, "dash": "dot"},
-    )
-    figure.update_layout(
+    # The normalized power spectrum over 15 decades, for omega, k >= 0, with the exact and the fitted branch.
+    figure = spectrum.struphy.plot.dispersion(
+        kmin=0,
+        branches={"Alfvén wave, v_A = 1": lambda k: k},
+        fits=[branch],
+        dynamic_range=15,
+        cmap="plasma",
+        omega_max=float(spectrum.k.max()),
         title="Shear-Alfvén wave dispersion",
-        xaxis_title="k [a.u.]",
-        yaxis_title="ω [a.u.]",
-        template="plotly_white",
-        autosize=True,
-        legend={
-            "x": 0.02,
-            "y": 0.98,
-            "bgcolor": "rgba(255,255,255,0.82)",
-            "bordercolor": "rgba(44,62,80,0.25)",
-            "borderwidth": 1,
-        },
-        margin={"l": 75, "r": 45, "t": 80, "b": 70},
+        backend="plotly",
     )
-    figure.update_xaxes(range=[0, float(kvec[-1])])
-    figure.update_yaxes(range=[0, float(kvec[-1])])
 
     save(figure, "shear-alfven-wave", show=show)
 

@@ -98,9 +98,6 @@ filename.
 - Analyze with the `Output` of the run (`sim.output`), e.g.
   `sim.output.scalars["electric_energy"].struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True)`;
   see `weak-landau-damping.py`. Print the measured results; the page shows the figures.
-- Older scripts still save their own output with the helpers of `struphy_plots.gallery`
-  (`save_figure`, `save_extra_figure`, `merge_metadata`, `export_profiling`); `run_example.py`
-  runs those as they are. Write new scripts in the style above.
 
 ## 2. Generate the structural metadata
 

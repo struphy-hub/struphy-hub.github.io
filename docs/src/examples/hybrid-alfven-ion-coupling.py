@@ -125,23 +125,24 @@ def pproc(sim: Simulation, show: bool = False):
 
     # LinearMHDVlasovPC tracks each subsystem's energy as a scalar every step:
     # en_B/en_U (field/fluid), en_f (kinetic energetic ions), en_tot (total).
+    scalars = output.scalars
     time = np.asarray(output.time)
-    en_B = np.asarray(output.scalars["en_B"])
-    en_U = np.asarray(output.scalars["en_U"])
-    en_f = np.asarray(output.scalars["en_f"])
-    en_tot = np.asarray(output.scalars["en_tot"])
+    en_B = np.asarray(scalars["en_B"])
+    en_U = np.asarray(scalars["en_U"])
+    en_f_change = np.asarray(scalars["en_f"].struphy.analysis.drift())
+    total_drift = np.asarray(scalars["en_tot"].struphy.analysis.drift() / scalars["en_tot"].isel(t=0))
 
-    relative_drift = float(np.max(np.abs(en_tot - en_tot[0]) / en_tot[0]))
+    relative_drift = float(scalars["en_tot"].struphy.analysis.relative_error().max())
     print(f"Max relative drift in total energy (should be ~0): {relative_drift:.2e}")
 
     figure = go.Figure(
         data=[
             go.Scatter(x=time, y=en_B, mode="lines", name="Field energy (en_B)", line={"color": "#168aad", "width": 2.5}),
             go.Scatter(x=time, y=en_U, mode="lines", name="Fluid kinetic energy (en_U)", line={"color": "#f77f00", "width": 2.5}),
-            go.Scatter(x=time, y=en_f - en_f[0], mode="lines", name="Energetic-ion energy change (en_f − en_f₀)", line={"color": "#d62828", "width": 2.5}),
+            go.Scatter(x=time, y=en_f_change, mode="lines", name="Energetic-ion energy change (en_f − en_f₀)", line={"color": "#d62828", "width": 2.5}),
             go.Scatter(
                 x=time,
-                y=(en_tot - en_tot[0]) / en_tot[0],
+                y=total_drift,
                 mode="lines",
                 name="Total energy drift (relative)",
                 line={"color": "#6a4c93", "width": 2, "dash": "dot"},

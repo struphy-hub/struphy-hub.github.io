@@ -19,6 +19,7 @@ import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import LinearMHD
+from struphy_plots.theory.waves import magnetosonic_speeds
 
 # The background: B0 = (0, 1, 1), density 0.7 and a plasma beta of 3 (thermal over magnetic pressure).
 B0x, B0y, B0z = 0.0, 1.0, 1.0
@@ -26,15 +27,12 @@ n0, beta, gamma = 0.7, 3.0, 5.0 / 3.0
 B_squared = B0x**2 + B0y**2 + B0z**2
 p0 = beta * B_squared / 2.0
 
-# Ideal-MHD wave speeds along z: the shear Alfvén wave, and the slow and fast magnetosonic waves.
+# Ideal-MHD wave speeds along z, at the angle theta between z and B0: the shear Alfvén wave, and the slow
+# and fast magnetosonic waves.
 alfven_speed = np.sqrt(B_squared / n0)
 sound_speed = np.sqrt(gamma * p0 / n0)
-delta = 4 * B0z**2 * sound_speed**2 * alfven_speed**2 / ((sound_speed**2 + alfven_speed**2) ** 2 * B_squared)
-exact_speeds = {
-    "alfven": alfven_speed * B0z / np.sqrt(B_squared),
-    "slow": np.sqrt(0.5 * (sound_speed**2 + alfven_speed**2) * (1.0 - np.sqrt(1.0 - delta))),
-    "fast": np.sqrt(0.5 * (sound_speed**2 + alfven_speed**2) * (1.0 + np.sqrt(1.0 - delta))),
-}
+speeds = magnetosonic_speeds(np.arccos(B0z / np.sqrt(B_squared)), alfven_speed=alfven_speed, sound_speed=sound_speed)
+exact_speeds = {"alfven": float(speeds["shear Alfvén"]), "slow": float(speeds["slow"]), "fast": float(speeds["fast"])}
 
 
 def create_simulation() -> Simulation:

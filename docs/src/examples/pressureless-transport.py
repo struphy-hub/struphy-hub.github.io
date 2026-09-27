@@ -80,6 +80,7 @@ def save(figure, name: str, *, show: bool = False, frame: int | None = None, sti
 def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
+    from struphy_plots.theory.exact import advected
 
     output = sim.output
     output.pproc(physical=True)
@@ -87,17 +88,19 @@ def pproc(sim: Simulation, show: bool = False):
     velocity = output.evaluate("fluid/velocity_xyz").isel(component=0, eta2=0, eta3=0)
     energy = output.scalars["kinetic_energy"]
     times, x, density = rho.t.values, rho.eta1.values * length, rho.values
-    exact = 1.0 + amplitude * np.cos(x[None, :] - speed * times[:, None])
+    exact = advected(lambda q: 1.0 + amplitude * np.cos(q), x[None, :], times[:, None], speed)
     if not all(np.isfinite(a).all() for a in (density, velocity.values, energy.values)):
         raise RuntimeError("The transport run produced non-finite diagnostics")
     if not np.isclose(times[-1], time_opts.Tend) or np.min(density) <= 0:
         raise RuntimeError("The transport run is incomplete or has non-positive density")
-    errors = np.max(np.abs(density - exact), axis=1) / amplitude
+    errors = rho.struphy.analysis.error(exact, norm="max", dims="eta1").values / amplitude
     velocity_error = float(np.max(np.abs(velocity.values - speed)) / speed)
-    energy_drift = float(np.max(np.abs(energy.values / energy.values[0] - 1.0)))
+    energy_error = energy.struphy.analysis.relative_error(skip_first=False)
+    energy_drift = float(energy_error.max())
     # Sampled mass uses the periodic evaluation grid, dropping its repeated endpoint.
-    mass = length * np.mean(density[:, :-1], axis=1)
-    mass_drift = float(np.max(np.abs(mass / mass[0] - 1.0)))
+    mass = length * rho.struphy.analysis.drop_periodic_endpoint("eta1").mean("eta1")
+    mass_error = mass.struphy.analysis.relative_error(skip_first=False)
+    mass_drift = float(mass_error.max())
     print(f"Maximum profile error against exact transport: {errors.max():.2e} (relative to A)")
     if errors.max() > 0.05 or velocity_error > 0.01 or max(energy_drift, mass_drift) > 1e-3:
         raise RuntimeError("Pressureless transport failed its profile or conservation checks")
@@ -110,8 +113,8 @@ def pproc(sim: Simulation, show: bool = False):
         figure.add_scatter(x=x[::4], y=exact[i, ::4], mode="markers", name="Exact transport",
                            showlegend=fraction == 0.0, marker={"color": color, "symbol": "circle-open"}, row=1, col=1)
     for t, values, label in ((times, errors, "Profile error / A"),
-                              (times, np.abs(mass / mass[0] - 1.0), "Relative sampled-mass drift"),
-                              (energy.t.values, np.abs(energy.values / energy.values[0] - 1.0), "Relative kinetic-energy drift")):
+                              (times, mass_error.values, "Relative sampled-mass drift"),
+                              (energy.t.values, energy_error.values, "Relative kinetic-energy drift")):
         figure.add_scatter(x=t, y=values, name=label, row=2, col=1)
     figure.update_xaxes(title_text="x", row=1, col=1)
     figure.update_yaxes(title_text="ρ", row=1, col=1)

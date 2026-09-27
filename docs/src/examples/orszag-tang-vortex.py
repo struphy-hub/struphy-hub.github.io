@@ -104,9 +104,8 @@ def pproc(sim: Simulation, show: bool = False):
     x, y = np.asarray(b.X)[:, 0], np.asarray(b.Y)[0, :]
     bx, by = (b.isel(component=i).transpose("t", "eta1", "eta2").values for i in (0, 1))
     rho_values = rho.transpose("t", "eta1", "eta2").values
-    entropy_values = entropy.transpose("t", "eta1", "eta2").values
     gamma = model.propagators.variat_dens.options.gamma
-    pressure = (gamma - 1) * rho_values**gamma * np.exp(entropy_values / rho_values)
+    pressure = ((gamma - 1) * rho**gamma * np.exp(entropy / rho)).assign_attrs(label="p")
 
     # Field lines of the in-plane B are contours of the flux function A_z, with Bx = dA/dy and By = -dA/dx.
     # A_z is recovered spectrally (the mean field vanishes); a duplicated periodic end point is dropped first.
@@ -120,7 +119,7 @@ def pproc(sim: Simulation, show: bool = False):
     flux = np.pad(flux, ((0, 0), (0, len(x) - nx), (0, len(y) - ny)), mode="wrap")
 
     # The classic picture: the density in a jet colour scale with the magnetic field lines on top.
-    if not all(np.isfinite(field).all() for field in (rho_values, pressure, flux)):
+    if not all(np.isfinite(field).all() for field in (rho_values, pressure.values, flux)):
         raise RuntimeError("Non-finite field diagnostic")
     # Fixed levels over all times, so the lines follow the same flux surfaces as the field evolves.
     flux_levels = {"start": float(flux.min()), "end": float(flux.max()), "size": float(np.ptp(flux)) / 14}
@@ -150,7 +149,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     scalars = output.scalars
     energy = scalars.en_tot
-    drift = np.abs(energy / energy.isel(t=0) - 1)
+    drift = energy.struphy.analysis.relative_error(skip_first=False)
     divergence = np.sqrt(np.maximum(scalars.tot_div_B, 0))
     diagnostics = make_subplots(rows=2, cols=1, shared_xaxes=True,
                                subplot_titles=("Energy channels", "Conservation diagnostics"), vertical_spacing=0.18)
@@ -164,10 +163,10 @@ def pproc(sim: Simulation, show: bool = False):
     diagnostics.update_layout(template="plotly_white", margin={"l": 70, "r": 30, "t": 70, "b": 60})
 
     cut_index = int(np.argmin(np.abs(y - np.pi)))
-    cut = go.Figure()
-    for index, label in ((0, "initial"), (-1, "final")):
-        cut.add_scatter(x=x, y=pressure[index, :, cut_index], name=label, mode="lines")
-    cut.update_layout(title="Gas pressure along y = π", xaxis_title="x", yaxis_title="p", template="plotly_white")
+    cut = pressure.struphy.plot.profiles(
+        x="eta1", at=[0, -1], x_of=lambda eta1: period * eta1, xlabel="x", title="Gas pressure along y = π",
+        eta2=cut_index, backend="plotly",
+    )
     print(f"Maximum relative total-energy drift: {float(drift.max()):.3e}; maximum ‖div B‖: {float(divergence.max()):.3e}")
     save(diagnostics, "orszag-tang-vortex-conservation", show=show)
     save(cut, "orszag-tang-vortex-pressure-cut", show=show)
