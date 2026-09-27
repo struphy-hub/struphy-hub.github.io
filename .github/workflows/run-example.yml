@@ -155,14 +155,15 @@ jobs:
           struphy compile -y --language fortran
 
       - name: Generate example metadata
-        # Cheap (imports the script's module-level Simulation(...) without running it) and
-        # runs for every script regardless of which example this shard is -- harmless, and
-        # this shard's own cache above only retains its own example's metadata JSON anyway.
+        # Cheap (imports the script's module-level Simulation(...) without running it). Only
+        # this shard's example: its cache above only retains that example's metadata JSON, and
+        # a script that fails to import must fail its own shard, not every shard. check-site in
+        # build-site.yml generates the metadata of every example.
         if: steps.cache-example.outputs.cache-hit != 'true'
         shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
-          python generate_examples.py
+          python generate_examples.py "${{ inputs.example }}"
 
       - name: Run example
         if: steps.cache-example.outputs.cache-hit != 'true'
