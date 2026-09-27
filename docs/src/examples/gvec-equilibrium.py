@@ -640,15 +640,15 @@ def pproc(sim: Simulation):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Run the GVEC equilibrium example.")
     argparser.add_argument(
-        "--pproc",
+        "--pproc-only",
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
     args = argparser.parse_args()
 
-    if not args.pproc:
+    if not args.pproc_only:
         generate_gvec_equilibrium()
     simulation = create_simulation(use_gvec=True)
-    if not args.pproc:
+    if not args.pproc_only:
         simulation.run(profiling_activated=True)
     pproc(simulation)

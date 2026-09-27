@@ -345,7 +345,7 @@ def run_one(
             *launcher,
             sys.executable,
             str(SCRIPTS_DIR / f"{stem}.py"),
-            *(["--pproc"] if postprocess_only else []),
+            *(["--pproc-only"] if postprocess_only else []),
         ],
         OUTPUT_DIR,
         log,
@@ -602,7 +602,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser(
         "pproc",
         help="post-process existing simulation output without running a simulation",
-        description="Regenerate gallery figures from existing Struphy output using each example's --pproc path.",
+        description="Regenerate gallery figures from existing Struphy output using each example's --pproc-only path.",
     )
     add_selection(p)
     p.add_argument(

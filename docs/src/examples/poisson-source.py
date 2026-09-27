@@ -197,7 +197,7 @@ def pproc(sim: Simulation):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Run the Poisson source example.")
     argparser.add_argument(
-        "--pproc",
+        "--pproc-only",
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
@@ -205,7 +205,7 @@ if __name__ == "__main__":
 
     simulation = create_simulation()
 
-    if args.pproc:
+    if args.pproc_only:
         pproc(simulation)
     else:
         simulation.run(profiling_activated=True)
