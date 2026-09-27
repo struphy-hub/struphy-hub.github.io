@@ -149,7 +149,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     scalars = output.scalars
     energy = scalars.en_tot
-    drift = np.abs(energy / energy.isel(t=0) - 1)
+    drift = energy.struphy.analysis.relative_error(skip_first=False)
     divergence = np.sqrt(np.maximum(scalars.tot_div_B, 0))
     diagnostics = make_subplots(rows=2, cols=1, shared_xaxes=True,
                                subplot_titles=("Energy channels", "Conservation diagnostics"), vertical_spacing=0.18)

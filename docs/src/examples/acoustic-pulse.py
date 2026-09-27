@@ -141,7 +141,7 @@ def pproc(sim: Simulation, show: bool = False):
     thermo = np.asarray(output.scalars["en_thermo"])
     total = np.asarray(output.scalars["en_tot"])
     scalar_times = np.asarray(output.time)[: len(total)]
-    energy_drift = float(np.max(np.abs(total / total[0] - 1.0)))
+    energy_drift = float(output.scalars["en_tot"].struphy.analysis.relative_error().max())
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")
     energy_scale = float(kinetic.max())  # the largest kinetic energy the pulse reaches
 

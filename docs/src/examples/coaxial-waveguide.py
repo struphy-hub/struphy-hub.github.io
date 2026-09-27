@@ -130,7 +130,7 @@ def pproc(sim: Simulation, show: bool = False):
     print(f"Measured frequency: {measured_frequency:.5f} (exact: 1, error {frequency_error:.1e})")
 
     energy = output.scalars["total_energy"]
-    energy_drift = float(np.abs(energy.values / energy.values[0] - 1.0).max())
+    energy_drift = float(energy.struphy.analysis.relative_error().max())
     print(f"Largest relative change of the total energy: {energy_drift:.1e}")
     electric = output.scalars["electric_energy"]
     magnetic = output.scalars["magnetic_energy"]
