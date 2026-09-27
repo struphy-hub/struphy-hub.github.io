@@ -107,7 +107,7 @@ def pproc(sim: Simulation):
 
     output = sim.output
 
-    field_energy = output.evaluate("electric_energy")
+    field_energy = output.scalars["electric_energy"]
 
     # Fit the exponential growth rate over the clean linear-growth window
     # (before trapping saturates it, roughly t in [5, 25] for this setup).

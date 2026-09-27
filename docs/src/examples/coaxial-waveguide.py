@@ -104,11 +104,11 @@ def pproc(sim: Simulation):
     frequency_error = abs(measured_frequency - 1.0)
     print(f"Measured frequency: {measured_frequency:.5f} (exact: 1, error {frequency_error:.1e})")
 
-    energy = output.evaluate("total_energy")
+    energy = output.scalars["total_energy"]
     energy_drift = float(np.abs(energy.values / energy.values[0] - 1.0).max())
     print(f"Largest relative change of the total energy: {energy_drift:.1e}")
-    electric = output.evaluate("electric_energy")
-    magnetic = output.evaluate("magnetic_energy")
+    electric = output.scalars["electric_energy"]
+    magnetic = output.scalars["magnetic_energy"]
     field_energy_variation = max(float((s.max() - s.min()) / s.mean()) for s in (electric, magnetic))
 
     # The animation: both fields are interpolated from the (r, theta) grid onto a Cartesian grid of

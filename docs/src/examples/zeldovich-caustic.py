@@ -112,7 +112,7 @@ def pproc(sim: Simulation):
     output.pproc()
 
     density = output.evaluate("cold_fluid/view_0/n").isel(eta2=0, eta3=0)  # (t, e1): the SPH density estimate
-    orbits = output.evaluate("cold_fluid").to_dataarray("quantity").transpose("t", "marker", "quantity")  # (t, marker, quantity)
+    orbits = output.orbits.cold_fluid.to_dataarray("quantity").transpose("t", "marker", "quantity")  # (t, marker, quantity)
     times = orbits.t.values
     assert np.allclose(times, density.t.values)
     grid = density.eta1.values

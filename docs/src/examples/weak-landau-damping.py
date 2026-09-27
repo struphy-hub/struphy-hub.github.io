@@ -105,7 +105,7 @@ def pproc(sim: Simulation):
         return (4 * perturbation_amplitude * r * np.exp(omega_i * t) * np.cos(omega_r * t - phi)) ** 2 * np.pi
 
     output = sim.output
-    field_energy = output.evaluate("electric_energy")
+    field_energy = output.scalars["electric_energy"]
     time = np.asarray(field_energy.t)
 
     # Fit the damping rate from the envelope maxima, for comparison with omega_i = -0.1533.

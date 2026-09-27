@@ -91,7 +91,7 @@ def pproc(sim: Simulation):
     error = np.sqrt(np.mean((numeric - exact) ** 2, axis=(1, 2))) / np.sqrt(np.mean(exact[0] ** 2))
     if not np.isfinite(error).all():
         raise RuntimeError("Non-finite field")
-    total = output.evaluate("total_energy").values
+    total = output.scalars["total_energy"].values
     energy_drift = float(np.max(np.abs(total / total[0] - 1.0)))
     print(f"Largest rms error of E_z, relative to the initial rms: {error.max():.3e}")
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")

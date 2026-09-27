@@ -91,7 +91,7 @@ def pproc(sim: Simulation):
     drifts = {}
     figure = go.Figure()
     for label, run in runs.items():
-        total = run.evaluate("total_energy")
+        total = run.scalars["total_energy"]
         time = total.t.values
         relative_error = np.abs(total.values / total.values[0] - 1.0)
         drifts[label] = float(np.max(relative_error))

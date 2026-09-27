@@ -64,7 +64,7 @@ def pproc(sim: Simulation):
     output = sim.output
     output.pproc(physical=True)
     field = output.evaluate("em_fields/e_field_xyz").isel(component=2, eta2=0, eta3=0)
-    energy = output.evaluate("total_energy")
+    energy = output.scalars["total_energy"]
     times, x = field.t.values, field.eta1.values * length
     if not np.isfinite(field.values).all() or not np.isfinite(energy.values).all() or not np.isclose(times[-1], time_opts.Tend):
         raise RuntimeError("The ordinary-mode run is incomplete or non-finite")

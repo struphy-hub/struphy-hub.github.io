@@ -89,7 +89,7 @@ def pproc(sim: Simulation):
     # from Struphy's built-in equilibrium catalogue. Reuse the actual object.
     output.equil = equil
     output.pproc()
-    orbits = output.evaluate("kinetic_ions").to_dataarray("quantity").transpose("t", "marker", "quantity")
+    orbits = output.orbits.kinetic_ions.to_dataarray("quantity").transpose("t", "marker", "quantity")
     times = orbits.t.values
     x, y, vx, vy = (orbits.sel(quantity=name).values for name in ("x", "y", "v1", "v2"))
     # The time loop can write one final step just beyond Tend because of floating-point

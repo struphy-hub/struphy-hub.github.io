@@ -102,7 +102,7 @@ filename.
   Reductions such as `f.struphy.analysis.spatial_average()` and `.velocity_moments()` turn a
   binned distribution into f(v, t) or the velocity variance.
 - Analyze with the `Output` returned by the run (`sim.output`), e.g.
-  `sim.output.evaluate("electric_energy").struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True)`;
+  `sim.output.scalars["electric_energy"].struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True)`;
   see `weak-landau-damping.py`.
 - If the run produces a result worth reporting (a measured value, an error norm, ...), pass it
   to `merge_metadata`. This is additive — `generate_examples.py` (next step) only ever

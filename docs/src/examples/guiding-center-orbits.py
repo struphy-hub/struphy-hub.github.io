@@ -106,7 +106,7 @@ def pproc(sim: Simulation):
     # (t, marker, quantity) with the quantities named x, y, z, v1, v2, ...: the position in Cartesian
     # coordinates, then the parallel velocity (v1) and the magnetic moment (v2) of a 5D marker. The
     # labels after v2 do not describe these columns and are not used here.
-    orbits = output.evaluate("kinetic_ions").to_dataarray("quantity").transpose("t", "marker", "quantity")
+    orbits = output.orbits.kinetic_ions.to_dataarray("quantity").transpose("t", "marker", "quantity")
     times = orbits.t.values
     x, y, z = (orbits.sel(quantity=name).values for name in ("x", "y", "z"))
     v_parallel = orbits.sel(quantity="v_par").values

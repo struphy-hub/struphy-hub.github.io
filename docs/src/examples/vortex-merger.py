@@ -153,7 +153,7 @@ def pproc(sim: Simulation):
 
     # The first Poisson solve initializes the field energy after t=0. Compare
     # subsequent field energies to that first solved state, not to the zero placeholder.
-    energy = output.evaluate("en_phi").isel(t=slice(1, None))
+    energy = output.scalars["en_phi"].isel(t=slice(1, None))
     drift = (energy / energy.isel(t=0) - 1).values
     energy_figure = go.Figure(go.Scatter(x=energy.t.values, y=drift, mode="lines", name="field energy"))
     energy_figure.update_layout(title="Vortex merger: electrostatic-energy change", template="plotly_white",

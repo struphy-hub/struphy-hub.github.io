@@ -92,7 +92,7 @@ def pproc(sim: Simulation):
     from struphy_plots.gallery import export_profiling, merge_metadata, save_figure
 
     output = sim.output
-    field_energy_array = output.evaluate("electric_energy")
+    field_energy_array = output.scalars["electric_energy"]
     time = np.asarray(field_energy_array.t)
     field_energy = np.asarray(field_energy_array)
 

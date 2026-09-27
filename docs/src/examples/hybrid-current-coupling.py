@@ -115,7 +115,7 @@ def pproc(sim: Simulation):
         raise RuntimeError("The hybrid run produced non-finite energies")
     if not np.isclose(times[-1], time_opts.Tend):
         raise RuntimeError(f"The hybrid run stopped at t={times[-1]}, before t={time_opts.Tend}")
-    if np.any(output.evaluate("n_lost_particles").values != 0):
+    if np.any(output.scalars["n_lost_particles"].values != 0):
         raise RuntimeError("Particles were lost from the periodic domain")
     velocity = output.evaluate("mhd/velocity_xyz").isel(eta1=0, eta2=0, component=0)
     if not np.isfinite(velocity.values).all():

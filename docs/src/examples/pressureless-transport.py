@@ -64,7 +64,7 @@ def pproc(sim: Simulation):
     output.pproc(physical=True)
     rho = output.evaluate("fluid/density_xyz").isel(eta2=0, eta3=0)
     velocity = output.evaluate("fluid/velocity_xyz").isel(component=0, eta2=0, eta3=0)
-    energy = output.evaluate("kinetic_energy")
+    energy = output.scalars["kinetic_energy"]
     times, x, density = rho.t.values, rho.eta1.values * length, rho.values
     exact = 1.0 + amplitude * np.cos(x[None, :] - speed * times[:, None])
     if not all(np.isfinite(a).all() for a in (density, velocity.values, energy.values)):

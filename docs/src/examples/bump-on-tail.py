@@ -104,7 +104,7 @@ def pproc(sim: Simulation):
 
     output = sim.output
 
-    field_energy = output.evaluate("electric_energy")
+    field_energy = output.scalars["electric_energy"]
 
     # Fit the exponential growth rate over the clean linear-growth window.
     growth_rate = field_energy.struphy.analysis.growth_rate(window=(5.0, 25.0), amplitude=True).rate

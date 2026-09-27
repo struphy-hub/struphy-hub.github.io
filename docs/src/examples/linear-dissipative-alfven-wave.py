@@ -67,7 +67,7 @@ def pproc(sim: Simulation):
     velocity = output.evaluate("mhd/velocity_xyz").isel(component=0, eta1=0, eta2=0)
     magnetic = output.evaluate("em_fields/b_field_xyz").isel(component=0, eta1=0, eta2=0)
     kinetic = output.evaluate("en_U")
-    magnetic_energy = output.evaluate("en_mag_1")
+    magnetic_energy = output.scalars["en_mag_1"]
     times, z = velocity.t.values, velocity.eta3.values * length
     if not all(np.isfinite(a.values).all() for a in (velocity, magnetic, kinetic, magnetic_energy)):
         raise RuntimeError("The linear MHD run produced non-finite diagnostics")
