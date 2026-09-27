@@ -150,7 +150,7 @@ def pproc(sim: Simulation, show: bool = False):
     wave_energy = float(values["en_U"][0] + values["en_B"][0])
     if wave_energy <= 0:
         raise RuntimeError("The initial wave energy must be positive")
-    total_error = values["en_tot"] - values["en_tot"][0]
+    total_error = energies["en_tot"].struphy.analysis.drift().values
     wave_scaled_error = float(np.max(np.abs(total_error)) / wave_energy)
     # Require conservation error below 0.1% of the seeded wave energy.
     # Plot the measured error explicitly; the run does not conserve to roundoff.
@@ -168,9 +168,8 @@ def pproc(sim: Simulation, show: bool = False):
         ("en_f", "Ion energy change", "#d62828"),
         ("en_p", "Pressure energy change", "#6a4c93"),
     ):
-        energy = values[key]
-        if key in ("en_f", "en_p"):
-            energy = energy - energy[0]
+        # the ion and pressure energies relative to their initial values
+        energy = energies[key].struphy.analysis.drift().values if key in ("en_f", "en_p") else values[key]
         figure.add_scatter(
             x=times, y=energy / wave_energy, mode="lines", name=label,
             line={"color": color, "width": 2.5}, row=1, col=1,

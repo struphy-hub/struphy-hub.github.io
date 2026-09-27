@@ -96,7 +96,8 @@ def pproc(sim: Simulation, show: bool = False):
         raise RuntimeError("The linear MHD run did not reach the requested end time")
     exact_u = amplitude * np.exp(-diffusivity * times[:, None]) * np.cos(times[:, None]) * np.sin(z[None, :])
     exact_b = amplitude * np.exp(-diffusivity * times[:, None]) * np.sin(times[:, None]) * np.cos(z[None, :])
-    error = float(max(np.max(np.abs(velocity.values - exact_u)), np.max(np.abs(magnetic.values - exact_b))) / amplitude)
+    error = max(float(field.struphy.analysis.error(exact, norm="max", dims=("t", "eta3")))
+                for field, exact in ((velocity, exact_u), (magnetic, exact_b))) / amplitude
     energy_time = kinetic.t.values
     wave_energy = kinetic.values + magnetic_energy.values
     exact_energy = np.exp(-2.0 * diffusivity * energy_time)
@@ -104,9 +105,9 @@ def pproc(sim: Simulation, show: bool = False):
     print(f"Maximum relative error against the exact solution: field {error:.2e}, energy {energy_error:.2e}")
     if max(error, energy_error) > 0.03:
         raise RuntimeError(f"The dissipative Alfvén wave differs from its exact solution: field={error:.3g}, energy={energy_error:.3g}")
-    # The periodic evaluation grid repeats its endpoint; exclude it from mode projections.
-    u_mode = 2 * np.mean(velocity.values[:, :-1] * np.sin(z[:-1]), axis=1) / amplitude
-    b_mode = 2 * np.mean(magnetic.values[:, :-1] * np.cos(z[:-1]), axis=1) / amplitude
+    # sin(z) and cos(z) are mode 1 along eta3; project_mode drops the repeated periodic endpoint.
+    u_mode = velocity.struphy.analysis.project_mode(dim="eta3", number=1, kind="sin").values / amplitude
+    b_mode = magnetic.struphy.analysis.project_mode(dim="eta3", number=1, kind="cos").values / amplitude
     figure = make_subplots(rows=2, cols=1, vertical_spacing=0.18,
                            subplot_titles=("Damped velocity and magnetic modes", "Quadratic wave energy"))
     for values, label, color in ((u_mode, "Velocity mode", "#168aad"), (b_mode, "Magnetic mode", "#d62828")):

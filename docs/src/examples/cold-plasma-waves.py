@@ -144,35 +144,18 @@ def pproc(sim: Simulation, show: bool = False):
     if not all(np.isfinite(error) for error in errors.values()):
         raise RuntimeError("A wave branch could not be read off the spectrum")
 
-    log_power = np.log10(np.clip(power, 1e-12, None))
-    figure = go.Figure(
-        go.Heatmap(
-            x=k, y=omega, z=log_power, zmin=-8, zmax=0, colorscale="Plasma",
-            colorbar={"title": {"text": "log₁₀ P"}},
-            hovertemplate="k=%{x:.3f}<br>ω=%{y:.3f}<br>log₁₀ P=%{z:.2f}<extra></extra>",
-        )
-    )
-    styles = {
-        "R-wave": ("R wave", "#2a9d8f"),
-        "L-wave": ("L wave", "#e9c46a"),
-        "whistler": ("whistler (R, below Ω_c)", "#48cae4"),
-    }
-    for name, (label, color) in styles.items():
-        figure.add_scatter(
-            x=k_fine, y=branch_curves[name], mode="lines", name=label,
-            line={"color": color, "width": 2.5, "dash": "dash"},
-        )
-    for level, label in ((1.0, "Ω_c"), (omega_R, "ω_R cutoff"), (omega_L, "ω_L cutoff")):
-        figure.add_hline(y=level, line={"color": "rgba(255,255,255,0.55)", "width": 1, "dash": "dot"},
-                         annotation_text=label, annotation_position="bottom right",
-                         annotation_font_color="white")
-    figure.update_layout(
+    # The normalized power spectrum over 8 decades, with the analytic branches and the cutoffs.
+    labels = {"R-wave": "R wave", "L-wave": "L wave", "whistler": "whistler (R, below Ω_c)"}
+    figure = spectrum.struphy.plot.dispersion(
+        kmin=0,
+        kmax=k_top,
+        omega_max=omega_top,
+        dynamic_range=8,
+        branches={label: (k_fine, branch_curves[name]) for name, label in labels.items()},
+        frequencies={"Ω_c": 1.0, "ω_R cutoff": omega_R, "ω_L cutoff": omega_L},
         title="Cold-plasma waves along B₀: power spectrum of E_x",
-        xaxis_title="k c / Ω_c", yaxis_title="ω / Ω_c", template="plotly_white", autosize=True,
-        legend={"orientation": "h", "y": -0.18}, margin={"l": 75, "r": 40, "t": 80, "b": 110},
+        backend="plotly",
     )
-    figure.update_xaxes(range=[0, k_top])
-    figure.update_yaxes(range=[0, omega_top])
     save(figure, "cold-plasma-waves", height=700, show=show)
 
     # Energy channels: the noise starts purely electric, then shares its energy with the magnetic field
@@ -184,13 +167,11 @@ def pproc(sim: Simulation, show: bool = False):
         "total_energy": ("total", "#264653"),
     }
     energies = {name: output.scalars[name] for name in channels}
-    time = energies["total_energy"].t.values
-    total = energies["total_energy"].values
-    relative_drift = float(np.max(np.abs(total / total[0] - 1.0)))
+    relative_drift = float(energies["total_energy"].struphy.analysis.relative_error().max())
     print(f"Maximum relative drift of the total energy: {relative_drift:.2e}")
     energy_figure = go.Figure()
     for name, (label, color) in channels.items():
-        energy_figure.add_scatter(x=time, y=energies[name].values, mode="lines", name=label,
+        energy_figure.add_scatter(x=energies[name].t.values, y=energies[name].values, mode="lines", name=label,
                                   line={"color": color, "width": 3 if name == "total_energy" else 2})
     energy_figure.update_layout(
         title="Energy channels of the cold plasma", xaxis_title="t Ω_c", yaxis_title="energy [a.u.]",

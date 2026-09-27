@@ -105,6 +105,7 @@ def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
+    from struphy_plots.theory.orbits import grad_b_drift
 
     output = sim.output
     # Post-processing otherwise tries to reconstruct this script-local class
@@ -128,8 +129,9 @@ def pproc(sim: Simulation, show: bool = False):
     # approximate guiding-center coordinate, not a separate guiding-center run.
     center_y = y - vx / local_b
     measured = np.polyfit(times, center_y, 1)[0]
-    gradient = -ripple * 2 * np.pi / box  # at x_gc = box/2, B = 1
-    reference = 0.5 * speed[0]**2 * gradient
+    # At x_gc = box/2: B = e_z and grad B = -ripple * 2 pi / box e_x; the drift is along y.
+    field_at_center, gradient = (0.0, 0.0, 1.0), (-ripple * 2 * np.pi / box, 0.0, 0.0)
+    reference = grad_b_drift(speed[0], field_at_center, gradient)[:, 1]
     drift_error = float(np.max(np.abs(measured / reference - 1.0)))
     print(f"Measured drift velocities: {np.round(measured, 5).tolist()} (guiding center: {np.round(reference, 5).tolist()})")
     if speed_drift > 1e-8 or drift_error > 0.08:
@@ -144,7 +146,8 @@ def pproc(sim: Simulation, show: bool = False):
         figure.add_scatter(x=[speed[0, j]**2], y=[measured[j]], mode="markers", showlegend=False,
                            marker={"color": color, "size": 11}, row=1, col=2)
     square_speed = np.linspace(0, 1, 100)
-    figure.add_scatter(x=square_speed, y=0.5 * square_speed * gradient, name="Guiding-center prediction",
+    figure.add_scatter(x=square_speed, y=grad_b_drift(np.sqrt(square_speed), field_at_center, gradient)[:, 1],
+                       name="Guiding-center prediction",
                        line={"color": "#222", "dash": "dash"}, row=1, col=2)
     figure.update_xaxes(title_text="x", row=1, col=1)
     figure.update_yaxes(title_text="y", scaleanchor="x", scaleratio=1, row=1, col=1)

@@ -32,24 +32,6 @@ width = 7.0  # of the Gaussian envelope
 amplitude = 0.05
 
 
-def branch_frequency(k, wave):
-    """Frequency of the whistler, the upper R wave or the L wave along B0, in units of the cyclotron frequency.
-
-    With c = 1, k^2 = omega^2 - omega_p^2 omega / (omega -+ Omega_c), i.e. the cubic
-    omega^3 -+ Omega_c omega^2 - (omega_p^2 + k^2) omega +- k^2 Omega_c = 0 with the upper sign for the R wave. The whistler is the
-    middle positive root of the R cubic, the upper R wave its largest root, and the L wave the largest root of the L cubic.
-    """
-    if wave == "whistler":
-        return np.sort(np.roots([1.0, -1.0, -(alpha**2 + k**2), k**2]).real)[-2]
-    if wave == "R wave":
-        return np.sort(np.roots([1.0, -1.0, -(alpha**2 + k**2), k**2]).real)[-1]
-    return np.sort(np.roots([1.0, 1.0, -(alpha**2 + k**2), -(k**2)]).real)[-1]
-
-
-def group_velocity(k, wave, step=1e-4):
-    return (branch_frequency(k + step, wave) - branch_frequency(k - step, wave)) / (2 * step)
-
-
 def envelope(z):
     return amplitude * np.exp(-0.5 * ((z - center) / width) ** 2)
 
@@ -120,6 +102,8 @@ def save(figure, name: str, *, show: bool = False, frame: int | None = None, sti
 
 
 def pproc(sim: Simulation, show: bool = False):
+    from struphy_plots.theory.waves import Species, cold_plasma_waves, group_velocity
+
     time_opts = sim.time_opts
 
     output = sim.output
@@ -128,8 +112,14 @@ def pproc(sim: Simulation, show: bool = False):
     times, z, density = packet_energy(output)
     waves = ("whistler", "R wave", "L wave")
     tracked = ("whistler", "L wave")  # the slow packet holds the whistler and upper R branches, of almost equal speed
-    exact_speed = {wave: group_velocity(k0, wave) for wave in waves}
-    exact_frequency = {wave: branch_frequency(k0, wave) for wave in waves}
+    # The branches along B0 (theta = 0) of the cold electron plasma. At k0 they are, by ascending frequency, the whistler,
+    # the plasma oscillation (omega = omega_p), the L wave and the upper R wave.
+    electrons = Species(plasma_frequency=alpha, cyclotron_frequency=-1.0)
+    branch = {"whistler": "branch 1", "L wave": "branch 3", "R wave": "branch 4"}
+    frequencies = cold_plasma_waves(k0, 0.0, electrons)
+    speeds = group_velocity(lambda k: cold_plasma_waves(k, 0.0, electrons), k0, step=1e-4)
+    exact_speed = {wave: float(speeds[branch[wave]].real) for wave in waves}
+    exact_frequency = {wave: float(frequencies[branch[wave]].real) for wave in waves}
 
     def track_peak(side, speed):
         """Position of the energy peak of the packet on one side of the launch point, in a window around its characteristic."""

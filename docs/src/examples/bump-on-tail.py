@@ -14,8 +14,6 @@ directory (`--show` shows them first).
 
 import argparse
 
-import plotly.graph_objects as go
-
 from struphy import (
     BinningPlot,
     BoundaryParameters,
@@ -125,26 +123,7 @@ def pproc(sim: Simulation, show: bool = False):
     growth_rate = field_energy.struphy.analysis.growth_rate(window=(5.0, 25.0), amplitude=True).rate
     print(f"Measured growth rate: {growth_rate:.4f}")
 
-    figure = go.Figure(
-        data=[
-            go.Scatter(
-                x=field_energy.t.values,
-                y=field_energy.values,
-                mode="lines",
-                name="Struphy (PIC)",
-                line={"color": "#168aad", "width": 3},
-            ),
-        ],
-    )
-    figure.update_layout(
-        title="Bump-on-tail instability: electric field energy",
-        xaxis_title="t [a.u.]",
-        yaxis_title="E² / 2 [a.u.]",
-        yaxis={"type": "log"},
-        template="plotly_white",
-        autosize=True,
-        margin={"l": 70, "r": 30, "t": 80, "b": 60},
-    )
+    figure = field_energy.struphy.plot.timeseries(logy=True, title="Bump-on-tail instability: electric field energy", backend="plotly")
 
     save(figure, "bump-on-tail", show=show)
 

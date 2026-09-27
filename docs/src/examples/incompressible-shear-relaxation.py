@@ -140,13 +140,15 @@ def pproc(sim: Simulation, show: bool = False):
         raise RuntimeError("Non-finite SPH result: refusing to publish the run")
 
     # The amplitude of each mode, projected on it. A bin average lowers a mode by sinc(k dx / 2).
-    shear_bins = np.sinc(np.pi / height * (height / bins) / 2 / np.pi)
-    wave_bins = np.sinc(2 * np.pi * (1.0 / bins) / 2 / np.pi)
-    shear = 2 * np.mean(across.values * np.sin(np.pi * y / height), axis=1) / shear_bins
-    wave = 2 * np.mean(along.values * np.sin(2 * np.pi * x), axis=1) / wave_bins
+    # The shear mode sin(pi y / H) is half a wave along eta2 = y / H.
+    shear = across.struphy.analysis.project_mode(dim="eta2", number=0.5, bin_correction=True)
+    wave = along.struphy.analysis.project_mode(dim="eta1", number=1, bin_correction=True).values
     exact_shear = shear_amplitude * np.exp(-decay_rate * times)
-    fitted_rate = float(-np.polyfit(times, np.log(np.abs(shear)), 1)[0])
-    profile_error = float(np.max(np.abs(across.values[-1] - exact_shear[-1] * np.sin(np.pi * y / height))))
+    fitted_rate = -abs(shear).struphy.analysis.growth_rate().rate
+    profile_error = float(
+        across.isel(t=-1).struphy.analysis.error(exact_shear[-1] * np.sin(np.pi * y / height), norm="max")
+    )
+    shear = shear.values
     wave_left = float(np.abs(wave[times >= 0.1]).max() / compressive_amplitude)
     print(f"shear decay rate {fitted_rate:.3f} (exact {decay_rate:.3f}); compressive wave after t = 0.1: "
           f"{100 * wave_left:.1f}% of its initial amplitude; profile error at the end {profile_error:.4f}")

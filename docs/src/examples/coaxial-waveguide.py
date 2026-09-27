@@ -97,30 +97,34 @@ def save(figure, name: str, *, show: bool = False, frame: int | None = None, sti
 
 
 def pproc(sim: Simulation, show: bool = False):
+    from struphy_plots.analysis import evaluate_on
+
     output = sim.output
     output.pproc(physical=True)
 
     # The axial magnetic field on the (r, theta) evaluation grid, and the exact mode at the same points.
     b_z = output.evaluate("em_fields/b_field_xyz").isel(component=2, eta3=0)  # (t, e1, e2)
     times = b_z.t.values
-    radius = np.hypot(b_z.X.values, b_z.Y.values)
-    angle = np.arctan2(b_z.Y.values, b_z.X.values)
 
-    def exact_b_z(time):
+    def exact_b_z(x, y, z, time):
+        radius, angle = np.hypot(x, y), np.arctan2(y, x)
         profile = jv(mode_number, radius) - bessel_ratio * yn(mode_number, radius)
         return profile * np.cos(mode_number * angle - time)
 
-    error = np.stack([b_z.isel(t=index).values - exact_b_z(times[index]) for index in range(len(times))])
-    amplitude = float(np.abs(exact_b_z(0.0)).max())
-    relative_error = np.abs(error).max(axis=(1, 2)) / amplitude
-    print(f"Largest relative error of B_z: {relative_error.max():.2e}")
+    exact = evaluate_on(b_z, exact_b_z)
+    error = b_z.struphy.analysis.error(exact, norm="pointwise").values
+    amplitude = float(np.abs(exact.isel(t=0)).max())
+    relative_error = b_z.struphy.analysis.error(exact, norm="max") / amplitude
+    print(f"Largest relative error of B_z: {float(relative_error.max()):.2e}")
 
     # The mode's frequency, from a sinusoid fitted to B_z at a probe in the middle of the gap. The
     # exact mode is proportional to cos(m theta - t), so its frequency is 1.
-    probe = (b_z.sizes["eta1"] // 2, 0)
-    signal = b_z.values[:, probe[0], probe[1]]
-    exact_signal = exact_b_z(times[:, None, None])[:, probe[0], probe[1]]
-    fit, _ = curve_fit(lambda t, a, w, phase: a * np.cos(w * t + phase), times, signal, p0=[signal.max(), 1.0, 0.0])
+    probe = {"eta1": b_z.sizes["eta1"] // 2, "eta2": 0}
+    signal = b_z.isel(probe).assign_attrs(label="B_z at the probe")
+    exact_signal = exact.isel(probe)
+    fit, _ = curve_fit(
+        lambda t, a, w, phase: a * np.cos(w * t + phase), times, signal.values, p0=[float(signal.max()), 1.0, 0.0]
+    )
     measured_frequency = float(fit[1])
     frequency_error = abs(measured_frequency - 1.0)
     print(f"Measured frequency: {measured_frequency:.5f} (exact: 1, error {frequency_error:.1e})")
@@ -242,19 +246,11 @@ def pproc(sim: Simulation, show: bool = False):
     save(figure, "coaxial-waveguide", height=650, frame=still_position, show=show)
 
     # The probe signal against the exact mode.
-    probe_figure = go.Figure()
-    probe_figure.add_scatter(
-        x=times, y=exact_signal, mode="lines", name="exact mode", line={"color": "#d62828", "width": 3, "dash": "dot"}
-    )
-    probe_figure.add_scatter(x=times, y=signal, mode="lines", name="Struphy", line={"color": "#168aad", "width": 3})
-    probe_figure.update_layout(
+    probe_figure = signal.struphy.plot.timeseries(
+        logy=False,
+        reference={"exact mode": exact_signal},
         title=f"Coaxial waveguide: B_z at a probe, measured frequency {measured_frequency:.4f} (exact: 1)",
-        xaxis_title="t [a.u.]",
-        yaxis_title="B_z at the probe [a.u.]",
-        template="plotly_white",
-        autosize=True,
-        legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": 1.0, "yanchor": "bottom"},
-        margin={"l": 70, "r": 30, "t": 110, "b": 60},
+        backend="plotly",
     )
 
     # The energies, and the relative change of the total energy.

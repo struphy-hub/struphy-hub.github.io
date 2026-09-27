@@ -134,7 +134,7 @@ def pproc(sim: Simulation, show: bool = False):
     x = rho.eta1.values * length
     density = rho.values
     exact = np.array([exact_density(x, t) for t in times])
-    error = float(np.max(np.abs(density - exact)) / amplitude)
+    error = float(rho.struphy.analysis.error(exact, norm="max", dims=("t", "eta1"))) / amplitude
     print(f"Maximum error of the density, relative to the pulse height: {error:.3f}")
 
     kinetic = np.asarray(output.scalars["en_U"])

@@ -218,7 +218,9 @@ def pproc(sim: Simulation, show: bool = False):
     # up to roundoff on the sampled grid.
     # The sampled periodic grid includes the repeated right/top boundary.
     # Remove it before the FFT so it is not counted as a second grid point.
-    phi = potential.transpose("t", "eta1", "eta2").values[:, :-1, :-1]
+    from struphy_plots.spectral import drop_periodic_endpoint
+
+    phi = drop_periodic_endpoint(drop_periodic_endpoint(potential, "eta1"), "eta2").transpose("t", "eta1", "eta2").values
     nx, ny = phi.shape[1:]
     kx = 2 * np.pi * np.fft.fftfreq(nx, d=length / nx)[:, None]
     ky = 2 * np.pi * np.fft.fftfreq(ny, d=length / ny)[None, :]

@@ -119,7 +119,8 @@ def mode_amplitudes(phi):
     m >= 0 is the poloidal and n the axial mode number. The periodic end points e2 = 1 and e3 = 1 repeat the
     first ones and are dropped. A field `A cos(m*theta + 2*pi*n*z/length)` has |phi_mn| = A.
     """
-    field = phi.isel(eta2=slice(None, -1), eta3=slice(None, -1)).transpose("t", "eta1", "eta2", "eta3")
+    field = phi.struphy.analysis.drop_periodic_endpoint("eta2").struphy.analysis.drop_periodic_endpoint("eta3")
+    field = field.transpose("t", "eta1", "eta2", "eta3")
     n_theta, n_z = field.sizes["eta2"], field.sizes["eta3"]
     spectrum = np.fft.fft(np.fft.rfft(field.values, axis=2), axis=3) / (n_theta * n_z)
     spectrum[:, :, 1:] *= 2.0  # fold the negative m
@@ -135,18 +136,6 @@ def mode_amplitudes(phi):
 def radial_rms(spectrum):
     """Radial rms of |phi_mn|, over e1."""
     return np.sqrt((np.abs(spectrum) ** 2).mean("eta1"))
-
-
-def exponential_rate(amplitude, window):
-    """Growth rate of each column m of `amplitude(t, m)` from a log-linear fit on `window`."""
-    selected = amplitude.sel(t=slice(*window))
-    times = selected.t.values
-    rates = []
-    for m in selected.m.values:
-        values = selected.sel(m=m).values
-        positive = values > 0
-        rates.append(np.polyfit(times[positive], np.log(values[positive]), 1)[0] if positive.sum() > 2 else np.nan)
-    return np.asarray(rates)
 
 
 def log10_or_nan(values):
@@ -243,26 +232,13 @@ def pproc(sim: Simulation, show: bool = False):
     rho = output.fields.diagnostics.rho
     rho = rho.isel(component=0) if "component" in rho.dims else rho
     times = np.asarray(rho.t)
-    perturbation_energy = np.asarray(rho.struphy.analysis.norm(squared=True))
+    perturbation_energy = rho.struphy.analysis.norm(squared=True).assign_attrs(label="‖δn‖²")
 
     growth_window = (times > GROWTH_WINDOW[0]) & (times < GROWTH_WINDOW[1])
-    growth_rate = float(np.polyfit(times[growth_window], np.log(perturbation_energy[growth_window]), 1)[0] / 2)
+    growth_rate = float(np.polyfit(times[growth_window], np.log(perturbation_energy.values[growth_window]), 1)[0] / 2)
     print(f"Measured growth rate: {growth_rate:.5f}")
 
-    figure = go.Figure(
-        data=[
-            go.Scatter(x=times, y=perturbation_energy, mode="lines", name="Struphy (drift-kinetic)", line={"color": "#168aad", "width": 3}),
-        ],
-    )
-    figure.update_layout(
-        title="ITG drift wave: density perturbation energy",
-        xaxis_title="t [a.u.]",
-        yaxis_title="‖δn‖² [a.u.]",
-        yaxis={"type": "log"},
-        template="plotly_white",
-        autosize=True,
-        margin={"l": 70, "r": 30, "t": 80, "b": 60},
-    )
+    figure = perturbation_energy.struphy.plot.timeseries(logy=True, title="ITG drift wave: density perturbation energy", backend="plotly")
 
     save(figure, "itg-drift-wave", show=show)
 
@@ -296,7 +272,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     # Amplitude of each poloidal mode (radial rms at the seeded axial mode number) and its growth rate.
     amplitude = radial_rms(spectrum.sel(n=mode_toroidal)).sel(m=slice(1, MAX_POLOIDAL_MODE))
-    rates = exponential_rate(amplitude, GROWTH_WINDOW)
+    rates = [amplitude.sel(m=m).struphy.analysis.growth_rate(window=GROWTH_WINDOW).rate for m in amplitude.m.values]
     wavenumber = amplitude.m.values / float(radius.mean())
     colors = sample_colorscale("Viridis", np.linspace(0, 1, amplitude.sizes["m"]))
     growth_figure = make_subplots(
@@ -402,7 +378,8 @@ def pproc(sim: Simulation, show: bool = False):
     # The flux-surface-averaged (m = n = 0) density change: does the profile flatten?
     density = output.evaluate("diagnostics/rho", **points)
     density = density.isel(component=0, drop=True) if "component" in density.dims else density
-    zonal = density.isel(eta2=slice(None, -1), eta3=slice(None, -1)).mean(("eta2", "eta3"))
+    density = density.struphy.analysis.drop_periodic_endpoint("eta2").struphy.analysis.drop_periodic_endpoint("eta3")
+    zonal = density.mean(("eta2", "eta3"))
     zonal = zonal - zonal.isel(t=0)
     profile_change = zonal.assign_coords(eta1=radius).struphy.plot.slice(
         x="eta1",

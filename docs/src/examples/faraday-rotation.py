@@ -113,7 +113,7 @@ def pproc(sim: Simulation, show: bool = False):
     angle = 0.5 * np.unwrap(np.arctan2(u, q))
     rotation_rate = float(np.polyfit(z, angle, 1)[0])
     angle_error = float(np.max(np.abs(angle + z / 2)))
-    energy_drift = float(np.max(np.abs(energy.values / energy.values[0] - 1.0)))
+    energy_drift = float(energy.struphy.analysis.relative_error().max())
     print(f"Measured rotation rate: {rotation_rate:.4f} rad per unit length (exact: -0.5)")
     if error > 0.03 or angle_error > 0.02 or energy_drift > 1e-6:
         raise RuntimeError(f"Faraday check failed: field={error:.3g}, angle={angle_error:.3g}, energy={energy_drift:.3g}")

@@ -66,23 +66,17 @@ def radial_mode_amplitudes(output, field_xyz, poloidal_modes=(9, 10, 11, 12), se
     radial = physical_radial_component(output, field_xyz)
     # Convert to the rotating radial basis BEFORE transforming in toroidal angle.
     # Cartesian components themselves are not periodic across the sector seam.
-    radial = radial.isel({dim: np.flatnonzero(radial[dim].values < 1.0 - 1e-12)
-                          for dim in ("eta2", "eta3")})
-    coefficients = output.analysis.fft(output.analysis.fft(radial, dim="eta2"), dim="eta3")
-    selected = coefficients.sel(
-        k_eta2=2 * np.pi * np.asarray(poloidal_modes), k_eta3=2 * np.pi * sector_mode,
-        method="nearest",
-    )
-    if (not np.allclose(selected.k_eta2.values / (2 * np.pi), poloidal_modes)
-            or not np.isclose(float(selected.k_eta3) / (2 * np.pi), sector_mode)):
+    # mode_spectrum drops the duplicate periodic endpoints and labels integer (m, n_sector).
+    coefficients = radial.struphy.analysis.mode_spectrum(dims=("eta2", "eta3"), names=("m", "n"))
+    if not set(poloidal_modes) <= set(coefficients.m.values) or sector_mode not in coefficients.n.values:
         raise ValueError("Angular sampling does not resolve the requested Fourier modes.")
+    selected = coefficients.sel(m=list(poloidal_modes), n=sector_mode)
     amplitude = 2 * abs(selected)  # Conjugate-pair amplitude of a real spatial harmonic.
     if not np.isfinite(amplitude.values).all():
         raise RuntimeError("Non-finite radial Fourier amplitude.")
     peak = float(amplitude.max())
-    normalized = (amplitude / (peak if peak > 0 else 1.0)).rename({"k_eta2": "m"})
+    normalized = amplitude / (peak if peak > 0 else 1.0)
     normalized = normalized.assign_coords(
-        m=list(poloidal_modes),
         radius=params["a1"] + (params["a2"] - params["a1"]) * normalized.eta1,
     ).rename("normalized_fft_amplitude")
     normalized.attrs.update(normalization_amplitude=peak, sector_mode=sector_mode,
@@ -101,11 +95,10 @@ def fixed_theta_amplitudes(output, field_xyz, angles=(0.0, 45.0), sector_mode=-1
     # Interpolate the physical radial field only if an angle is off the display
     # grid. The default 0 and 45 degree rays lie exactly on that grid.
     rays = radial.interp(eta2=np.asarray(angles) / 360.0)
-    rays = rays.isel(eta3=np.flatnonzero(rays.eta3.values < 1.0 - 1e-12))
-    coefficients = output.analysis.fft(rays, dim="eta3")
-    selected = coefficients.sel(k_eta3=2 * np.pi * sector_mode, method="nearest")
-    if not np.isclose(float(selected.k_eta3) / (2 * np.pi), sector_mode):
+    coefficients = rays.struphy.analysis.mode_spectrum(dims="eta3", names="n")
+    if sector_mode not in coefficients.n.values:
         raise ValueError("Toroidal sampling does not resolve the requested Fourier mode.")
+    selected = coefficients.sel(n=sector_mode)
     amplitude = 2 * abs(selected)
     if not np.isfinite(amplitude.values).all():
         raise RuntimeError("Non-finite fixed-angle Fourier amplitude.")
@@ -410,7 +403,7 @@ def pproc(sim: Simulation, show: bool = False):
     # transforming a velocity magnitude/energy would change its frequencies.
     # Omit the duplicated poloidal endpoint from spatial sums.
     plane = velocity.copy(data=components).assign_coords(component=list(labels))
-    plane = plane.isel(eta2=np.flatnonzero(periodic)).rename("physical_poloidal_velocity")
+    plane = plane.struphy.analysis.drop_periodic_endpoint("eta2").rename("physical_poloidal_velocity")
     temporal = output.analysis.time_fft(plane)
     band = output.analysis.filter_time(plane, dims=("eta1", "eta2"), pad_bins=0)
     positive = temporal.power.isel(omega=slice(1, None))
@@ -484,9 +477,8 @@ def pproc(sim: Simulation, show: bool = False):
         eta3=0.0,
         representation="2",
     ).isel(t=0, component=0)
-    logical_initial = logical_initial.isel(eta2=np.flatnonzero(periodic))
-    poloidal_fft = output.analysis.fft(logical_initial, dim="eta2")
-    mode_numbers = poloidal_fft.k_eta2.values / (2 * np.pi)
+    poloidal_fft = logical_initial.struphy.analysis.mode_spectrum(dims="eta2", names="m")
+    mode_numbers = poloidal_fft.m.values
     modal_amplitude = np.sqrt((abs(poloidal_fft) ** 2).mean("eta1")).values
     positive_modes = (mode_numbers > 0) & (mode_numbers <= grid.num_elements[1] // 2)
     mode_plot = go.Figure(go.Scatter(

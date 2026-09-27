@@ -19,8 +19,6 @@ import argparse
 
 import numpy as np
 import plotly.graph_objects as go
-from scipy.optimize import fsolve
-from scipy.special import wofz
 
 from struphy import (
     BoundaryParameters,
@@ -41,17 +39,6 @@ from struphy.models import VlasovAmpereOneSpecies
 
 wavenumbers = (0.3, 0.4, 0.5, 0.6)  # the scan; the example itself is the k = 0.5 run
 amplitude = 0.001
-
-
-def kinetic_frequency(k, guess=(1.4, -0.15)):
-    """The complex Langmuir frequency, as (omega_r, gamma), from the root of the Vlasov dispersion relation."""
-
-    def dispersion(values):
-        zeta = (values[0] + 1j * values[1]) / (np.sqrt(2) * k)
-        residual = 1 + (1 + zeta * 1j * np.sqrt(np.pi) * wofz(zeta)) / k**2
-        return [residual.real, residual.imag]
-
-    return fsolve(dispersion, guess, xtol=1e-12)
 
 
 def create_simulation(k=0.5, folder="langmuir_wave_dispersion") -> Simulation:
@@ -94,13 +81,12 @@ def create_simulation(k=0.5, folder="langmuir_wave_dispersion") -> Simulation:
 
 
 def mode_amplitude(run):
-    """Time and the amplitude of the sin(k x) mode of the electric field E_x, from a post-processed run."""
+    """The amplitude of the sin(k x) mode of the electric field E_x over time, from a post-processed run."""
     cells = run.grid.num_elements[0]
     e_x = run.evaluate(
         "em_fields/e_field", eta1=np.linspace(0.0, 1.0, cells + 1), eta2=0.0, eta3=0.0, representation="1"
     ).isel(component=0)
-    e1 = e_x.eta1.values
-    return e_x.t.values, 2.0 * np.mean(e_x.values[:, :-1] * np.sin(2 * np.pi * e1[:-1]), axis=1)
+    return e_x.struphy.analysis.project_mode(dim="eta1", number=1)
 
 
 def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
@@ -132,12 +118,15 @@ def pproc(sim: Simulation, show: bool = False):
     for run in runs.values():
         run.pproc()
 
+    from struphy_plots.theory.kinetic import bohm_gross, langmuir
+
     exact, measured_frequency, measured_rate, amplitudes = {}, {}, {}, {}
-    guess = (1.4, -0.15)
     for k in sorted(runs):
-        exact[k] = kinetic_frequency(k, guess)
-        guess = tuple(exact[k])
-        times, values = mode_amplitude(runs[k])
+        # The complex Langmuir frequency omega_r + i gamma, the root of the Vlasov dispersion relation.
+        omega = langmuir(k)
+        exact[k] = (omega.real, omega.imag)
+        mode = mode_amplitude(runs[k])
+        times, values = mode.t.values, mode.values
         amplitudes[k] = values
         # The first time units hold a transient of phase-mixing modes that are not the Langmuir wave, so the fit starts at t = 1
         # and stops at t = 12. The measured values depend on this window at the level of a few per cent.
@@ -148,9 +137,7 @@ def pproc(sim: Simulation, show: bool = False):
             values[crossings + 1] - values[crossings]
         )
         measured_frequency[k] = float(np.pi / np.mean(np.diff(roots)))
-        magnitude = np.abs(values)
-        peaks = np.where(window[1:-1] & (magnitude[1:-1] >= magnitude[:-2]) & (magnitude[1:-1] >= magnitude[2:]))[0] + 1
-        measured_rate[k] = float(np.polyfit(times[peaks], np.log(magnitude[peaks]), 1)[0])
+        measured_rate[k] = abs(mode).struphy.analysis.damping_rate(window=(1.0, 12.0)).rate
     if not (np.isfinite(list(measured_frequency.values())).all() and np.isfinite(list(measured_rate.values())).all()):
         raise RuntimeError("A frequency or a damping rate could not be measured")
     for k in sorted(runs):
@@ -160,21 +147,17 @@ def pproc(sim: Simulation, show: bool = False):
     from plotly.subplots import make_subplots
 
     k_line = np.linspace(0.25, 0.65, 60)
-    lines, guess = [], (1.15, -0.01)
-    for kk in k_line:
-        guess = tuple(kinetic_frequency(kk, guess))
-        lines.append(guess)
-    lines = np.array(lines)
+    lines = langmuir(k_line)
     ks = sorted(runs)
     figure = make_subplots(rows=1, cols=2, horizontal_spacing=0.12,
                            subplot_titles=("Oscillation frequency", "Damping rate"))
-    figure.add_scatter(x=k_line, y=np.sqrt(1 + 3 * k_line**2), mode="lines", name="Bohm–Gross √(1 + 3k²)",
+    figure.add_scatter(x=k_line, y=bohm_gross(k_line).real, mode="lines", name="Bohm–Gross √(1 + 3k²)",
                        line={"color": "#888", "width": 1.5, "dash": "dot"}, row=1, col=1)
-    figure.add_scatter(x=k_line, y=lines[:, 0], mode="lines", name="kinetic dispersion relation",
+    figure.add_scatter(x=k_line, y=lines.real, mode="lines", name="kinetic dispersion relation",
                        line={"color": "#111", "width": 2, "dash": "dash"}, row=1, col=1)
     figure.add_scatter(x=ks, y=[measured_frequency[k] for k in ks], mode="markers", name="Struphy (PIC)",
                        marker={"color": "#d62828", "size": 11}, row=1, col=1)
-    figure.add_scatter(x=k_line, y=lines[:, 1], mode="lines", showlegend=False,
+    figure.add_scatter(x=k_line, y=lines.imag, mode="lines", showlegend=False,
                        line={"color": "#111", "width": 2, "dash": "dash"}, row=1, col=2)
     figure.add_scatter(x=ks, y=[measured_rate[k] for k in ks], mode="markers", showlegend=False,
                        marker={"color": "#d62828", "size": 11}, row=1, col=2)
@@ -190,7 +173,7 @@ def pproc(sim: Simulation, show: bool = False):
     colors = {0.3: "#168aad", 0.4: "#2a9d8f", 0.5: "#f77f00", 0.6: "#d62828"}
     signals = go.Figure()
     for k in ks:
-        times, _ = mode_amplitude(runs[k])
+        times = mode_amplitude(runs[k]).t.values
         # The exact envelope exp(gamma t), scaled to the first peak of the wave (after the initial transient).
         after = times > 1.0
         first_peak = np.argmax(np.abs(amplitudes[k][after][:40]))

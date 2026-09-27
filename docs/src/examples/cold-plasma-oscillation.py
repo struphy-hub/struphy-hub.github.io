@@ -15,6 +15,7 @@ import argparse
 
 import numpy as np
 import plotly.graph_objects as go
+import xarray as xr
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ColdPlasma
@@ -161,16 +162,15 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_yaxes(title_text="energy / initial energy", row=2, col=1)
     save(figure, "cold-plasma-oscillation", width=900, height=850, show=show)
 
-    # The frequency against the density, on the line omega = omega_p.
+    # The frequency against the density, on the line omega = omega_p (drawn from n0 = 0).
     n_line = np.linspace(0.0, max(densities) * 1.05, 100)
-    scan = go.Figure()
-    scan.add_scatter(x=n_line, y=alpha / epsilon * np.sqrt(n_line), mode="lines", name="ω_p ∝ √n₀",
-                     line={"color": "#111", "width": 2, "dash": "dash"})
-    scan.add_scatter(x=list(measured), y=list(measured.values()), mode="markers", name="Struphy",
-                     marker={"color": "#d62828", "size": 12})
-    scan.update_layout(title="Oscillation frequency against density", template="plotly_white",
-                       xaxis_title="density n₀", yaxis_title="angular frequency ω",
-                       margin={"l": 70, "r": 30, "t": 80, "b": 60})
+    frequencies = xr.DataArray(list(measured.values()), dims="n0", coords={"n0": list(measured)},
+                               attrs={"label": "angular frequency ω", "units": ""})
+    frequencies.n0.attrs["long_name"] = "density n₀"
+    scan = frequencies.struphy.plot.against_theory(
+        {"ω_p ∝ √n₀": (n_line, alpha / epsilon * np.sqrt(n_line))}, show_error=False,
+        title="Oscillation frequency against density", backend="plotly",
+    )
     save(scan, "cold-plasma-oscillation-frequency-scan", show=show)
 
 

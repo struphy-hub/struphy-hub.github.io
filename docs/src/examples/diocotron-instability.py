@@ -143,15 +143,12 @@ def pproc(sim: Simulation, show: bool = False):
     # seeded m = 4 mode visible as a measurement rather than just a feature in
     # the animation.
     theta = np.deg2rad(angle_deg)
-    ring = frames_data[:, (radius >= r_minus) & (radius <= r_plus), :]
-    mean_density = np.mean(ring, axis=(1, 2))
-    mode_amplitudes = {
-        m: np.abs(np.mean(ring * np.exp(-1j * m * theta)[None, None, :], axis=(1, 2))) / mean_density
-        for m in range(1, 9)
-    }
+    ring = density.isel(eta1=(radius >= r_minus) & (radius <= r_plus))
+    spectrum = abs(ring.struphy.analysis.mode_spectrum(dims="eta2", names="m").mean("eta1")) / ring.mean(("eta1", "eta2"))
+    mode_amplitudes = {m: spectrum.sel(m=m) for m in range(1, 9)}
     growth_window = (times > 5.0) & (times < 15.0)
-    growth_fit = np.polyfit(times[growth_window], np.log(mode_amplitudes[mode_number][growth_window] + 1e-12), 1)
-    growth_rate = float(growth_fit[0])
+    growth_fit = mode_amplitudes[mode_number].isel(t=growth_window).struphy.analysis.growth_rate()
+    growth_rate = growth_fit.rate
     print(f"Measured m = {mode_number} growth rate: {growth_rate:.4f}")
 
     # Keep the high-resolution movie responsive by using evenly spaced frames
@@ -214,15 +211,15 @@ def pproc(sim: Simulation, show: bool = False):
     for m, amplitude in mode_amplitudes.items():
         mode_figure.add_trace(go.Scatter(
             x=times,
-            y=amplitude + 1e-12,
+            y=amplitude.values + 1e-12,
             mode="lines",
             name=f"m = {m}",
             line={"width": 3 if m == mode_number else 1.2, "color": "#168aad" if m == mode_number else None},
             opacity=1.0 if m == mode_number else 0.55,
         ))
     mode_figure.add_trace(go.Scatter(
-        x=times[growth_window],
-        y=np.exp(growth_fit[1] + growth_rate * times[growth_window]),
+        x=growth_fit.time,
+        y=growth_fit.fitted,
         mode="lines",
         name=f"m = {mode_number} exponential fit",
         line={"dash": "dash", "color": "#f08a4b", "width": 2},

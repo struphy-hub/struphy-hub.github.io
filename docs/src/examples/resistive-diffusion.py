@@ -92,9 +92,10 @@ def field_profile(run):
     return b_z.t.values, b_z.eta1.values * length, b_z.values
 
 
-def mode_amplitude(x, values):
-    """Amplitude of the sin(k x) mode, from the periodic grid points (the last repeats the first)."""
-    return 2.0 * np.mean(values[:, :-1] * np.sin(wavenumber * x[:-1]), axis=1)
+def mode_amplitude(run):
+    """Amplitude of the sin(k x) mode of B_z over time, from a post-processed run."""
+    b_z = run.evaluate("em_fields/b_field_xyz").isel(component=2, eta2=0, eta3=0)
+    return b_z.struphy.analysis.project_mode(dim="eta1", number=mode_number)
 
 
 def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
@@ -130,9 +131,9 @@ def pproc(sim: Simulation, show: bool = False):
 
     amplitudes, fitted = {}, {}
     for eta, run in runs.items():
-        times, x, values = field_profile(run)
-        amplitudes[eta] = mode_amplitude(x, values)
-        fitted[eta] = float(-np.polyfit(times, np.log(np.abs(amplitudes[eta])), 1)[0])
+        amplitudes[eta] = abs(mode_amplitude(run))
+        amplitudes[eta].attrs = {"label": f"η = {eta}: Struphy"}
+        fitted[eta] = -amplitudes[eta].struphy.analysis.growth_rate().rate
     exact_rate = {eta: eta * wavenumber**2 for eta in runs}
     if not all(np.isfinite(list(fitted.values()))):
         raise RuntimeError("A decay rate could not be fitted")
@@ -146,7 +147,7 @@ def pproc(sim: Simulation, show: bool = False):
     thermal = np.asarray(run.scalars["en_thermo"])
     total = np.asarray(run.scalars["en_tot"])
     scalar_times = np.asarray(run.time)[: len(total)]
-    energy_drift = float(np.max(np.abs(total / total[0] - 1.0)))
+    energy_drift = float(run.scalars["en_tot"].struphy.analysis.relative_error().max())
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")
 
     def profile_traces(index):
@@ -183,18 +184,15 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_yaxes(title_text="energy change / magnetic energy lost", row=2, col=1)
     save(figure, "resistive-diffusion", width=900, height=850, show=show)
 
-    colors = {0.05: "#168aad", 0.1: "#d62828", 0.2: "#f77f00"}
-    decay = go.Figure()
-    for eta, amp in amplitudes.items():
-        decay.add_scatter(x=times, y=np.abs(amp), mode="lines", name=f"η = {eta}: Struphy",
-                          line={"color": colors[eta], "width": 3})
-        decay.add_scatter(x=times, y=amplitude * np.exp(-exact_rate[eta] * times), mode="lines",
-                          name=f"η = {eta}: exp(−η k² t)", line={"color": "#111", "width": 1.5, "dash": "dash"})
-    decay.update_layout(
-        title="Decay of the field amplitude", template="plotly_white", autosize=True,
-        xaxis_title="t", yaxis_title="amplitude of the sin(kx) mode", yaxis_type="log",
-        margin={"l": 75, "r": 30, "t": 80, "b": 60},
+    first, *others = amplitudes.values()
+    decay = first.struphy.plot.timeseries(
+        *others,
+        logy=True,
+        reference={f"η = {eta}: exp(−η k² t)": lambda t, eta=eta: amplitude * np.exp(-exact_rate[eta] * t) for eta in runs},
+        title="Decay of the field amplitude",
+        backend="plotly",
     )
+    decay.fig.update_yaxes(title_text="amplitude of the sin(kx) mode")
     save(decay, "resistive-diffusion-decay", show=show)
 
 

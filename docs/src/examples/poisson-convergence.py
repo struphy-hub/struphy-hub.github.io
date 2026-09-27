@@ -64,16 +64,15 @@ def create_simulation(degree=2, cells=8, alpha=distortion, folder="poisson_conve
     )
 
 
-def potential_error(run, celldivide):
-    """Points and the difference between the computed and the exact potential at the last time.
+def computed_potential(run, celldivide):
+    """The computed potential at the last time, with its physical points X, Y.
 
     The potential is evaluated at `celldivide` points per cell and the endpoints, in the plane eta3 = 0.
     """
     plane = {
         f"eta{i + 1}": np.linspace(0.0, 1.0, cells * celldivide + 1) for i, cells in enumerate(run.grid.num_elements[:2])
     }
-    phi = run.evaluate("em_fields/phi", **plane, eta3=0.0).isel(t=-1)
-    return phi.X.values, phi.Y.values, phi.values, phi.values - exact_potential(phi.X.values, phi.Y.values)
+    return run.evaluate("em_fields/phi", **plane, eta3=0.0).isel(t=-1)
 
 
 def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
@@ -100,6 +99,7 @@ def save(figure, name: str, *, show: bool = False, frame: int | None = None, sti
 def pproc(sim: Simulation, show: bool = False):
     from plotly.subplots import make_subplots
     from scipy.interpolate import griddata
+    from struphy_plots.analysis import convergence_order
 
     errors = {}  # (alpha, degree) -> rms errors against the resolution
     for alpha in (distortion, 0.0):
@@ -109,8 +109,8 @@ def pproc(sim: Simulation, show: bool = False):
                 run = create_simulation(degree, cells, alpha, f"poisson_convergence_p{degree}_n{cells}_a{alpha}").output
                 run.pproc(physical=True)
                 # three sample points per cell, to measure the error inside the cells
-                _, _, _, difference = potential_error(run, celldivide=3)
-                values.append(float(np.sqrt(np.mean(difference**2))))
+                phi = computed_potential(run, celldivide=3)
+                values.append(float(phi.struphy.analysis.error(exact_potential, norm="rms", args=("X", "Y"))))
             errors[(alpha, degree)] = np.array(values)
     if not all(np.isfinite(v).all() for v in errors.values()):
         raise RuntimeError("Non-finite errors")
@@ -118,7 +118,7 @@ def pproc(sim: Simulation, show: bool = False):
     n = np.array(resolutions, dtype=float)  # the mesh width is h = 1 / n
     h = 1.0 / n
     # The slope of the last four resolutions, before the error reaches the level of the solver.
-    slopes = {key: float(np.polyfit(np.log(h[-4:]), np.log(v[-4:]), 1)[0]) for key, v in errors.items()}
+    slopes = {key: convergence_order(h[-4:], v[-4:]).order for key, v in errors.items()}
     for (alpha, degree), slope in slopes.items():
         print(f"alpha = {alpha}, degree {degree}: slope {slope:.2f} (expected {degree + 1}), error at n = {resolutions[-1]}: "
               f"{errors[(alpha, degree)][-1]:.2e}")
@@ -148,7 +148,9 @@ def pproc(sim: Simulation, show: bool = False):
     # The solution and its error on the distorted mesh, at degree 2 and 8 x 12 cells.
     run = create_simulation(2, 8, distortion, "poisson_convergence_map").output
     run.pproc(physical=True)
-    mesh_x, mesh_y, potential, difference = potential_error(run, celldivide=4)
+    phi = computed_potential(run, celldivide=4)
+    mesh_x, mesh_y, potential = phi.X.values, phi.Y.values, phi.values
+    difference = phi.struphy.analysis.error(exact_potential, norm="pointwise", args=("X", "Y")).values
     x_plot, y_plot = np.linspace(0, lx, 100), np.linspace(0, ly, 150)
     xx, yy = np.meshgrid(x_plot, y_plot)
     points = np.column_stack([mesh_x.ravel(), mesh_y.ravel()])

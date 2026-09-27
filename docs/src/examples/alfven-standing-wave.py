@@ -106,12 +106,10 @@ def pproc(sim: Simulation, show: bool = False):
 
     # The exchange period is half the wave period; measure it from the kinetic-energy maxima.
     kinetic_values = kinetic.values
-    peaks = np.flatnonzero(
-        (kinetic_values[1:-1] > kinetic_values[:-2]) & (kinetic_values[1:-1] >= kinetic_values[2:])
-    ) + 1
-    if peaks.size < 3:
+    peak_times = kinetic.struphy.analysis.envelope().t.values
+    if peak_times.size < 3:
         raise RuntimeError("Too few kinetic-energy maxima to measure the exchange period")
-    measured_period = float(np.mean(np.diff(time[peaks])))
+    measured_period = float(np.mean(np.diff(peak_times)))
     period_error = abs(measured_period / (0.5 * period) - 1.0)
     print(f"Measured exchange period: {measured_period:.4f} (exact: {0.5 * period:.4f}, error {period_error:.2%})")
 

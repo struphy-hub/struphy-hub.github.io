@@ -18,6 +18,7 @@ import argparse
 
 import numpy as np
 import plotly.graph_objects as go
+import xarray as xr
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, grids, perturbations
 from struphy.models import Maxwell
@@ -123,25 +124,13 @@ def pproc(sim: Simulation, show: bool = False):
         print(f"modes {modes}: omega = {found:.4f} (exact {omega_exact:.4f})")
     print(f"Maximum relative frequency error: {float(np.max(np.abs(errors))):.3e}")
 
-    figure = go.Figure()
-    figure.add_scatter(x=omega, y=power, mode="lines", name="power spectrum of E_z",
-                       line={"color": "#168aad", "width": 2})
-    for index, (omega_exact, modes) in enumerate(exact):
-        # Annotation heights on a log axis are log10 of the value.
-        label = ", ".join(f"({l}, {m})" for l, m in modes[:2])  # noqa: E741
-        figure.add_vline(x=omega_exact, line={"color": "#d62828", "width": 1.5, "dash": "dash"})
-        figure.add_annotation(x=omega_exact, y=0.25 if index % 2 == 0 else -0.15, yref="y", text=label, showarrow=False,
-                              xanchor="left", xshift=3, font={"size": 11, "color": "#d62828"})
-    figure.add_scatter(x=[None], y=[None], mode="lines", name="exact ω = c|k|, modes (l, m)",
-                       line={"color": "#d62828", "width": 1.5, "dash": "dash"})
-    figure.update_layout(
-        title="Resonances of a rectangular box", template="plotly_white", autosize=True,
-        xaxis_title="ω [a.u.]", yaxis_title="power, normalized (log)", yaxis_type="log",
-        legend={"x": 0.02, "xanchor": "left", "y": 0.6, "bgcolor": "rgba(255,255,255,0.82)"},
-        margin={"l": 75, "r": 30, "t": 80, "b": 60},
+    # The spectrum with the exact resonances as dotted lines, labeled by their modes (l, m).
+    spectrum = xr.DataArray(power, dims="omega", coords={"omega": omega}, name="power")
+    exact_lines = {"exact, (l, m) = " + ", ".join(f"({l}, {m})" for l, m in modes[:2]): omega_exact  # noqa: E741
+                   for omega_exact, modes in exact}
+    figure = spectrum.struphy.plot.power_spectrum(
+        frequencies=exact_lines, omega_max=14.0, title="Resonances of a rectangular box", backend="plotly",
     )
-    figure.update_xaxes(range=[0.0, 14.0])
-    figure.update_yaxes(range=[-8, 0.3])
     save(figure, "maxwell-cavity-resonances", show=show)
 
     error_figure = go.Figure(go.Scatter(

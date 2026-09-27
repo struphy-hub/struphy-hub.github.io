@@ -13,7 +13,6 @@ directory (`--show` shows them first).
 import argparse
 
 import numpy as np
-import plotly.graph_objects as go
 
 from struphy import (
     BinningPlot,
@@ -113,61 +112,28 @@ def pproc(sim: Simulation, show: bool = False):
     output.pproc()
     velocity = output.evaluate("euler_fluid/e1_current_1/f")
     times = np.asarray(velocity.t.values)
-    x = np.asarray(velocity.eta1.values) * length
     values = np.asarray(velocity.values)
     if not np.isfinite(values).all():
         raise RuntimeError("Non-finite SPH velocity: refusing to publish the run")
 
-    # A finite bin records the average of a sine wave, rather than its point value.
-    bin_average = np.sinc(wavenumber * (length / bins) / (2 * np.pi))
-    mode_amplitude = 2 * np.mean(values * np.sin(wavenumber * x), axis=1) / bin_average
+    # The sine amplitude of the mode; a finite bin records the average of a sine wave, rather than its point value.
+    mode_amplitude = velocity.struphy.analysis.project_mode(dim="eta1", number=1, bin_correction=True)
     exact_amplitude = initial_amplitude * np.exp(-exact_decay_rate * times)
-    measured_decay_rate = float(-np.polyfit(times, np.log(np.abs(mode_amplitude)), 1)[0])
-    rms_error = float(np.sqrt(np.mean((mode_amplitude - exact_amplitude) ** 2)))
+    measured_decay_rate = -mode_amplitude.struphy.analysis.growth_rate().rate
+    rms_error = float(mode_amplitude.struphy.analysis.error(exact_amplitude, norm="rms", dims="t"))
     print(
         f"decay rate {measured_decay_rate:.4f} (exact {exact_decay_rate:.4f}); "
         f"amplitude RMS error {rms_error:.4g}"
     )
 
-    dense_x = np.linspace(0.0, length, 301)
-    picks = np.unique(np.linspace(0, len(times) - 1, min(80, len(times)), dtype=int))
-
-    def profile(index):
-        return [
-            go.Scatter(
-                x=dense_x,
-                y=exact_amplitude[index] * np.sin(wavenumber * dense_x),
-                mode="lines",
-                name="exact",
-                line={"color": "#111", "width": 2, "dash": "dash"},
-            ),
-            go.Scatter(
-                x=x,
-                y=values[index],
-                mode="lines+markers",
-                name="SPH",
-                line={"color": "#168aad", "width": 2},
-                marker={"size": 5},
-            ),
-        ]
-
-    figure = go.Figure(data=profile(0))
-    figure.frames = [go.Frame(name=f"{times[i]:.3f}", data=profile(i)) for i in picks]
-    figure.update_layout(
+    # The binned profile against the exact decaying mode, in at most 80 frames.
+    figure = velocity.assign_attrs(label="SPH velocity u").struphy.plot.line_animation(
+        x_of=lambda eta1: length * eta1,
+        reference={"exact": lambda x, t: initial_amplitude * np.exp(-exact_decay_rate * t) * np.sin(wavenumber * x)},
+        ylim=(-1.1 * initial_amplitude, 1.1 * initial_amplitude),
+        step=-(-len(times) // 80),
         title="SPH velocity diffusion: sinusoidal mode against its exact decay",
-        template="plotly_white",
-        xaxis_title="x",
-        yaxis_title="u(x, t)",
-        yaxis={"range": [-1.1 * initial_amplitude, 1.1 * initial_amplitude]},
-        margin={"l": 65, "r": 30, "t": 80, "b": 130},
-        legend={"orientation": "h", "y": 1.1},
-        updatemenus=[{"type": "buttons", "showactive": False, "x": 0, "y": -0.28, "buttons": [
-            {"label": "Play", "method": "animate", "args": [None, {"frame": {"duration": 55, "redraw": False}, "fromcurrent": True}]}
-        ]}],
-        sliders=[{"x": 0.12, "len": 0.88, "y": -0.18, "currentvalue": {"prefix": "t = "}, "steps": [
-            {"args": [[frame.name], {"frame": {"duration": 0, "redraw": False}, "mode": "immediate"}], "label": frame.name, "method": "animate"}
-            for frame in figure.frames
-        ]}],
+        backend="plotly",
     )
     save(figure, "sph-velocity-diffusion", show=show)
 

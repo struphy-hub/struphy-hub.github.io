@@ -90,9 +90,10 @@ def pproc(sim: Simulation, show: bool = False):
     times, x = field.t.values, field.eta1.values * length
     if not np.isfinite(field.values).all() or not np.isfinite(energy.values).all() or not np.isclose(times[-1], time_opts.Tend):
         raise RuntimeError("The ordinary-mode run is incomplete or non-finite")
-    # Drop the repeated endpoint of the periodic spatial evaluation grid.
-    basis = np.cos(wavenumbers[:, None] * x[None, :-1])
-    signals = 2.0 * field.values[:, :-1] @ basis.T / (len(x) - 1)
+    # cos(k x) is mode n along eta1; project_mode drops the repeated periodic endpoint.
+    signals = np.column_stack([
+        field.struphy.analysis.project_mode(dim="eta1", number=n, kind="cos").values for n in mode_numbers
+    ])
     measured = []
     for signal in signals.T:
         crossing = np.flatnonzero(np.diff(np.signbit(signal)))
@@ -104,7 +105,7 @@ def pproc(sim: Simulation, show: bool = False):
     reference = amplitude * np.cos(times[:, None] * frequencies[None, :])
     frequency_error = float(np.max(np.abs(measured / frequencies - 1.0)))
     mode_error = float(np.max(np.abs(signals - reference)) / amplitude)
-    energy_drift = float(np.max(np.abs(energy.values / energy.values[0] - 1.0)))
+    energy_drift = float(energy.struphy.analysis.relative_error().max())
     print(f"Measured frequencies: {np.round(measured, 4).tolist()} (exact: {np.round(frequencies, 4).tolist()})")
     if frequency_error > 0.01 or mode_error > 0.1 or energy_drift > 1e-6:
         raise RuntimeError(f"Ordinary-mode check failed: frequency={frequency_error:.3g}, field={mode_error:.3g}, energy={energy_drift:.3g}")
