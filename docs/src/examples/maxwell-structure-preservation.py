@@ -73,7 +73,7 @@ def create_simulation(label=reference_label) -> Simulation:
 
 
 def pproc(sim: Simulation):
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     runs = {}
     for label in schemes:

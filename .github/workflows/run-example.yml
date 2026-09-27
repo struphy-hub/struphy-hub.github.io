@@ -64,8 +64,10 @@ jobs:
         # pproc submodule for the durations/gantt/flame plot-data export, kaleido for
         # figure.write_image(...)'s static PNG export.
         #
-        # struphy-plots registers the .struphy accessors that the example scripts use. It has
-        # no compiled parts, so it is installed straight from our pinned submodule.
+        # struphy-plots registers the .struphy accessors that the example scripts use, and its
+        # gallery extra brings struphy_plots.gallery, the helpers that write every example's
+        # figures, profiling and metadata. It has no compiled parts, so it is installed straight
+        # from our pinned submodule.
         if: steps.cache-example.outputs.cache-hit != 'true'
         shell: bash
         run: |
@@ -81,7 +83,7 @@ jobs:
           # exists from 0.6.1 onward -- --upgrade forces past struphy's conservative pin
           # to the version this was actually developed and tested against.
           pip install --upgrade "scope-profiler[pproc]>=0.6.1" kaleido
-          pip install "$STRUPHY_PLOTS"
+          pip install "$STRUPHY_PLOTS[gallery]"
 
       - name: Rebuild GVEC for this runner's CPU
         # The published gvec wheel is built with -march=native. GitHub-hosted

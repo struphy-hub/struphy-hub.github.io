@@ -90,7 +90,7 @@ def create_simulation() -> Simulation:
 
 def pproc(sim: Simulation):
     domain = sim.domain
-    from struphy.utils._gallery import (
+    from struphy_plots.gallery import (
         export_profiling,
         merge_metadata,
         save_extra_figure,

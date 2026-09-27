@@ -212,7 +212,7 @@ def create_simulation() -> Simulation:
 def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
 
-    from struphy.utils._gallery import (
+    from struphy_plots.gallery import (
         export_profiling,
         heatmap_figure,
         heatmap_movie,

@@ -27,7 +27,7 @@ Requires Python 3.12. From the repo root:
 ```sh
 python -m venv .venv
 source .venv/bin/activate
-pip install ./submodules/struphy-plots/struphy ./submodules/struphy-plots
+pip install ./submodules/struphy-plots/struphy './submodules/struphy-plots[gallery]'
 ```
 
 ### 3. Generate the site's data

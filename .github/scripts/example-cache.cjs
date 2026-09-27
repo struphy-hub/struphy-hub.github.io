@@ -2,7 +2,7 @@
 async function exampleCache(example, prefix, suffix, glob) {
   const patterns = [
     `docs/src/examples/${example}.py`,
-    'submodules/struphy-plots/struphy/src/struphy/utils/_gallery.py',
+    'submodules/struphy-plots/src/struphy_plots/**/*.py',
     'catalogue_docs.py',
     'generate_examples.py',
     'generate_example_domain.py',

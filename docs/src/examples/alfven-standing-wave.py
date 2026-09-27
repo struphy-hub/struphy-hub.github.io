@@ -69,7 +69,7 @@ def create_simulation() -> Simulation:
 
 
 def pproc(sim: Simulation):
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
     output = sim.output
     output.pproc(physical=True)

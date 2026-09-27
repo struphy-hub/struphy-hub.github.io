@@ -93,7 +93,7 @@ def create_simulation() -> Simulation:
 
 def pproc(sim: Simulation):
     domain = sim.domain
-    from struphy.utils._gallery import (
+    from struphy_plots.gallery import (
         export_profiling,
         heatmap_figure,
         heatmap_movie,
