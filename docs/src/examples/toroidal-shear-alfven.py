@@ -472,7 +472,9 @@ def pproc(sim: Simulation):
     # Check the seeded poloidal modes in the logical radial component, before
     # physical-basis rotation introduces additional geometric harmonics.
     logical_initial = output.evaluate("mhd/velocity").isel(t=0, component=0, eta3=0)
-    logical_initial = logical_initial.isel(eta2=np.flatnonzero(periodic))
+    # The raw FEEC field is evaluated on its own grid (cell centres, without the periodic endpoint of
+    # the post-processed `velocity` above), so drop a duplicate endpoint by this array's coordinate.
+    logical_initial = logical_initial.isel(eta2=np.flatnonzero(logical_initial.eta2.values < 1.0 - 1e-12))
     poloidal_fft = output.analysis.fft(logical_initial, dim="eta2")
     mode_numbers = poloidal_fft.k_eta2.values / (2 * np.pi)
     modal_amplitude = np.sqrt((abs(poloidal_fft) ** 2).mean("eta1")).values
