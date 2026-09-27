@@ -68,7 +68,7 @@ filename.
   and calls that factory without running the simulation, so construction must be possible
   without a compiled Struphy install.
 - Expose `create_simulation() -> Simulation` and `pproc(sim: Simulation)` functions. The
-  entrypoint should accept only the `--pproc` flag: without it, run the hardcoded simulation
+  entrypoint should accept only the `--pproc-only` flag: without it, run the hardcoded simulation
   and then call `pproc`; with it, construct the same simulation and post-process its existing
   output without running time integration. Do not add command-line options for model or run
   parameters.

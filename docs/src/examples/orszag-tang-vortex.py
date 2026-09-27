@@ -162,13 +162,13 @@ def pproc(sim: Simulation):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Run the orszag tang vortex example.")
     argparser.add_argument(
-        "--pproc",
+        "--pproc-only",
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
     args = argparser.parse_args()
 
     simulation = create_simulation()
-    if not args.pproc:
+    if not args.pproc_only:
         simulation.run(profiling_activated=True)
     pproc(simulation)
