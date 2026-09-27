@@ -9,7 +9,7 @@ export interface ExamplePageConfig {
   setupTitle: string;
   plotTitle: string;
   plotAlt: string;
-  /** Alt texts and captions of the additional figures, by key (examples published by run_example.py). */
+  /** The additional figures, `<slug>-<key>.*`, in page order: their alt texts and captions, by key. */
   figures?: Record<string, ExampleFigureText>;
 }
 

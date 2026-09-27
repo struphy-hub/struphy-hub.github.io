@@ -53,7 +53,7 @@ const hasProfiling = Boolean(data.profilingRegionStats);
       </figure>
     )}
 
-    {data.figures && <ExtraFigures figures={data.figures} texts={config.figures} />}
+    {(config.figures || data.figures) && <ExtraFigures {slug} figures={data.figures} texts={config.figures} />}
 
     <section class="explanation" aria-labelledby="setup-title">
       <div>

@@ -2,26 +2,31 @@
 import PlotlyFigure from './PlotlyFigure.astro';
 import type { ExampleFigureText } from '../data/example-config';
 
-// The additional figures of an example: the `figures` list of its metadata. run_example.py writes the
-// files of each; the alt text and caption are in example-config.ts by key (older scripts write them
-// into the metadata themselves, with `save_extra_figure` of struphy_plots.gallery).
+// The additional figures of an example, below its main one. An example saves each as
+// `<slug>-<key>.plotly.json` (and .html, .png); example-config.ts lists the keys, in page order, with
+// their alt texts and captions. Older scripts instead write a `figures` list into their metadata,
+// with `save_extra_figure` of struphy_plots.gallery.
 interface ExampleFigure {
   key: string;
   interactive: string;
   thumbnail: string;
-  alt?: string;
-  caption?: string;
+  alt: string;
+  caption: string;
 }
 
-const { figures: entries = [], texts = {} } = Astro.props as {
+const { slug, figures: listed = [], texts } = Astro.props as {
+  slug: string;
   figures?: ExampleFigure[];
   texts?: Record<string, ExampleFigureText>;
 };
-const figures = entries.map((figure) => ({
-  ...figure,
-  alt: figure.alt ?? texts[figure.key]?.alt ?? '',
-  caption: figure.caption ?? texts[figure.key]?.caption ?? '',
-}));
+const figures: ExampleFigure[] = texts
+  ? Object.entries(texts).map(([key, text]) => ({
+      key,
+      interactive: `/examples/${slug}-${key}.plotly.json`,
+      thumbnail: `/images/examples/${slug}-${key}.png`,
+      ...text,
+    }))
+  : listed;
 const htmlHref = (interactive: string) => interactive.replace(/\.plotly\.json$/, '.html');
 ---
 

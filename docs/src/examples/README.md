@@ -80,28 +80,22 @@ filename.
   Equations render on the example page and inline in gallery/model cards. Ordinary
   text is escaped, so descriptions do not accept raw HTML.
 - Keep the command-line dispatch behind `if __name__ == "__main__":`; simulation setup and
-  post-processing belong in the two functions above. The script must stay runnable on its own,
-  without this repository: its entry point runs the simulation, calls `pproc` and shows the
-  figures (`figure.show()`). See `maxwell-wave.py`.
-- `pproc(sim)` contains only the physics and returns `(figures, results)`, and writes nothing:
-  - `figures`: a dict of Plotly figures by key. The first is the page's main figure; the others
-    are shown below it. Build them with struphy-plots, e.g. `e_x.struphy.plotly.space_time()` or
-    `spectrum.struphy.plotly.dispersion(branches=..., fits=...)`, or with `plotly.graph_objects`
-    for anything struphy-plots does not draw yet. The site renders the Plotly JSON of each with its
-    single shared Plotly runtime.
-  - `results`: a dict of measured values for the page, e.g.
-    `{"measuredPhaseVelocity": 0.9965, "exactPhaseVelocity": 1.0}`.
-- The website's part is `run_example.py`, which `python cli.py run` and CI call: it runs the
-  simulation with profiling, writes each figure as `<script-stem>[-<key>].png`, `.plotly.json` and
-  `.html` in `docs/public/examples/`, exports the profiling data and merges `results` and the
-  `figures` entries into `<script-stem>.metadata.json`.
+  post-processing belong in the two functions above. The script must work on its own, without
+  this repository: `python <script-stem>.py` simulates, post-processes and saves its figures in
+  the current directory, and `--show` shows them first. See `maxwell-wave.py`.
+- `pproc(sim, show=False)` contains only the physics. Build the figures with struphy-plots, e.g.
+  `e_x.struphy.plotly.space_time()` or `spectrum.struphy.plotly.dispersion(branches=..., fits=...)`
+  (or with `plotly.graph_objects` for anything struphy-plots does not draw yet), and save each with
+  `struphy_plots.plotly_plots.save_figure(figure, name)`, which writes `name.html`, `.png` and
+  `.plotly.json`. Name the page's main figure `<script-stem>` and the others `<script-stem>-<key>`.
+- The website's part is `run_example.py`, which `python cli.py run` and CI call: it runs the script
+  in `docs/public/examples/`, profiles its simulation, exports the profiling data into
+  `<script-stem>.metadata.json` and copies the PNGs to `docs/public/images/examples/`.
 - Page texts live in `docs/src/data/example-config.ts`: the main figure's title and alt text, and
-  under `figures` the alt text and caption of each additional figure, by its key.
+  under `figures` each other figure's key, in page order, with its alt text and caption.
 - Analyze with the `Output` of the run (`sim.output`), e.g.
   `sim.output.scalars["electric_energy"].struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True)`;
-  see `weak-landau-damping.py`. `generate_examples.py` (next step) only ever adds or overwrites
-  the *structural* metadata fields (name, description, equations, config summary), never the
-  results.
+  see `weak-landau-damping.py`. Print the measured results; the page shows the figures.
 - Older scripts still save their own output with the helpers of `struphy_plots.gallery`
   (`save_figure`, `save_extra_figure`, `merge_metadata`, `export_profiling`); `run_example.py`
   runs those as they are. Write new scripts in the style above.
@@ -154,9 +148,8 @@ GitHub-hosted runners execute each example with `run_example.py` in a single pro
 For optional local MPI runs: `python cli.py run <example> --mpi 4`, or, from the repository root,
 `mpirun -n 4 python run_example.py <script-stem>`.
 
-- The simulation, `output.pproc(...)` and the analysis run on every rank; `run_example.py` writes
-  the figures and metadata on rank 0 only (as do the `struphy_plots.gallery` helpers of older
-  scripts). A script that prints per-rank output can guard it with `struphy_plots.gallery.is_root()`.
+- The simulation, `output.pproc(...)` and the analysis run on every rank; `save_figure` (and the
+  `struphy_plots.gallery` helpers of older scripts) write on rank 0 only, as does `run_example.py`.
 - The grid must split over the ranks: with four ranks, keep at least a few cells per rank and direction
   (Orszag–Tang uses 32 × 32 × 1, i.e. 16 × 16 cells per rank).
 - Particle results depend on the rank count (each rank draws its own markers), so measured rates move a little.

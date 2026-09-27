@@ -5,7 +5,8 @@ test. It excites a broadband electric field, evolves Maxwell's equations with
 FEEC, and plots the numerical dispersion relation against omega = c k.
 
 Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it shows its figures.
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -35,7 +36,7 @@ def create_simulation() -> Simulation:
     domain = domains.Cuboid(r3=20.0)
     grid = grids.TensorProductGrid(num_elements=(1, 1, 128))
     derham_opts = DerhamOptions(degree=(1, 1, 3))
-    time_opts = Time(dt=0.01, Tend=50.0)
+    time_opts = Time(dt=0.01, Tend=5.0)
 
     # Broadband noise excites several light-wave modes at once.
     model.em_fields.e_field.add_perturbation(
@@ -67,9 +68,10 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    """Measure the speed of light from the (k, omega) spectrum; return the figures and the measured values."""
+def pproc(sim: Simulation, show: bool = False):
+    """Measure the speed of light from the (k, omega) spectrum, and save (and show) the figures."""
     from struphy_plots.analysis import fit_dispersion_branches, power_spectrum
+    from struphy_plots.plotly_plots import save_figure
 
     output = sim.output
     length = sim.domain.params["r3"] - sim.domain.params["l3"]
@@ -85,23 +87,21 @@ def pproc(sim: Simulation):
     # k, i.e. a quarter of its peak power.
     spectrum = power_spectrum(e_x, dim="z")
     branch = fit_dispersion_branches(spectrum, n_branches=1, noise_level=0.5**2, order=10)[0]
-    phase_velocity = float(branch.velocity)
-    print(f"Measured phase velocity: {phase_velocity:.5f} (exact: 1.0)")
+    print(f"Measured phase velocity: {branch.velocity:.5f} (exact: 1.0)")
 
-    figures = {
-        "dispersion": spectrum.struphy.plotly.dispersion(
-            branches={"light wave, c = 1": lambda k: k},
-            fits=[branch],
-            omega_max=float(spectrum.k.max()),
-            title="Maxwell light-wave dispersion",
-        ),
-        # Waves travelling in both directions leave diagonal stripes, whose slope is the wave speed.
-        "space-time": e_x.struphy.plotly.space_time(
-            title="Maxwell light waves: electric field E(z, t)", colorbar_title="E_x"
-        ),
-    }
-    results = {"measuredPhaseVelocity": phase_velocity, "exactPhaseVelocity": 1.0}
-    return figures, results
+    dispersion = spectrum.struphy.plotly.dispersion(
+        branches={"light wave, c = 1": lambda k: k},
+        fits=[branch],
+        omega_max=float(spectrum.k.max()),
+        title="Maxwell light-wave dispersion",
+    )
+    # Waves travelling in both directions leave diagonal stripes, whose slope is the wave speed.
+    space_time = e_x.struphy.plotly.space_time(title="Maxwell light waves: electric field E(z, t)", colorbar_title="E_x")
+
+    for name, figure in (("maxwell-wave", dispersion), ("maxwell-wave-space-time", space_time)):
+        if show:
+            figure.show()
+        save_figure(figure, name)
 
 
 if __name__ == "__main__":
@@ -111,11 +111,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
         simulation.run()
-    figures, _ = pproc(simulation)
-    for figure in figures.values():
-        figure.show()
+    pproc(simulation, show=args.show)
