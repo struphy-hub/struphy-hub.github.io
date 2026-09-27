@@ -11,7 +11,9 @@ total-energy error relative to the initial wave energy, including the pressure
 channel. Finite marker sampling introduces noise; this is a coupling and
 conservation demonstration, not a measurement of a kinetic damping rate.
 
-Requires the repository's pinned Struphy with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -98,12 +100,31 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
     output = sim.output
     output.pproc(physical=True)
@@ -130,14 +151,12 @@ def pproc(sim: Simulation):
     if wave_energy <= 0:
         raise RuntimeError("The initial wave energy must be positive")
     total_error = values["en_tot"] - values["en_tot"][0]
-    relative_drift = float(np.max(np.abs(total_error)) / abs(values["en_tot"][0]))
     wave_scaled_error = float(np.max(np.abs(total_error)) / wave_energy)
     # Require conservation error below 0.1% of the seeded wave energy.
     # Plot the measured error explicitly; the run does not conserve to roundoff.
     if wave_scaled_error > 1e-3:
         raise RuntimeError(f"Total-energy error exceeds 0.1% of the initial wave energy: {wave_scaled_error:.2e}")
-    if is_root():
-        print(f"Maximum total-energy error / initial wave energy: {wave_scaled_error:.2e}")
+    print(f"Maximum total-energy error / initial wave energy: {wave_scaled_error:.2e}")
 
     figure = make_subplots(
         rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.17,
@@ -172,7 +191,7 @@ def pproc(sim: Simulation):
         legend={"orientation": "h", "y": -0.14},
         margin={"l": 85, "r": 35, "t": 100, "b": 130},
     )
-    save_figure(figure, stem, height=800)
+    save(figure, stem, height=800, show=show)
 
     # Animate physical field snapshots with fixed axes so amplitude changes remain visible.
     # Keep the first and last snapshots, with at most 101 frames for a compact download.
@@ -236,36 +255,20 @@ def pproc(sim: Simulation):
             ],
         }],
     )
-    figures = [save_extra_figure(
-        animation, stem, "wave-animation",
-        alt="Animated transverse velocity and magnetic perturbation along the periodic hybrid plasma slab",
-        caption=(
-            "Play or scrub through the wave evolution from t = 0 to 20. The upper panel shows the "
-            "fluid velocity Uₓ and the lower panel the magnetic perturbation Bₓ, with fixed vertical "
-            "scales to show their changing amplitudes as the wave exchanges energy with kinetic ions."
-        ),
-    )]
+    save(animation, f"{stem}-wave-animation", show=show)
 
-    wave = space_time_figure(
-        velocity, space="eta3", title="Transverse fluid velocity with kinetic-ion feedback",
-        colorbar_title="U_x", xaxis_title="z [a.u.]", x_values=velocity.eta3.values * length,
+    wave = velocity.assign_coords(eta3=velocity.eta3.values * length).struphy.plot.slice(
+        x="eta3",
+        y="t",
+        symmetric=True,
+        cmap="RdBu_r",
+        title="Transverse fluid velocity with kinetic-ion feedback",
+        xlabel="z [a.u.]",
+        ylabel="t [a.u.]",
+        colorbar_label="U_x",
+        backend="plotly",
     )
-    figures.append(save_extra_figure(
-        wave, stem, "space-time",
-        alt="Space-time map of the transverse MHD velocity coupled to kinetic ions",
-        caption=(
-            "The initial sinusoidal transverse velocity evolves in a periodic slab along B₀. "
-            "Full-orbit ions feed their current back into the MHD wave; finite marker sampling adds noise."
-        ),
-    ))
-    merge_metadata(
-        stem,
-        relativeTotalEnergyDrift=relative_drift,
-        totalEnergyErrorOverInitialWaveEnergy=wave_scaled_error,
-        initialWaveEnergy=wave_energy,
-        figures=figures,
-        **export_profiling(sim, stem),
-    )
+    save(wave, f"{stem}-space-time", show=show)
 
 
 if __name__ == "__main__":
@@ -275,9 +278,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

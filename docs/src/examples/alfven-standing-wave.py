@@ -70,9 +70,28 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation, show: bool = False):
-    from struphy_plots.plotly_plots import save_figure
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc(physical=True)
 
@@ -115,7 +134,7 @@ def pproc(sim: Simulation, show: bool = False):
         margin={"l": 75, "r": 30, "t": 80, "b": 100},
     )
     figure.update_yaxes(range=[-0.05, 1.15])
-    save_figure(figure, "alfven-standing-wave", show=show)
+    save(figure, "alfven-standing-wave", show=show)
 
     # The velocity along z over time: a standing wave keeps its nodes, so the stripes are vertical,
     # unlike the diagonal stripes of the travelling waves in `shear-alfven-wave`.
@@ -123,14 +142,18 @@ def pproc(sim: Simulation, show: bool = False):
     velocity = output.evaluate(
         "mhd/velocity", eta1=0.0, eta2=0.0, eta3=np.linspace(0.0, 1.0, cells + 1), representation="2"
     ).isel(component=0)
-    space_time = velocity.assign_coords(eta3=velocity.eta3.values * length).struphy.plotly.space_time(
-        space="eta3",
-        xaxis_title="z [a.u.]",
-        yaxis_title="t [a.u.]",
+    space_time = velocity.assign_coords(eta3=velocity.eta3.values * length).struphy.plot.slice(
+        x="eta3",
+        y="t",
+        symmetric=True,
+        cmap="RdBu_r",
         title="Standing Alfvén wave: transverse velocity u(z, t)",
-        colorbar_title="u₁ (logical component)",
+        xlabel="z [a.u.]",
+        ylabel="t [a.u.]",
+        colorbar_label="u₁ (logical component)",
+        backend="plotly",
     )
-    save_figure(space_time, "alfven-standing-wave-space-time", show=show)
+    save(space_time, "alfven-standing-wave-space-time", show=show)
 
 
 if __name__ == "__main__":

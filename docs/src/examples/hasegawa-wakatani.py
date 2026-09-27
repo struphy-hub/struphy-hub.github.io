@@ -9,7 +9,9 @@ The run is deliberately two-dimensional and saves only every fifth step, so
 it remains a manageable gallery calculation while retaining the turbulent
 eddies and the slow reorganization of their energy.
 
-Requires Struphy 3.3 with compiled kernels (``struphy compile``).
+Requires Struphy with compiled kernels (``struphy compile``) and struphy-plots with Plotly
+(``pip install "struphy-plots[plotly]"``). Run as a script, it saves its figures in the current
+directory (``--show`` shows them first).
 """
 
 import argparse
@@ -106,12 +108,31 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     env = sim.env
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
-
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc(celldivide=1)
@@ -189,7 +210,7 @@ def pproc(sim: Simulation):
     for column in (1, 2):
         figure.update_xaxes(title_text="x", range=[0, length], constrain="domain", row=1, col=column)
         figure.update_yaxes(title_text="y", range=[0, length], scaleanchor="x" if column == 1 else "x2", scaleratio=1, row=1, col=column)
-    save_figure(figure, "hasegawa-wakatani", width=1100, height=660)
+    save(figure, "hasegawa-wakatani", width=1100, height=660, show=show)
 
     # E×B kinetic energy is |grad(phi)|²/2.  Averaging phi over y selects
     # ky = 0; its remaining y-directed velocity is the zonal flow.  Spectral
@@ -220,25 +241,9 @@ def pproc(sim: Simulation):
         margin={"l": 80, "r": 30, "t": 80, "b": 60},
         legend={"orientation": "h", "y": 1.1},
     )
-    figures = [save_extra_figure(
-        energy_figure,
-        "hasegawa-wakatani",
-        "zonal-energy",
-        alt="Stacked kinetic energy in drift-wave and zonal-flow modes",
-        caption=(
-            "The E×B kinetic energy split by poloidal Fourier mode. The ky = 0 part is the banded "
-            "zonal flow; everything with ky ≠ 0 is assigned to the turbulent drift-wave field."
-        ),
-    )]
-
-    final_zonal_fraction = float(zonal_energy[-1] / total_energy[-1]) if total_energy[-1] else 0.0
-    merge_metadata(
-        "hasegawa-wakatani",
-        finalZonalEnergyFraction=final_zonal_fraction,
-        peakZonalEnergyFraction=float(np.max(zonal_energy / np.maximum(total_energy, np.finfo(float).tiny))),
-        figures=figures,
-        **export_profiling(sim, "hasegawa-wakatani"),
-    )
+    save(energy_figure, "hasegawa-wakatani-zonal-energy", show=show)
+    zonal_fraction = zonal_energy / np.maximum(total_energy, np.finfo(float).tiny)
+    print(f"Zonal-flow share of the kinetic energy: {zonal_fraction[-1]:.3f} at the end, {zonal_fraction.max():.3f} at its peak")
 
 
 if __name__ == "__main__":
@@ -248,9 +253,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

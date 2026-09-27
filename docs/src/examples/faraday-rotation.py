@@ -65,12 +65,31 @@ def create_simulation() -> Simulation:
     return sim
 
 
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
 def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-
-    from struphy_plots.plotly_plots import save_figure
 
     output = sim.output
     output.pproc(physical=True)
@@ -126,7 +145,7 @@ def pproc(sim: Simulation, show: bool = False):
     )
     figure.update_xaxes(title_text="z", row=1, col=2)
     figure.update_yaxes(title_text="polarization angle [degrees]", row=1, col=2)
-    save_figure(figure, stem, height=700, show=show)
+    save(figure, stem, height=700, show=show)
     probes = go.Figure()
     for target in (0.0, length / 4, length / 2):
         j = int(np.argmin(np.abs(z - target)))
@@ -134,7 +153,7 @@ def pproc(sim: Simulation, show: bool = False):
     probes.update_layout(title="Local polarization remains linear", template="plotly_white",
                           xaxis_title="E_x", yaxis_title="E_y", yaxis={"scaleanchor": "x"},
                           margin={"l": 70, "r": 30, "t": 80, "b": 70})
-    save_figure(probes, f"{stem}-polarization", show=show)
+    save(probes, f"{stem}-polarization", show=show)
 
 
 if __name__ == "__main__":
