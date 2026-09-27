@@ -16,7 +16,6 @@ import numpy as np
 import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
-from struphy.diagnostics.diagn_tools import power_spectrum_2d
 from struphy.models import LinearMHD
 
 # The background: B0 = (0, 1, 1), density 0.7 and a plasma beta of 3 (thermal over magnetic pressure).
@@ -80,27 +79,28 @@ def pproc(sim: Simulation):
     output.pproc(physical=True)
 
     disp_params = {"B0x": B0x, "B0y": B0y, "B0z": B0z, "p0": p0, "n0": n0, "gamma": gamma}
-    common = {"slice_at": [0, 0, None], "physical": True, "do_plot": False, "extr_order": 10}
-    omega_u, k_u, spectrum_u, fit_u = power_spectrum_2d(
-        output.fields.mhd.velocity,
-        component=0,
-        fit_branches=1,
-        noise_level=0.5,
-        fit_degree=(1,),
-        **common,
-    )
-    omega_p, k_p, spectrum_p, fit_p = power_spectrum_2d(
-        output.fields.mhd.pressure,
-        component=0,
-        fit_branches=2,
-        noise_level=0.4,
-        fit_degree=(1, 1),
-        **common,
-    )
+    from struphy_plots.analysis import fit_dispersion_branches, power_spectrum
+
+    length = output.domain.params["r3"] - output.domain.params["l3"]
+
+    def spectrum_along_z(field, n_branches, noise_level):
+        """omega >= 0, k >= 0, the Fourier amplitude of a field along z, and fits of its straight branches.
+
+        Peaks count above `noise_level` times the column's peak amplitude, i.e. its square times the peak power.
+        """
+        line = field.isel(eta1=0, eta2=0)
+        line = line.isel(component=0) if "component" in line.dims else line
+        spectrum = power_spectrum(line.assign_coords(eta3=line.eta3 * length), dim="eta3")  # physical z
+        fits = fit_dispersion_branches(spectrum, n_branches=n_branches, noise_level=noise_level**2, order=10)
+        quadrant = spectrum.sel(omega=spectrum.omega >= 0, k=spectrum.k >= 0)
+        return quadrant.omega.values, quadrant.k.values, np.sqrt(quadrant.values), fits
+
+    omega_u, k_u, spectrum_u, fit_u = spectrum_along_z(output.fields.mhd.velocity, 1, 0.5)
+    omega_p, k_p, spectrum_p, fit_p = spectrum_along_z(output.fields.mhd.pressure, 2, 0.4)
     measured_speeds = {
-        "alfven": float(fit_u[0][0]),
-        "slow": float(fit_p[0][0]),
-        "fast": float(fit_p[1][0]),
+        "alfven": float(fit_u[0].velocity),
+        "slow": float(fit_p[0].velocity),
+        "fast": float(fit_p[1].velocity),
     }
     for branch, exact in exact_speeds.items():
         print(f"{branch}: measured {measured_speeds[branch]:.4f}, exact {exact:.4f}")

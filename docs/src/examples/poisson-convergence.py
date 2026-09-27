@@ -64,7 +64,7 @@ def create_simulation(degree=2, cells=8, alpha=distortion, folder="poisson_conve
 
 def potential_error(run):
     """Points and the difference between the computed and the exact potential at the last time, from a post-processed run."""
-    phi = run.evaluate("em_fields/phi").isel(t=-1, e3=0)
+    phi = run.evaluate("em_fields/phi").isel(t=-1, eta3=0)
     return phi.X.values, phi.Y.values, phi.values, phi.values - exact_potential(phi.X.values, phi.Y.values)
 
 

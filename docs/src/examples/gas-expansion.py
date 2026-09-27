@@ -117,11 +117,11 @@ def pproc(sim: Simulation):
     output = sim.output
     output.pproc()
 
-    density = output.evaluate("euler_fluid/view_0/n").isel(e2=0, e3=0)  # (t, e1): the SPH density estimate
-    orbits = output.evaluate("euler_fluid")  # (t, marker, quantity)
+    density = output.evaluate("euler_fluid/view_0/n").isel(eta2=0, eta3=0)  # (t, e1): the SPH density estimate
+    orbits = output.evaluate("euler_fluid").to_dataarray("quantity").transpose("t", "marker", "quantity")  # (t, marker, quantity)
     times = orbits.t.values
     assert np.allclose(times, density.t.values)
-    grid = density.e1.values * box_length
+    grid = density.eta1.values * box_length
     marker_position = orbits.sel(quantity="x").values  # (t, marker)
     marker_velocity = orbits.sel(quantity="v1").values
 

@@ -54,9 +54,9 @@ def envelope(z):
 
 def packet_energy(run):
     """Time, position and the transverse electric energy density |E_perp|^2(t, z) of a post-processed run."""
-    e_field = run.evaluate("em_fields/e_field_xyz").isel(e1=0, e2=0)
+    e_field = run.evaluate("em_fields/e_field_xyz").isel(eta1=0, eta2=0)
     density = e_field.isel(component=0).values ** 2 + e_field.isel(component=1).values ** 2
-    return e_field.t.values, e_field.e3.values * length, density
+    return e_field.t.values, e_field.eta3.values * length, density
 
 
 def create_simulation() -> Simulation:

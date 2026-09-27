@@ -71,9 +71,9 @@ def pproc(sim: Simulation):
 
     output = sim.output
     output.pproc(physical=True)
-    field = output.evaluate("em_fields/e_field_xyz").isel(e1=0, e2=0)
+    field = output.evaluate("em_fields/e_field_xyz").isel(eta1=0, eta2=0)
     ex, ey = (field.isel(component=i).values for i in (0, 1))
-    times, z = field.t.values, field.e3.values * length
+    times, z = field.t.values, field.eta3.values * length
     energy = output.evaluate("total_energy")
     if not all(np.isfinite(a).all() for a in (ex, ey, energy.values)) or not np.isclose(times[-1], time_opts.Tend):
         raise RuntimeError("The Faraday run is incomplete or non-finite")

@@ -153,11 +153,11 @@ def pproc(sim: Simulation):
 
     # The electric field along x, over time.
     output.pproc()
-    electric_field = output.evaluate("em_fields/e_field").isel(component=0, e2=0, e3=0)  # (t, e1)
+    electric_field = output.evaluate("em_fields/e_field").isel(component=0, eta2=0, eta3=0)  # (t, e1)
     space_time = space_time_figure(
         electric_field,
-        space="e1",
-        x_values=electric_field.e1.values * domain.params["r1"],
+        space="eta1",
+        x_values=electric_field.eta1.values * domain.params["r1"],
         title="Weak Landau damping: electric field E(x, t)",
         colorbar_title="E_x",
     )

@@ -155,9 +155,9 @@ def pproc(sim: Simulation):
     # The x-v phase space as a movie.
     phase_space, phase_static = heatmap_movie(
         f,
-        x="e1",
+        x="eta1",
         y="v1",
-        x_values=f.e1.values * length,
+        x_values=f.eta1.values * length,
         title="Bump-on-tail instability: phase-space density f(x, v)",
         xaxis_title="x [a.u.]",
         yaxis_title="v [a.u.]",

@@ -79,7 +79,7 @@ def pproc(sim: Simulation):
     output.pproc()
 
     # (time, marker, [x, y, z, v1, v2, v3, weight, id]), physical coordinates.
-    orbits = np.asarray(output.orbits.kinetic_ions)
+    orbits = np.asarray(output.orbits.kinetic_ions.to_dataarray("quantity").transpose("t", "marker", "quantity"))
     n_markers = orbits.shape[1]
     times = np.arange(orbits.shape[0]) * time_opts.Tend / (orbits.shape[0] - 1)
     z0 = float(orbits[0, 0, 2])

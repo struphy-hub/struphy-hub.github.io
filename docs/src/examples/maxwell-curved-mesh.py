@@ -82,10 +82,10 @@ def pproc(sim: Simulation):
     output = sim.output
     output.pproc(physical=True)
 
-    e_z = output.evaluate("em_fields/e_field_xyz").isel(component=2, e3=0)  # (t, e1, e2), on the mesh points
+    e_z = output.evaluate("em_fields/e_field_xyz").isel(component=2, eta3=0)  # (t, e1, e2), on the mesh points
     times = e_z.t.values
     mesh_x, mesh_y = e_z.X.values, e_z.Y.values
-    numeric = e_z.transpose("t", "e1", "e2").values
+    numeric = e_z.transpose("t", "eta1", "eta2").values
     exact = np.array([exact_field(mesh_x, mesh_y, t) for t in times])
     scale = float(np.abs(exact[0]).max())
     error = np.sqrt(np.mean((numeric - exact) ** 2, axis=(1, 2))) / np.sqrt(np.mean(exact[0] ** 2))

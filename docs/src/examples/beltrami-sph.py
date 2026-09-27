@@ -143,13 +143,13 @@ def pproc(sim: Simulation):
     output = sim.output
     output.pproc()
 
-    orbits = output.evaluate("cold_fluid")
-    rho = output.evaluate("cold_fluid/view_0/n").isel(e3=0)
+    orbits = output.evaluate("cold_fluid").to_dataarray("quantity").transpose("t", "marker", "quantity")
+    rho = output.evaluate("cold_fluid/view_0/n").isel(eta3=0)
     times = np.asarray(orbits.t.values)
     x, y, z = (np.asarray(orbits.sel(quantity=name).values) for name in ("x", "y", "z"))
     v1, v2, v3 = (np.asarray(orbits.sel(quantity=name).values) for name in ("v1", "v2", "v3"))
     values = np.stack((x, y, z, v1, v2, v3), axis=-1)
-    rho_values = np.asarray(rho.transpose("t", "e2", "e1").values)
+    rho_values = np.asarray(rho.transpose("t", "eta2", "eta1").values)
     if not (np.isfinite(values).all() and np.isfinite(rho_values).all()):
         raise RuntimeError("Non-finite Beltrami result: refusing to publish the run")
     if not np.isclose(times[-1], sim.time_opts.Tend):
@@ -347,8 +347,8 @@ def pproc(sim: Simulation):
 
     # The kernel reconstruction shows the simulated mass density independently of the marker view.
     # The exact divergence-free Beltrami transport preserves the initially uniform rho = 1.
-    density_x = box_min + (box_max - box_min) * np.asarray(rho.e1.values)
-    density_y = box_min + (box_max - box_min) * np.asarray(rho.e2.values)
+    density_x = box_min + (box_max - box_min) * np.asarray(rho.eta1.values)
+    density_y = box_min + (box_max - box_min) * np.asarray(rho.eta2.values)
     density_min = float(np.min(rho_values))
     density_max = float(np.max(rho_values))
     max_density_deviation = float(np.max(np.abs(rho_values - 1.0)))

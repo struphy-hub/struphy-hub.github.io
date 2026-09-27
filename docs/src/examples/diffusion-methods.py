@@ -114,7 +114,7 @@ def pproc(sim: Simulation):
     # The binned marker density of each method, (t, e1), and the exact solution on the same bins.
     density = {name: run.evaluate("hydrogen/e1_density/f") for name, run in runs.items()}
     times = density["Random walk"].t.values
-    x = density["Random walk"].e1.values
+    x = density["Random walk"].eta1.values
     exact_amplitude = amplitude * np.exp(-decay_rate * times)
     profile_exact = 1.0 + exact_amplitude[:, None] * np.cos(wavenumber * x)
 

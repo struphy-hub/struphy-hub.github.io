@@ -128,12 +128,12 @@ def pproc(sim: Simulation):
     rr = np.hypot(xx, yy)
     eta_r = (rr - a1) / (a2 - a1)
     eta_theta = np.mod(np.arctan2(yy, xx) / (2 * np.pi), 1.0)
-    ir = (eta_r - float(density.e1[0])) / float(density.e1[1] - density.e1[0])
-    itheta = (eta_theta - float(density.e2[0])) / float(density.e2[1] - density.e2[0]) + 1
+    ir = (eta_r - float(density.eta1[0])) / float(density.eta1[1] - density.eta1[0])
+    itheta = (eta_theta - float(density.eta2[0])) / float(density.eta2[1] - density.eta2[0]) + 1
     picks = np.unique(np.linspace(0, len(times) - 1, min(100, len(times)), dtype=int))
     images = []
     for index in picks:
-        bins = density.isel(t=index).transpose("e1", "e2").values
+        bins = density.isel(t=index).transpose("eta1", "eta2").values
         padded = np.pad(bins, ((0, 0), (1, 1)), mode="wrap")
         image = map_coordinates(padded, [ir, itheta], order=1, mode="nearest").astype(np.float32)
         image[(rr < a1) | (rr > a2)] = np.nan

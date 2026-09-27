@@ -75,7 +75,7 @@ def pproc(sim: Simulation):
     output.pproc(physical=True)
 
     # E_z at every point of the box, (t, x, y), and its power spectrum over time averaged over the box.
-    e_z = output.evaluate("em_fields/e_field_xyz").isel(component=2, e3=0)
+    e_z = output.evaluate("em_fields/e_field_xyz").isel(component=2, eta3=0)
     field = np.asarray(e_z.transpose("t", ...).values)
     field = field.reshape(field.shape[0], -1)
     times = np.asarray(e_z.t.values)

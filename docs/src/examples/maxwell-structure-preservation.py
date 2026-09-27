@@ -118,12 +118,12 @@ def pproc(sim: Simulation):
     profile = go.Figure()
     for label in stable:
         run = runs[label]
-        field = run.evaluate("em_fields/e_field").isel(component=0, e1=0, e2=0, t=-1)
-        z = field.e3.values * length
+        field = run.evaluate("em_fields/e_field").isel(component=0, eta1=0, eta2=0, t=-1)
+        z = field.eta3.values * length
         profile.add_scatter(x=z, y=field.values, mode="lines", name=label,
                             line={"color": colors[label], "width": 2.5})
-    exact_field = runs[reference_label].evaluate("em_fields/e_field").isel(component=0, e1=0, e2=0, t=0)
-    z = exact_field.e3.values * length
+    exact_field = runs[reference_label].evaluate("em_fields/e_field").isel(component=0, eta1=0, eta2=0, t=0)
+    z = exact_field.eta3.values * length
     end_time = periods * 2.0 * np.pi / frequency
     profile.add_scatter(x=z, y=exact_field.values * np.cos(frequency * end_time), mode="markers",
                         name="exact", marker={"color": "#264653", "size": 5, "symbol": "circle-open"})

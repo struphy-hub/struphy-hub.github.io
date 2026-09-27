@@ -93,8 +93,8 @@ def create_simulation(k=0.5, folder="langmuir_wave_dispersion") -> Simulation:
 
 def mode_amplitude(run):
     """Time and the amplitude of the sin(k x) mode of the electric field E_x, from a post-processed run."""
-    e_x = run.evaluate("em_fields/e_field").isel(component=0, e2=0, e3=0)
-    e1 = e_x.e1.values
+    e_x = run.evaluate("em_fields/e_field").isel(component=0, eta2=0, eta3=0)
+    e1 = e_x.eta1.values
     return e_x.t.values, 2.0 * np.mean(e_x.values[:, :-1] * np.sin(2 * np.pi * e1[:-1]), axis=1)
 
 

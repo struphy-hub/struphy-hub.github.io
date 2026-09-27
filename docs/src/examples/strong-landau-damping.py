@@ -99,7 +99,7 @@ def pproc(sim: Simulation):
     # The bounce period of trapped particles shows up as the spacing between
     # local maxima in the field energy, once the initial (linear) damping
     # phase has given way to nonlinear trapping oscillations.
-    maxima_t = np.asarray(output.envelope(field_energy_array).t)
+    maxima_t = np.asarray(field_energy_array.struphy.analysis.envelope().t)
     bounce_period = float(np.mean(np.diff(maxima_t))) if len(maxima_t) > 1 else float("nan")
     print(f"Estimated trapped-particle bounce period: {bounce_period:.2f}")
 

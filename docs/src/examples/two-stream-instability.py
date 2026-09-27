@@ -145,9 +145,9 @@ def pproc(sim: Simulation):
     # ("cat's eye") pattern as the instability traps particles.
     phase_space, phase_static = heatmap_movie(
         f,
-        x="e1",
+        x="eta1",
         y="v1",
-        x_values=f.e1.values * domain.params["r1"],
+        x_values=f.eta1.values * domain.params["r1"],
         title="Two-stream instability: phase-space density f(x, v)",
         xaxis_title="x [a.u.]",
         yaxis_title="v [a.u.]",

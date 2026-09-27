@@ -116,7 +116,7 @@ def pproc(sim: Simulation):
     across = output.evaluate("fluid/e2_current_1/f")  # (t, e2): u_x against y, averaged over x
     along = output.evaluate("fluid/e1_current_1/f")  # (t, e1): u_x against x, averaged over y
     times = across.t.values
-    y, x = across.e2.values * height, along.e1.values
+    y, x = across.eta2.values * height, along.eta1.values
     if not (np.isfinite(across.values).all() and np.isfinite(along.values).all()):
         raise RuntimeError("Non-finite SPH result: refusing to publish the run")
 

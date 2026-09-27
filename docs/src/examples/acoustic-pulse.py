@@ -110,9 +110,9 @@ def pproc(sim: Simulation):
     output = sim.output
     output.pproc(physical=True)
 
-    rho = output.evaluate("fluid/density_xyz").isel(e2=0, e3=0)
+    rho = output.evaluate("fluid/density_xyz").isel(eta2=0, eta3=0)
     times = rho.t.values
-    x = rho.e1.values * length
+    x = rho.eta1.values * length
     density = rho.values
     exact = np.array([exact_density(x, t) for t in times])
     error = float(np.max(np.abs(density - exact)) / amplitude)
@@ -161,7 +161,7 @@ def pproc(sim: Simulation):
 
     density_change = rho.copy(data=density - 1.0)
     space_time = space_time_figure(
-        density_change, space="e1", x_values=x, xaxis_title="x", title="Acoustic pulse: density change ρ − 1",
+        density_change, space="eta1", x_values=x, xaxis_title="x", title="Acoustic pulse: density change ρ − 1",
         colorbar_title="ρ − 1",
     )
     figures = [

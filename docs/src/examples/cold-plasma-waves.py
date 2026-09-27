@@ -15,7 +15,6 @@ import numpy as np
 import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
-from struphy.diagnostics.diagn_tools import power_spectrum_2d
 from struphy.models import ColdPlasma
 
 # Plasma frequency equal to the cyclotron frequency (alpha = 1), and time in units of the inverse
@@ -89,16 +88,16 @@ def pproc(sim: Simulation):
     output = sim.output
     output.pproc(physical=True)
 
-    omega, k, spectrum, _ = power_spectrum_2d(
-        output.fields.em_fields.e_field,
-        component=0,
-        slice_at=[0, 0, None],
-        physical=True,
-        do_plot=False,
-    )
-    omega, k, spectrum = np.asarray(omega), np.asarray(k), np.asarray(spectrum)
-    power = spectrum**2
-    power /= power.max()
+    # The (k, omega) power spectrum of E_x along z, for omega, k >= 0.
+    from struphy_plots.analysis import power_spectrum
+
+    params = output.domain.params
+    e_x = output.fields.em_fields.e_field.isel(component=0, eta1=0, eta2=0)
+    e_x = e_x.assign_coords(eta3=e_x.eta3 * (params["r3"] - params["l3"]))  # physical z
+    spectrum = power_spectrum(e_x, dim="eta3")
+    quadrant = spectrum.sel(omega=spectrum.omega >= 0, k=spectrum.k >= 0)
+    omega, k = quadrant.omega.values, quadrant.k.values
+    power = quadrant.values / float(quadrant.max())
 
     # The analytic branches for propagation along B0.
     k_top, omega_top = 5.0, 4.0

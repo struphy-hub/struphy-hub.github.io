@@ -48,8 +48,8 @@ amplitude = 1e-3
 def physical_radial_component(output, field_xyz):
     """Project Cartesian components onto the local minor-radial unit vector."""
     params = output.domain.params
-    theta = 2 * np.pi * field_xyz.e2
-    phi = -2 * np.pi * field_xyz.e3 / params["tor_period"]
+    theta = 2 * np.pi * field_xyz.eta2
+    phi = -2 * np.pi * field_xyz.eta3 / params["tor_period"]
     fx, fy, fz = (field_xyz.isel(component=c, drop=True) for c in range(3))
     return (fx * np.cos(phi) + fy * np.sin(phi)) * np.cos(theta) + fz * np.sin(theta)
 
@@ -66,23 +66,23 @@ def radial_mode_amplitudes(output, field_xyz, poloidal_modes=(9, 10, 11, 12), se
     # Convert to the rotating radial basis BEFORE transforming in toroidal angle.
     # Cartesian components themselves are not periodic across the sector seam.
     radial = radial.isel({dim: np.flatnonzero(radial[dim].values < 1.0 - 1e-12)
-                          for dim in ("e2", "e3")})
-    coefficients = output.fft(output.fft(radial, dim="e2"), dim="e3")
+                          for dim in ("eta2", "eta3")})
+    coefficients = output.analysis.fft(output.analysis.fft(radial, dim="eta2"), dim="eta3")
     selected = coefficients.sel(
-        k_e2=2 * np.pi * np.asarray(poloidal_modes), k_e3=2 * np.pi * sector_mode,
+        k_eta2=2 * np.pi * np.asarray(poloidal_modes), k_eta3=2 * np.pi * sector_mode,
         method="nearest",
     )
-    if (not np.allclose(selected.k_e2.values / (2 * np.pi), poloidal_modes)
-            or not np.isclose(float(selected.k_e3) / (2 * np.pi), sector_mode)):
+    if (not np.allclose(selected.k_eta2.values / (2 * np.pi), poloidal_modes)
+            or not np.isclose(float(selected.k_eta3) / (2 * np.pi), sector_mode)):
         raise ValueError("Angular sampling does not resolve the requested Fourier modes.")
     amplitude = 2 * abs(selected)  # Conjugate-pair amplitude of a real spatial harmonic.
     if not np.isfinite(amplitude.values).all():
         raise RuntimeError("Non-finite radial Fourier amplitude.")
     peak = float(amplitude.max())
-    normalized = (amplitude / (peak if peak > 0 else 1.0)).rename({"k_e2": "m"})
+    normalized = (amplitude / (peak if peak > 0 else 1.0)).rename({"k_eta2": "m"})
     normalized = normalized.assign_coords(
         m=list(poloidal_modes),
-        radius=params["a1"] + (params["a2"] - params["a1"]) * normalized.e1,
+        radius=params["a1"] + (params["a2"] - params["a1"]) * normalized.eta1,
     ).rename("normalized_fft_amplitude")
     normalized.attrs.update(normalization_amplitude=peak, sector_mode=sector_mode,
                             full_torus_mode=abs(sector_mode * params["tor_period"]),
@@ -99,21 +99,21 @@ def fixed_theta_amplitudes(output, field_xyz, angles=(0.0, 45.0), sector_mode=-1
     radial = physical_radial_component(output, field_xyz)
     # Interpolate the physical radial field only if an angle is off the display
     # grid. The default 0 and 45 degree rays lie exactly on that grid.
-    rays = radial.interp(e2=np.asarray(angles) / 360.0)
-    rays = rays.isel(e3=np.flatnonzero(rays.e3.values < 1.0 - 1e-12))
-    coefficients = output.fft(rays, dim="e3")
-    selected = coefficients.sel(k_e3=2 * np.pi * sector_mode, method="nearest")
-    if not np.isclose(float(selected.k_e3) / (2 * np.pi), sector_mode):
+    rays = radial.interp(eta2=np.asarray(angles) / 360.0)
+    rays = rays.isel(eta3=np.flatnonzero(rays.eta3.values < 1.0 - 1e-12))
+    coefficients = output.analysis.fft(rays, dim="eta3")
+    selected = coefficients.sel(k_eta3=2 * np.pi * sector_mode, method="nearest")
+    if not np.isclose(float(selected.k_eta3) / (2 * np.pi), sector_mode):
         raise ValueError("Toroidal sampling does not resolve the requested Fourier mode.")
     amplitude = 2 * abs(selected)
     if not np.isfinite(amplitude.values).all():
         raise RuntimeError("Non-finite fixed-angle Fourier amplitude.")
     peak = float(amplitude.max())
-    normalized = (amplitude / (peak if peak > 0 else 1.0)).rename({"e2": "theta_degrees"})
+    normalized = (amplitude / (peak if peak > 0 else 1.0)).rename({"eta2": "theta_degrees"})
     params = output.domain.params
     normalized = normalized.assign_coords(
         theta_degrees=list(angles),
-        radius=params["a1"] + (params["a2"] - params["a1"]) * normalized.e1,
+        radius=params["a1"] + (params["a2"] - params["a1"]) * normalized.eta1,
     ).rename("normalized_fft_amplitude")
     normalized.attrs.update(normalization_amplitude=peak, snapshot_time=float(field_xyz.t),
                             full_torus_mode=abs(sector_mode * params["tor_period"]))
@@ -225,7 +225,7 @@ def pproc(sim: Simulation):
     started = perf_counter()
     # More samples improve the display of the spline, not the simulation resolution.
     output.pproc(physical=True, celldivide=(3, 3, 1), create_vtk=False)
-    velocity = output.evaluate("mhd/velocity_xyz").isel(e3=0).transpose("t", "component", "e1", "e2")
+    velocity = output.evaluate("mhd/velocity_xyz").isel(eta3=0).transpose("t", "component", "eta1", "eta2")
     times = velocity.t.values
     if not np.isclose(times[-1], END_TIME):
         raise RuntimeError(f"Run stopped at t={times[-1]}, before requested t={END_TIME}.")
@@ -234,7 +234,7 @@ def pproc(sim: Simulation):
 
     # At phi=0: e_R=e_x, e_phi=e_y, e_Z=e_z. Rotate the Cartesian
     # push-forward into orthonormal minor-radial and poloidal directions.
-    theta = 2 * np.pi * velocity.e2.values
+    theta = 2 * np.pi * velocity.eta2.values
     ux, uy, uz = (velocity.isel(component=c).values for c in range(3))
     components = np.stack((
         ux * np.cos(theta) + uz * np.sin(theta),
@@ -253,9 +253,9 @@ def pproc(sim: Simulation):
     angle = np.mod(np.arctan2(pixel_z, pixel_r), 2 * np.pi) / (2 * np.pi)
     outside = (radius < domain.params["a1"]) | (radius > domain.params["a2"])
     eta1 = (radius - domain.params["a1"]) / (domain.params["a2"] - domain.params["a1"])
-    radial_index = np.interp(eta1, velocity.e1.values, np.arange(velocity.sizes["e1"]))
-    periodic = velocity.e2.values < 1.0 - 1e-12
-    angular_grid = np.append(velocity.e2.values[periodic], 1.0)
+    radial_index = np.interp(eta1, velocity.eta1.values, np.arange(velocity.sizes["eta1"]))
+    periodic = velocity.eta2.values < 1.0 - 1e-12
+    angular_grid = np.append(velocity.eta2.values[periodic], 1.0)
     angular_index = np.interp(angle, angular_grid, np.arange(len(angular_grid)))
 
     def traces(index):
@@ -316,8 +316,8 @@ def pproc(sim: Simulation):
     still = len(frame_indices) // 2
     save_figure(figure, STEM, static_data=traces(frame_indices[still]), static_active=still)
 
-    radial_probe = int(np.abs(velocity.e1.values - 0.5).argmin())
-    probe_radius = domain.params["a1"] + (domain.params["a2"] - domain.params["a1"]) * float(velocity.e1.values[radial_probe])
+    radial_probe = int(np.abs(velocity.eta1.values - 0.5).argmin())
+    probe_radius = domain.params["a1"] + (domain.params["a2"] - domain.params["a1"]) * float(velocity.eta1.values[radial_probe])
     history = make_subplots(rows=1, cols=3, subplot_titles=labels, horizontal_spacing=0.12)
     for component in range(3):
         history.add_trace(go.Heatmap(
@@ -337,7 +337,7 @@ def pproc(sim: Simulation):
     )
 
     # Compare radial rays at theta=0 and theta=45 degrees on the phi=0 plane.
-    radii = domain.params["a1"] + (domain.params["a2"] - domain.params["a1"]) * velocity.e1.values
+    radii = domain.params["a1"] + (domain.params["a2"] - domain.params["a1"]) * velocity.eta1.values
     angle_probes = (
         (int(np.abs(theta - 0.0).argmin()), 0.0, "solid"),
         (int(np.abs(theta - np.pi / 4).argmin()), 45.0, "dash"),
@@ -405,14 +405,14 @@ def pproc(sim: Simulation):
     # transforming a velocity magnitude/energy would change its frequencies.
     # Omit the duplicated poloidal endpoint from spatial sums.
     plane = velocity.copy(data=components).assign_coords(component=list(labels))
-    plane = plane.isel(e2=np.flatnonzero(periodic)).rename("physical_poloidal_velocity")
-    temporal = output.time_fft(plane)
-    band = output.filter_time(plane, dims=("e1", "e2"), pad_bins=0)
+    plane = plane.isel(eta2=np.flatnonzero(periodic)).rename("physical_poloidal_velocity")
+    temporal = output.analysis.time_fft(plane)
+    band = output.analysis.filter_time(plane, dims=("eta1", "eta2"), pad_bins=0)
     positive = temporal.power.isel(omega=slice(1, None))
     omega = positive.omega.values
     frequency_resolution = temporal.attrs["frequency_resolution"]
-    mean_power = positive.mean(("e1", "e2"))
-    radius_power = positive.mean("e2")
+    mean_power = positive.mean(("eta1", "eta2"))
+    radius_power = positive.mean("eta2")
     frequency_plot = make_subplots(rows=1, cols=3, subplot_titles=titles, horizontal_spacing=0.1)
     radius_spectrum = make_subplots(rows=1, cols=3, subplot_titles=labels, horizontal_spacing=0.12)
     filtered_probe = make_subplots(rows=1, cols=3, subplot_titles=labels, horizontal_spacing=0.12)
@@ -430,7 +430,7 @@ def pproc(sim: Simulation):
                 x1=float(selected.omega_hi) + frequency_resolution / 2,
                 fillcolor="#E69F00", opacity=0.2, line_width=0, row=1, col=component + 1,
             )
-        local_power = radius_power.isel(component=component).transpose("omega", "e1").values
+        local_power = radius_power.isel(component=component).transpose("omega", "eta1").values
         log_power = np.log10(np.maximum(local_power / max(float(local_power.max()), 1e-30), 1e-6))
         radius_spectrum.add_trace(go.Heatmap(
             x=radii, y=omega, z=log_power, zmin=-6, zmax=0, colorscale="Magma",
@@ -441,7 +441,7 @@ def pproc(sim: Simulation):
         radius_spectrum.update_yaxes(showticklabels=component == 0, row=1, col=component + 1)
         for field, name, color, dash in ((plane, "Original", "#0072B2", "solid"),
                                          (band.filtered, "Dominant band", "#D55E00", "dash")):
-            probe = field.isel(component=component, e1=radial_probe, e2=angle_probe)
+            probe = field.isel(component=component, eta1=radial_probe, eta2=angle_probe)
             filtered_probe.add_scatter(
                 x=times, y=probe.values, mode="lines+markers", name=name, legendgroup=name,
                 showlegend=component == 0, line={"color": color, "dash": dash}, marker={"size": 4},
@@ -471,11 +471,11 @@ def pproc(sim: Simulation):
 
     # Check the seeded poloidal modes in the logical radial component, before
     # physical-basis rotation introduces additional geometric harmonics.
-    logical_initial = output.evaluate("mhd/velocity").isel(t=0, component=0, e3=0)
-    logical_initial = logical_initial.isel(e2=np.flatnonzero(periodic))
-    poloidal_fft = output.fft(logical_initial, dim="e2")
-    mode_numbers = poloidal_fft.k_e2.values / (2 * np.pi)
-    modal_amplitude = np.sqrt((abs(poloidal_fft) ** 2).mean("e1")).values
+    logical_initial = output.evaluate("mhd/velocity").isel(t=0, component=0, eta3=0)
+    logical_initial = logical_initial.isel(eta2=np.flatnonzero(periodic))
+    poloidal_fft = output.analysis.fft(logical_initial, dim="eta2")
+    mode_numbers = poloidal_fft.k_eta2.values / (2 * np.pi)
+    modal_amplitude = np.sqrt((abs(poloidal_fft) ** 2).mean("eta1")).values
     positive_modes = (mode_numbers > 0) & (mode_numbers <= grid.num_elements[1] // 2)
     mode_plot = go.Figure(go.Scatter(
         x=mode_numbers[positive_modes], y=2 * modal_amplitude[positive_modes], mode="lines+markers",

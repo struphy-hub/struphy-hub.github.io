@@ -117,11 +117,11 @@ def pproc(sim: Simulation):
 
     # The velocity along z over time: a standing wave keeps its nodes, so the stripes are vertical,
     # unlike the diagonal stripes of the travelling waves in `shear-alfven-wave`.
-    velocity = output.evaluate("mhd/velocity").isel(component=0, e1=0, e2=0)
+    velocity = output.evaluate("mhd/velocity").isel(component=0, eta1=0, eta2=0)
     space_time = space_time_figure(
         velocity,
-        space="e3",
-        x_values=velocity.e3.values * length,
+        space="eta3",
+        x_values=velocity.eta3.values * length,
         xaxis_title="z [a.u.]",
         title="Standing Alfvén wave: transverse velocity u(z, t)",
         colorbar_title="u₁ (logical component)",

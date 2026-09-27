@@ -86,8 +86,8 @@ def create_simulation(eta=0.1, folder="resistive_diffusion") -> Simulation:
 
 def field_profile(run):
     """Time, position and B_z(t, x) of a post-processed run."""
-    b_z = run.evaluate("em_fields/b_field_xyz").isel(component=2, e2=0, e3=0)
-    return b_z.t.values, b_z.e1.values * length, b_z.values
+    b_z = run.evaluate("em_fields/b_field_xyz").isel(component=2, eta2=0, eta3=0)
+    return b_z.t.values, b_z.eta1.values * length, b_z.values
 
 
 def mode_amplitude(x, values):

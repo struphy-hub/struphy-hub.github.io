@@ -114,14 +114,14 @@ def pproc(sim: Simulation):
         space_time_figure,
     )
 
-    output = sim.output.process(create_vtk=False)
+    output = sim.output.pproc(create_vtk=False)
 
     # Total magnetic (B3) field energy at each saved time, summed over the grid.
     b_field = output.fields.em_fields.b_field
     times = np.asarray(b_field.t)
-    grid_shape = tuple(b_field.sizes[dim] for dim in ("e1", "e2", "e3"))
+    grid_shape = tuple(b_field.sizes[dim] for dim in ("eta1", "eta2", "eta3"))
     cell_volume = float(np.prod([1.0 / max(n - 1, 1) for n in grid_shape]))
-    magnetic_energy = np.asarray((b_field.isel(component=2) ** 2).sum(("e1", "e2", "e3"))) * cell_volume / 2
+    magnetic_energy = np.asarray((b_field.isel(component=2) ** 2).sum(("eta1", "eta2", "eta3"))) * cell_volume / 2
     time = np.asarray(times)
 
     # Fit the growth rate over the clean exponential window (roughly the
@@ -154,11 +154,11 @@ def pproc(sim: Simulation):
     save_figure(figure, "weibel-instability")
 
     # The magnetic field along x, over time.
-    magnetic_field = b_field.isel(component=2, e2=0, e3=0)  # (t, e1)
+    magnetic_field = b_field.isel(component=2, eta2=0, eta3=0)  # (t, e1)
     space_time = space_time_figure(
         magnetic_field,
-        space="e1",
-        x_values=magnetic_field.e1.values * domain.params["r1"],
+        space="eta1",
+        x_values=magnetic_field.eta1.values * domain.params["r1"],
         title="Weibel instability: magnetic field B₃(x, t)",
         colorbar_title="B₃",
     )
