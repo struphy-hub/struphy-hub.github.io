@@ -1,8 +1,16 @@
+/** Page texts of an additional figure, which the example's `pproc` returns under this key. */
+export interface ExampleFigureText {
+  alt: string;
+  caption: string;
+}
+
 export interface ExamplePageConfig {
   category: string;
   setupTitle: string;
   plotTitle: string;
   plotAlt: string;
+  /** Alt texts and captions of the additional figures, by key (examples published by run_example.py). */
+  figures?: Record<string, ExampleFigureText>;
 }
 
 /** Small, hand-written presentation layer for the generated example results. */
@@ -26,7 +34,15 @@ export const exampleConfig: Record<string, ExamplePageConfig> = {
   'itg-drift-wave': { category: 'Drift-kinetic turbulence', setupTitle: 'Drift waves from a temperature gradient', plotTitle: 'ITG density perturbation energy growth', plotAlt: 'Density perturbation energy growing exponentially as the ITG drift wave develops' },
   'hasegawa-wakatani': { category: 'Drift-wave turbulence', setupTitle: 'Eddies self-organizing into zonal flow', plotTitle: 'Animated vorticity and density in Hasegawa–Wakatani turbulence', plotAlt: 'Vorticity and density eddies evolving in a periodic plasma slab' },
   'maxwell-structure-preservation': { category: 'Numerical methods', setupTitle: 'One wave, three time integrators', plotTitle: 'Energy error of implicit and explicit time integrators', plotAlt: 'Relative energy error against time for Crank-Nicolson, RK4 and Heun time integrators on the same Maxwell wave' },
-  'maxwell-wave': { category: 'Electromagnetic waves', setupTitle: 'A broadband vacuum light wave', plotTitle: 'Power spectrum of the Struphy Maxwell simulation', plotAlt: 'Power spectrum of a simulated Struphy Maxwell simulation' },
+  'maxwell-wave': {
+    category: 'Electromagnetic waves', setupTitle: 'A broadband vacuum light wave', plotTitle: 'Power spectrum of the Struphy Maxwell simulation', plotAlt: 'Power spectrum of a simulated Struphy Maxwell simulation',
+    figures: {
+      'space-time': {
+        alt: 'Space-time map of the electric field of vacuum light waves',
+        caption: 'The electric field of the run above along z, over time. The broadband noise launches waves in both directions, which appear as criss-crossing diagonal stripes; their slope is the wave speed, c = 1 in these units, as measured in the dispersion plot.',
+      },
+    },
+  },
   'orszag-tang-vortex': { category: 'Nonlinear MHD', setupTitle: 'Nonlinear evolution of crossed vortices', plotTitle: 'Density and magnetic field lines in the Orszag–Tang vortex', plotAlt: 'Density and magnetic field lines in the Orszag–Tang vortex' },
   'poisson-source': { category: 'Electrostatics', setupTitle: 'A driven electrostatic potential', plotTitle: 'Poisson potential compared with its exact solution', plotAlt: "Struphy's FEEC Poisson potential closely tracking the exact cosine-mode solution" },
   'resistive-x-point': { category: 'Magnetic reconnection', setupTitle: 'Resistive relaxation of a driven magnetic null', plotTitle: 'Current density and magnetic flux around an X-point', plotAlt: 'Animated out-of-plane current density beneath magnetic flux contours around a central X-point' },

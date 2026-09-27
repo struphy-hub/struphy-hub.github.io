@@ -344,7 +344,8 @@ def run_one(
         [
             *launcher,
             sys.executable,
-            str(SCRIPTS_DIR / f"{stem}.py"),
+            str(ROOT / "run_example.py"),
+            stem,
             *(["--pproc-only"] if postprocess_only else []),
         ],
         OUTPUT_DIR,
