@@ -19,13 +19,14 @@ import numpy as np
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ColdPlasma
 from struphy.linear_algebra.solver import SolverParameters
+from struphy_plots.theory.waves import plasma_light_wave
 
 stem = "ordinary-mode-dispersion"
 length = 8.0 * np.pi
 mode_numbers = (1, 2, 4, 8)
 amplitude = 0.02  # electric-field amplitude per mode
 wavenumbers = 2.0 * np.pi * np.array(mode_numbers) / length
-frequencies = np.sqrt(1.0 + wavenumbers**2)  # c = omega_p = 1
+frequencies = plasma_light_wave(wavenumbers).real  # omega**2 = omega_p**2 + c**2 k**2, c = omega_p = 1
 
 
 def create_simulation() -> Simulation:
@@ -113,7 +114,7 @@ def pproc(sim: Simulation, show: bool = False):
     figure = make_subplots(rows=1, cols=2, horizontal_spacing=0.13,
                            subplot_titles=("Dispersion and cutoff", "Four independently measured modes"))
     k = np.linspace(0, 2.2, 200)
-    figure.add_scatter(x=k, y=np.sqrt(1 + k**2), name="ω² = 1 + k²", line={"color": "#222"}, row=1, col=1)
+    figure.add_scatter(x=k, y=plasma_light_wave(k).real, name="ω² = 1 + k²", line={"color": "#222"}, row=1, col=1)
     figure.add_scatter(x=wavenumbers, y=measured, mode="markers", name="Measured frequencies",
                        marker={"size": 10, "color": "#d62828"}, row=1, col=1)
     figure.add_hrect(y0=0, y1=1, fillcolor="#168aad", opacity=0.08, line_width=0, row=1, col=1)

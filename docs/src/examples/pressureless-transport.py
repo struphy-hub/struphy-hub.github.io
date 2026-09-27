@@ -80,6 +80,7 @@ def save(figure, name: str, *, show: bool = False, frame: int | None = None, sti
 def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
+    from struphy_plots.theory.exact import advected
 
     output = sim.output
     output.pproc(physical=True)
@@ -87,7 +88,7 @@ def pproc(sim: Simulation, show: bool = False):
     velocity = output.evaluate("fluid/velocity_xyz").isel(component=0, eta2=0, eta3=0)
     energy = output.scalars["kinetic_energy"]
     times, x, density = rho.t.values, rho.eta1.values * length, rho.values
-    exact = 1.0 + amplitude * np.cos(x[None, :] - speed * times[:, None])
+    exact = advected(lambda q: 1.0 + amplitude * np.cos(q), x[None, :], times[:, None], speed)
     if not all(np.isfinite(a).all() for a in (density, velocity.values, energy.values)):
         raise RuntimeError("The transport run produced non-finite diagnostics")
     if not np.isclose(times[-1], time_opts.Tend) or np.min(density) <= 0:

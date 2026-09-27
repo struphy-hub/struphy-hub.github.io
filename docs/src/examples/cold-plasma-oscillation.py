@@ -164,12 +164,11 @@ def pproc(sim: Simulation, show: bool = False):
 
     # The frequency against the density, on the line omega = omega_p (drawn from n0 = 0).
     n_line = np.linspace(0.0, max(densities) * 1.05, 100)
-    frequencies = xr.DataArray(list(measured.values()), dims="n0", coords={"n0": list(measured)},
-                               attrs={"label": "angular frequency ω", "units": ""})
-    frequencies.n0.attrs["long_name"] = "density n₀"
+    frequencies = xr.DataArray(list(measured.values()), dims="n0", coords={"n0": list(measured)}, name="Struphy")
     scan = frequencies.struphy.plot.against_theory(
         {"ω_p ∝ √n₀": (n_line, alpha / epsilon * np.sqrt(n_line))}, show_error=False,
-        title="Oscillation frequency against density", backend="plotly",
+        xlabel="density n₀", ylabel="angular frequency ω", title="Oscillation frequency against density",
+        backend="plotly",
     )
     save(scan, "cold-plasma-oscillation-frequency-scan", show=show)
 

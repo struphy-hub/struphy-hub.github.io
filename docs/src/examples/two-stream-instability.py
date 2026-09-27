@@ -14,7 +14,7 @@ directory (`--show` shows them first).
 
 import argparse
 
-import plotly.graph_objects as go
+import numpy as np
 
 from struphy import (
     BinningPlot,
@@ -118,6 +118,8 @@ def save(figure, name: str, *, show: bool = False, frame: int | None = None, sti
 
 
 def pproc(sim: Simulation, show: bool = False):
+    from struphy_plots.theory.kinetic import two_stream
+
     domain = sim.domain
 
     output = sim.output
@@ -127,28 +129,11 @@ def pproc(sim: Simulation, show: bool = False):
     # Fit the exponential growth rate over the clean linear-growth window
     # (before trapping saturates it, roughly t in [5, 25] for this setup).
     growth_rate = field_energy.struphy.analysis.growth_rate(window=(5.0, 25.0), amplitude=True).rate
-    print(f"Measured growth rate: {growth_rate:.4f} (expected: ~0.2845, from the linear dispersion relation)")
+    # The linear kinetic theory of two Maxwellian beams at u = ±3 with v_th = 1, for the box mode k = 2π/L.
+    expected = two_stream(2 * np.pi / domain.params["r1"], beam_speed=3.0, thermal_speed=1.0).imag
+    print(f"Measured growth rate: {growth_rate:.4f} (expected: ~{expected:.4f}, from the linear dispersion relation)")
 
-    figure = go.Figure(
-        data=[
-            go.Scatter(
-                x=field_energy.t.values,
-                y=field_energy.values,
-                mode="lines",
-                name="Struphy (PIC)",
-                line={"color": "#168aad", "width": 3},
-            ),
-        ],
-    )
-    figure.update_layout(
-        title="Two-stream instability: electric field energy",
-        xaxis_title="t [a.u.]",
-        yaxis_title="E² / 2 [a.u.]",
-        yaxis={"type": "log"},
-        template="plotly_white",
-        autosize=True,
-        margin={"l": 70, "r": 30, "t": 80, "b": 60},
-    )
+    figure = field_energy.struphy.plot.timeseries(logy=True, title="Two-stream instability: electric field energy", backend="plotly")
 
     save(figure, "two-stream-instability", show=show)
 

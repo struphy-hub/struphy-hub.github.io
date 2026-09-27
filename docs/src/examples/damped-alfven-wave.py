@@ -94,16 +94,10 @@ def velocity_profile(run):
     return u_y.t.values, u_y.eta1.values * length, u_y.values
 
 
-def mode_amplitude(x, values):
-    """Amplitude of the sin(k x) mode, from the periodic grid points (the last repeats the first)."""
-    return 2.0 * np.mean(values[:, :-1] * np.sin(wavenumber * x[:-1]), axis=1)
-
-
-def envelope_peaks(times, values):
-    """The times and heights of the local maxima of |values|, which follow the decaying envelope."""
-    magnitude = np.abs(values)
-    peaks = np.where((magnitude[1:-1] >= magnitude[:-2]) & (magnitude[1:-1] >= magnitude[2:]))[0] + 1
-    return times[peaks], magnitude[peaks]
+def mode_amplitude(run):
+    """Amplitude of the sin(k x) mode of u_y over time, from a post-processed run."""
+    u_y = run.evaluate("mhd/velocity_xyz").isel(component=1, eta2=0, eta3=0)
+    return u_y.struphy.analysis.project_mode(dim="eta1", number=1)
 
 
 def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
@@ -139,11 +133,11 @@ def pproc(sim: Simulation, show: bool = False):
 
     amplitudes, fitted, measured_frequency = {}, {}, {}
     for eta, run in runs.items():
-        times, x, values = velocity_profile(run)
-        amplitudes[eta] = mode_amplitude(x, values)
-        peak_times, peak_values = envelope_peaks(times, amplitudes[eta])
-        fitted[eta] = float(-np.polyfit(peak_times, np.log(peak_values), 1)[0])
-        crossings = np.where(np.diff(np.sign(amplitudes[eta])) != 0)[0]
+        amplitudes[eta] = mode_amplitude(run)
+        # The local maxima of |amplitude| follow the decaying envelope.
+        fitted[eta] = -abs(amplitudes[eta]).struphy.analysis.damping_rate().rate
+        times = amplitudes[eta].t.values
+        crossings = np.where(np.diff(np.sign(amplitudes[eta].values)) != 0)[0]
         measured_frequency[eta] = float(np.pi / np.mean(np.diff(times[crossings])))
     exact_rate = {eta: eta * wavenumber**2 / 2 for eta in runs}
     if not all(np.isfinite(list(fitted.values()) + list(measured_frequency.values()))):
@@ -156,8 +150,7 @@ def pproc(sim: Simulation, show: bool = False):
     run = runs[eta_main]
     times, x, values = velocity_profile(run)
     gamma = exact_rate[eta_main]
-    total = np.asarray(run.scalars["en_tot"])
-    energy_drift = float(np.max(np.abs(total / total[0] - 1.0)))
+    energy_drift = float(run.scalars["en_tot"].struphy.analysis.relative_error().max())
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")
 
     def profile_traces(index):
@@ -173,7 +166,7 @@ def pproc(sim: Simulation, show: bool = False):
                            subplot_titles=("Transverse velocity u_y along the field", "Amplitude of the mode"))
     for trace in profile_traces(0):
         figure.add_trace(trace, row=1, col=1)
-    figure.add_scatter(x=times, y=amplitudes[eta_main], mode="lines", name="amplitude", showlegend=False,
+    figure.add_scatter(x=times, y=amplitudes[eta_main].values, mode="lines", name="amplitude", showlegend=False,
                        line={"color": "#d62828", "width": 2}, row=2, col=1)
     for sign in (1, -1):
         figure.add_scatter(x=times, y=sign * amplitude * np.exp(-gamma * times), mode="lines", showlegend=False,
@@ -196,8 +189,8 @@ def pproc(sim: Simulation, show: bool = False):
     colors = {0.05: "#168aad", 0.1: "#d62828", 0.2: "#f77f00"}
     decay = go.Figure()
     for eta, amp in amplitudes.items():
-        peak_times, peak_values = envelope_peaks(times, amp)
-        decay.add_scatter(x=peak_times, y=peak_values, mode="markers", name=f"η = {eta}: peaks of Struphy",
+        peaks = abs(amp).struphy.analysis.envelope()
+        decay.add_scatter(x=peaks.t.values, y=peaks.values, mode="markers", name=f"η = {eta}: peaks of Struphy",
                           marker={"color": colors[eta], "size": 9})
         decay.add_scatter(x=times, y=amplitude * np.exp(-exact_rate[eta] * times), mode="lines",
                           name=f"η = {eta}: exp(−η k² t / 2)", line={"color": colors[eta], "width": 1.5, "dash": "dash"})

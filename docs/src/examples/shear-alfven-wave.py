@@ -122,6 +122,7 @@ def pproc(sim: Simulation, show: bool = False):
         branches={"Alfvén wave, v_A = 1": lambda k: k},
         fits=[branch],
         dynamic_range=15,
+        cmap="plasma",
         omega_max=float(spectrum.k.max()),
         title="Shear-Alfvén wave dispersion",
         backend="plotly",

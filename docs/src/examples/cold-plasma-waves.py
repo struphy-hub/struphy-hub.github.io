@@ -14,7 +14,6 @@ directory (`--show` shows them first).
 import argparse
 
 import numpy as np
-import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ColdPlasma
@@ -151,6 +150,7 @@ def pproc(sim: Simulation, show: bool = False):
         kmax=k_top,
         omega_max=omega_top,
         dynamic_range=8,
+        cmap="plasma",
         branches={label: (k_fine, branch_curves[name]) for name, label in labels.items()},
         frequencies={"Ω_c": 1.0, "ω_R cutoff": omega_R, "ω_L cutoff": omega_L},
         title="Cold-plasma waves along B₀: power spectrum of E_x",
@@ -160,23 +160,11 @@ def pproc(sim: Simulation, show: bool = False):
 
     # Energy channels: the noise starts purely electric, then shares its energy with the magnetic field
     # and the electron current, while the sum stays constant.
-    channels = {
-        "electric_energy": ("electric", "#168aad"),
-        "magnetic_energy": ("magnetic", "#d62828"),
-        "kinetic_energy": ("electron current", "#f4a261"),
-        "total_energy": ("total", "#264653"),
-    }
-    energies = {name: output.scalars[name] for name in channels}
-    relative_drift = float(energies["total_energy"].struphy.analysis.relative_error().max())
+    energies = [output.scalars[name] for name in ("electric_energy", "magnetic_energy", "kinetic_energy", "total_energy")]
+    relative_drift = float(energies[-1].struphy.analysis.relative_error().max())
     print(f"Maximum relative drift of the total energy: {relative_drift:.2e}")
-    energy_figure = go.Figure()
-    for name, (label, color) in channels.items():
-        energy_figure.add_scatter(x=energies[name].t.values, y=energies[name].values, mode="lines", name=label,
-                                  line={"color": color, "width": 3 if name == "total_energy" else 2})
-    energy_figure.update_layout(
-        title="Energy channels of the cold plasma", xaxis_title="t Ω_c", yaxis_title="energy [a.u.]",
-        template="plotly_white", autosize=True, legend={"orientation": "h", "y": -0.2},
-        margin={"l": 75, "r": 30, "t": 80, "b": 100},
+    energy_figure = energies[0].struphy.plot.timeseries(
+        *energies[1:], logy=False, title="Energy channels of the cold plasma", backend="plotly"
     )
     save(energy_figure, "cold-plasma-waves-energy", show=show)
 
