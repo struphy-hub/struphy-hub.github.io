@@ -8,9 +8,7 @@ follows the free surface with markers alone, without a grid.
 
 Adapted from Struphy's tutorial (tutorials/tutorial_dam_break_sph.ipynb).
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
-directory (`--show` shows them first).
+Requires Struphy 3.2 with compiled kernels (`struphy compile`).
 """
 
 import argparse
@@ -107,28 +105,9 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+def pproc(sim: Simulation):
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
-def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc()
 
@@ -154,8 +133,8 @@ def pproc(sim: Simulation, show: bool = False):
     density_limit = float(density.max())
 
     def frame_traces(index, webgl=True):
-        # In an animation, plotly.js 3.7 stops drawing a heatmap that shares the figure with SVG scatter
-        # frames, so the markers of the interactive figure are drawn with WebGL.
+        # The interactive figure draws its many markers with WebGL, which is faster; the still image
+        # draws them as SVG.
         markers = go.Scattergl if webgl else go.Scatter
         return [
             markers(
@@ -238,12 +217,11 @@ def pproc(sim: Simulation, show: bool = False):
         ],
     )
 
-    # The still image shows the collapse under way (t = 0.5) rather than the initial column, with
-    # the markers drawn as SVG.
+    # The still image shows the collapse under way (t = 0.5) rather than the initial column.
     still_index = int(np.argmin(abs(times - 0.5)))
-    still = go.Figure(data=frame_traces(still_index, webgl=False), layout=figure.layout)
-    still.layout.sliders[0].active = still_index
-    save(figure, "dam-break", height=750, still=still, show=show)
+    save_figure(
+        figure, "dam-break", height=750, static_data=frame_traces(still_index, webgl=False), static_active=still_index
+    )
 
     trajectory = go.Figure()
     trajectory.add_scatter(
@@ -269,7 +247,32 @@ def pproc(sim: Simulation, show: bool = False):
         legend={"x": 0.98, "y": 0.5, "xanchor": "right", "bgcolor": "rgba(255,255,255,0.82)"},
         margin={"l": 70, "r": 30, "t": 80, "b": 60},
     )
-    save(trajectory, "dam-break-front", show=show)
+    figures = [
+        save_extra_figure(
+            trajectory,
+            "dam-break",
+            "front",
+            alt="Position of the fluid front and height of the centre of mass over time",
+            caption=(
+                f"The front of the fluid (the largest marker x) and the height of its centre of mass. The front "
+                f"reaches the far wall at t ≈ {arrival_time:.2f} and stays there. The centre of mass falls from 0.5 "
+                "to about 0.15 by t ≈ 0.4, close to the free-fall time of 0.32, rises slightly as the fluid rebounds, "
+                "and then settles slowly towards a layer at the bottom."
+            ),
+        ),
+    ]
+
+    profiling = export_profiling(sim, "dam-break")
+
+    merge_metadata(
+        "dam-break",
+        arrivalTime=arrival_time,
+        markers=int(x.sizes["marker"]),
+        markersInBox=in_box,
+        kernel="Gaussian, 2D",
+        figures=figures,
+        **profiling,
+    )
 
 
 if __name__ == "__main__":
@@ -279,10 +282,9 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
-    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run()
-    pproc(simulation, show=args.show)
+        simulation.run(profiling_activated=True)
+    pproc(simulation)
