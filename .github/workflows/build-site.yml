@@ -28,7 +28,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
       - name: Install cache client
         run: npm install --prefix "$RUNNER_TEMP/example-cache" --no-audit --no-fund --ignore-scripts @actions/cache@4.0.5
@@ -89,7 +89,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v5
