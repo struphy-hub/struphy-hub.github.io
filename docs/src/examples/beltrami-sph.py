@@ -144,7 +144,7 @@ def pproc(sim: Simulation):
     output.pproc()
 
     orbits = output.orbits.cold_fluid.to_dataarray("quantity").transpose("t", "marker", "quantity")
-    rho = output.evaluate("cold_fluid/view_0/n").isel(eta3=0)
+    rho = output.evaluate("cold_fluid/view_0/n", eta3=0)
     times = np.asarray(orbits.t.values)
     x, y, z = (np.asarray(orbits.sel(quantity=name).values) for name in ("x", "y", "z"))
     v1, v2, v3 = (np.asarray(orbits.sel(quantity=name).values) for name in ("v1", "v2", "v3"))

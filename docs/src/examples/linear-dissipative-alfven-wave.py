@@ -66,7 +66,7 @@ def pproc(sim: Simulation):
     output.pproc(physical=True)
     velocity = output.evaluate("mhd/velocity_xyz").isel(component=0, eta1=0, eta2=0)
     magnetic = output.evaluate("em_fields/b_field_xyz").isel(component=0, eta1=0, eta2=0)
-    kinetic = output.evaluate("en_U")
+    kinetic = output.scalars["en_U"]
     magnetic_energy = output.scalars["en_mag_1"]
     times, z = velocity.t.values, velocity.eta3.values * length
     if not all(np.isfinite(a.values).all() for a in (velocity, magnetic, kinetic, magnetic_energy)):

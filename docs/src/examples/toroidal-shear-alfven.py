@@ -129,7 +129,7 @@ def save_fixed_theta_fft_figures(output):
         ("mhd/velocity_xyz", "u_r", "fixed-theta-fft-velocity"),
         ("em_fields/b_field_xyz", "δB_r", "fixed-theta-fft-magnetic"),
     ):
-        profiles = fixed_theta_amplitudes(output, output.evaluate(field_name, isel={"t": -1}))
+        profiles = fixed_theta_amplitudes(output, output.evaluate(field_name).isel(t=-1))
         time = profiles.attrs["snapshot_time"]
         toroidal_mode = profiles.attrs["full_torus_mode"]
         figure = go.Figure()
@@ -497,7 +497,7 @@ def pproc(sim: Simulation):
         ("mhd/velocity_xyz", "u_r", "radial-fft-velocity"),
         ("em_fields/b_field_xyz", "δB_r", "radial-fft-magnetic"),
     ):
-        snapshot = output.evaluate(field_name, isel={"t": -1})
+        snapshot = output.evaluate(field_name).isel(t=-1)
         profiles = radial_mode_amplitudes(output, snapshot)
         snapshot_time = profiles.attrs["snapshot_time"]
         toroidal_mode = profiles.attrs["full_torus_mode"]
@@ -532,7 +532,7 @@ def pproc(sim: Simulation):
 
     energy = go.Figure()
     for key, label in (("en_U", "Kinetic"), ("en_B", "Magnetic"), ("en_thermal", "Compressional")):
-        values = output.evaluate(key)
+        values = output.scalars[key]
         if not np.isfinite(values.values).all():
             raise RuntimeError(f"Non-finite energy diagnostic: {key}")
         energy.add_scatter(x=values.t.values, y=values.values, mode="lines", name=label)

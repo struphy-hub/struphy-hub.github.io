@@ -162,7 +162,7 @@ def pproc(sim: Simulation):
         "kinetic_energy": ("electron current", "#f4a261"),
         "total_energy": ("total", "#264653"),
     }
-    energies = {name: output.evaluate(name) for name in channels}
+    energies = {name: output.scalars[name] for name in channels}
     time = energies["total_energy"].t.values
     total = energies["total_energy"].values
     relative_drift = float(np.max(np.abs(total / total[0] - 1.0)))

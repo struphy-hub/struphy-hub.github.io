@@ -108,7 +108,7 @@ def pproc(sim: Simulation):
     output = sim.output
     output.pproc(physical=True)
 
-    energies = {key: output.evaluate(key) for key in ("en_U", "en_B", "en_p", "en_f", "en_tot")}
+    energies = {key: output.scalars[key] for key in ("en_U", "en_B", "en_p", "en_f", "en_tot")}
     times = energies["en_tot"].t.values
     values = {key: data.values for key, data in energies.items()}
     if not all(np.isfinite(data).all() for data in values.values()):

@@ -111,7 +111,7 @@ def pproc(sim: Simulation):
     output = sim.output
     output.pproc()
 
-    density = output.evaluate("euler_fluid/view_0/n").isel(eta3=0)  # (t, e1, e2)
+    density = output.evaluate("euler_fluid/view_0/n", eta3=0)  # (t, e1, e2)
     orbits = output.orbits.euler_fluid.to_dataarray("quantity").transpose("t", "marker", "quantity")  # (t, marker, quantity); the first two quantities are x and y
     x = orbits.sel(quantity="x")
     y = orbits.sel(quantity="y")

@@ -117,7 +117,7 @@ def pproc(sim: Simulation):
     output = sim.output
     output.pproc()
 
-    density = output.evaluate("euler_fluid/view_0/n").isel(eta2=0, eta3=0)  # (t, e1): the SPH density estimate
+    density = output.evaluate("euler_fluid/view_0/n", eta2=0, eta3=0)  # (t, e1): the SPH density estimate
     orbits = output.orbits.euler_fluid.to_dataarray("quantity").transpose("t", "marker", "quantity")  # (t, marker, quantity)
     times = orbits.t.values
     assert np.allclose(times, density.t.values)

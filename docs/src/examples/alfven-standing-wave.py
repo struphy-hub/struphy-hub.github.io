@@ -74,8 +74,8 @@ def pproc(sim: Simulation):
     output = sim.output
     output.pproc(physical=True)
 
-    kinetic = output.evaluate("en_U")
-    magnetic = output.evaluate("en_B")
+    kinetic = output.scalars["en_U"]
+    magnetic = output.scalars["en_B"]
     total = output.scalars["en_tot"]
     time = total.t.values
     total_values = total.values
