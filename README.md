@@ -20,14 +20,14 @@ If you already cloned without `--recurse-submodules`:
 git submodule update --init --recursive
 ```
 
-### 2. Install Struphy from the submodule
+### 2. Install Struphy and struphy-plots from the submodules
 
 Requires Python 3.12. From the repo root:
 
 ```sh
 python -m venv .venv
 source .venv/bin/activate
-pip install ./submodules/struphy
+pip install ./submodules/struphy-plots/struphy ./submodules/struphy-plots
 ```
 
 ### 3. Generate the site's data
