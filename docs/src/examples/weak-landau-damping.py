@@ -153,7 +153,10 @@ def pproc(sim: Simulation):
 
     # The electric field along x, over time.
     output.pproc()
-    electric_field = output.evaluate("em_fields/e_field").isel(component=0, eta2=0, eta3=0)  # (t, e1)
+    electric_field = output.evaluate(
+        "em_fields/e_field", eta1=np.linspace(0.0, 1.0, output.grid.num_elements[0] + 1), eta2=0.0, eta3=0.0,
+        representation="1",
+    ).isel(component=0)  # (t, eta1)
     space_time = space_time_figure(
         electric_field,
         space="eta1",

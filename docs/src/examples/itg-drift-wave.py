@@ -254,7 +254,9 @@ def pproc(sim: Simulation):
     save_figure(figure, "itg-drift-wave")
 
     # ---- further figures: the potential and its Fourier modes --------------------------------------------
-    phi = output.evaluate("em_fields/phi")
+    # the grid points of the cells and the periodic endpoints, which mode_amplitudes drops
+    points = {f"eta{i + 1}": np.linspace(0.0, 1.0, cells + 1) for i, cells in enumerate(output.grid.num_elements)}
+    phi = output.evaluate("em_fields/phi", **points)
     if not np.isfinite(phi.values).all():
         raise RuntimeError("Non-finite electrostatic potential: refusing to publish the run")
     radius = minor_radius(phi)
@@ -432,7 +434,7 @@ def pproc(sim: Simulation):
     )
 
     # The flux-surface-averaged (m = n = 0) density change: does the profile flatten?
-    density = output.evaluate("diagnostics/rho")
+    density = output.evaluate("diagnostics/rho", **points)
     density = density.isel(component=0, drop=True) if "component" in density.dims else density
     zonal = density.isel(eta2=slice(None, -1), eta3=slice(None, -1)).mean(("eta2", "eta3"))
     zonal = zonal - zonal.isel(t=0)

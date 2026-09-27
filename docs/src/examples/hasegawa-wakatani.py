@@ -116,9 +116,11 @@ def pproc(sim: Simulation):
     output = sim.output
     output.pproc(celldivide=1)
 
-    density = output.evaluate("plasma/density").isel(eta3=0, drop=True)
-    vorticity = output.evaluate("plasma/vorticity").isel(eta3=0, drop=True)
-    potential = output.evaluate("em_fields/phi").isel(eta3=0, drop=True)
+    # the grid points of the cells and the periodic endpoint, in the plane eta3 = 0
+    plane = {f"eta{i + 1}": np.linspace(0.0, 1.0, cells + 1) for i, cells in enumerate(output.grid.num_elements[:2])}
+    density = output.evaluate("plasma/density", **plane, eta3=0.0)
+    vorticity = output.evaluate("plasma/vorticity", **plane, eta3=0.0)
+    potential = output.evaluate("em_fields/phi", **plane, eta3=0.0)
     times = np.asarray(density.t)
     if times[-1] < time_opts.Tend - env.save_step * time_opts.dt:
         raise RuntimeError("Hasegawa-Wakatani simulation ended before the requested final time")

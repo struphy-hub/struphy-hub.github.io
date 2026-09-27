@@ -161,7 +161,10 @@ def pproc(sim: Simulation):
 
     # The same field along z, over time: waves travelling in both directions leave diagonal
     # stripes, whose slope is the wave speed.
-    transverse = output.evaluate("mhd/velocity").isel(component=0, eta1=0, eta2=0)  # (t, e3)
+    transverse = output.evaluate(
+        "mhd/velocity", eta1=0.0, eta2=0.0, eta3=np.linspace(0.0, 1.0, output.grid.num_elements[2] + 1),
+        representation="2",
+    ).isel(component=0)  # (t, eta3)
     space_time = space_time_figure(
         transverse,
         space="eta3",

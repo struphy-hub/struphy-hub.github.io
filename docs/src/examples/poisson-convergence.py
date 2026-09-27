@@ -62,9 +62,15 @@ def create_simulation(degree=2, cells=8, alpha=distortion, folder="poisson_conve
     )
 
 
-def potential_error(run):
-    """Points and the difference between the computed and the exact potential at the last time, from a post-processed run."""
-    phi = run.evaluate("em_fields/phi").isel(t=-1, eta3=0)
+def potential_error(run, celldivide):
+    """Points and the difference between the computed and the exact potential at the last time.
+
+    The potential is evaluated at `celldivide` points per cell and the endpoints, in the plane eta3 = 0.
+    """
+    plane = {
+        f"eta{i + 1}": np.linspace(0.0, 1.0, cells * celldivide + 1) for i, cells in enumerate(run.grid.num_elements[:2])
+    }
+    phi = run.evaluate("em_fields/phi", **plane, eta3=0.0).isel(t=-1)
     return phi.X.values, phi.Y.values, phi.values, phi.values - exact_potential(phi.X.values, phi.Y.values)
 
 
@@ -80,8 +86,9 @@ def pproc(sim: Simulation):
             values = []
             for cells in resolutions:
                 run = create_simulation(degree, cells, alpha, f"poisson_convergence_p{degree}_n{cells}_a{alpha}").output
-                run.pproc(physical=True, celldivide=3)  # three sample points per cell, to measure the error inside the cells
-                _, _, _, difference = potential_error(run)
+                run.pproc(physical=True)
+                # three sample points per cell, to measure the error inside the cells
+                _, _, _, difference = potential_error(run, celldivide=3)
                 values.append(float(np.sqrt(np.mean(difference**2))))
             errors[(alpha, degree)] = np.array(values)
     if not all(np.isfinite(v).all() for v in errors.values()):
@@ -120,8 +127,8 @@ def pproc(sim: Simulation):
 
     # The solution and its error on the distorted mesh, at degree 2 and 8 x 12 cells.
     run = create_simulation(2, 8, distortion, "poisson_convergence_map").output
-    run.pproc(physical=True, celldivide=4)
-    mesh_x, mesh_y, potential, difference = potential_error(run)
+    run.pproc(physical=True)
+    mesh_x, mesh_y, potential, difference = potential_error(run, celldivide=4)
     x_plot, y_plot = np.linspace(0, lx, 100), np.linspace(0, ly, 150)
     xx, yy = np.meshgrid(x_plot, y_plot)
     points = np.column_stack([mesh_x.ravel(), mesh_y.ravel()])
