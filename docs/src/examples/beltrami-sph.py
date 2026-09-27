@@ -13,7 +13,9 @@ second panel reports both numerical errors.
 
 Adapted from Struphy's ``tutorial_beltrami_sph.ipynb`` tutorial.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -137,9 +139,28 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc()
 
@@ -172,11 +193,10 @@ def pproc(sim: Simulation):
             "Beltrami verification failed: "
             f"{max_velocity_error=:.3g}, {max_energy_error=:.3g}"
         )
-    if is_root():
-        print(
-            f"maximum relative velocity RMS error {max_velocity_error:.3e}; "
-            f"maximum per-marker Hamiltonian drift {max_energy_error:.3e}"
-        )
+    print(
+        f"maximum relative velocity RMS error {max_velocity_error:.3e}; "
+        f"maximum per-marker Hamiltonian drift {max_energy_error:.3e}"
+    )
 
     # The stream function psi has u = (d_y psi, -d_x psi); its contours are exact trajectories.
     mesh = np.linspace(box_min, box_max, 161)
@@ -336,14 +356,10 @@ def pproc(sim: Simulation):
         error_trace(last, velocity_error, "velocity RMS", "#00a884"),
         error_trace(last, energy_error, "Hamiltonian drift", "#9b51e0"),
     ]
-    save_figure(
-        figure,
-        "beltrami-sph",
-        width=1100,
-        height=680,
-        static_data=final_data,
-        static_active=len(figure.frames) - 1,
-    )
+    # The frames name only the markers and errors (the contour stays), so build the final still.
+    still = go.Figure(data=final_data, layout=figure.layout)
+    still.layout.sliders[0].active = len(figure.frames) - 1
+    save(figure, "beltrami-sph", still=still, width=1100, height=680, show=show)
 
     # The kernel reconstruction shows the simulated mass density independently of the marker view.
     # The exact divergence-free Beltrami transport preserves the initially uniform rho = 1.
@@ -573,69 +589,15 @@ def pproc(sim: Simulation):
         scaleratio=1,
     )
 
-    figures = [
-        save_extra_figure(
-            density_figure,
-            "beltrami-sph",
-            "density",
-            alt="Animated SPH density rho in the stationary Beltrami flow",
-            caption=(
-                "Kernel-reconstructed SPH mass density ρ. The exact divergence-free Beltrami flow "
-                "preserves the initially uniform ρ = 1; the visible variation measures finite-particle "
-                "and kernel-reconstruction error. Drag the slider or press Play to follow the evolution."
-            ),
-            static_z=rho_values[-1],
-            static_active=len(density_figure.frames) - 1,
-        ),
-        save_extra_figure(
-            compression_figure,
-            "beltrami-sph",
-            "compression",
-            alt="Animated compression and rarefaction field rho minus one",
-            caption=(
-                "The signed density perturbation ρ − 1 separates compression (red) from rarefaction (blue). "
-                "The exact solution is zero everywhere. To keep the bulk structure visible, the colour scale "
-                "is clipped symmetrically at the 99th percentile; hover values remain unclipped."
-            ),
-            static_z=compression[-1],
-            static_active=len(compression_figure.frames) - 1,
-        ),
-        save_extra_figure(
-            area_figure,
-            "beltrami-sph",
-            "area-deformation",
-            alt="Animated Lagrangian marker-cell area ratio",
-            caption=(
-                "Signed area A(t)/A(0) of each cell in the original marker tessellation, displayed at its "
-                "initial position. Exact incompressible transport keeps the ratio at one. The colour scale "
-                "is clipped symmetrically at the 99th percentile; hover values remain unclipped."
-            ),
-            static_z=area_ratio[-1],
-            static_active=len(area_figure.frames) - 1,
-        ),
-        save_extra_figure(
-            trajectory_figure,
-            "beltrami-sph",
-            "trajectories",
-            alt="Selected SPH marker paths over exact Beltrami streamlines",
-            caption=(
-                "Six markers starting near the positive x-axis sample nested streamline families. Their full "
-                "numerical paths are drawn over the exact streamlines; circles mark the starts and crosses "
-                "their positions at tmax."
-            ),
-        ),
-    ]
-    merge_metadata(
-        "beltrami-sph",
-        markers=int(x.shape[1]),
-        maxVelocityError=max_velocity_error,
-        maxHamiltonianDrift=max_energy_error,
-        maxDensityDeviation=max_density_deviation,
-        maxMarkerAreaDeviation=max_area_deviation,
-        figures=figures,
-        tutorial="https://struphy-hub.github.io/struphy/_collections/tutorials/tutorial_beltrami_sph.html",
-        **export_profiling(sim, "beltrami-sph"),
+    print(
+        f"maximum density deviation from 1 {max_density_deviation:.3e}; "
+        f"maximum marker-cell area deviation from 1 {max_area_deviation:.3e}"
     )
+
+    save(density_figure, "beltrami-sph-density", frame=-1, show=show)
+    save(compression_figure, "beltrami-sph-compression", frame=-1, show=show)
+    save(area_figure, "beltrami-sph-area-deformation", frame=-1, show=show)
+    save(trajectory_figure, "beltrami-sph-trajectories", show=show)
 
 
 if __name__ == "__main__":
@@ -645,9 +607,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

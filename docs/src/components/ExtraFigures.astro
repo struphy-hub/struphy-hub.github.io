@@ -1,23 +1,39 @@
 ---
 import PlotlyFigure from './PlotlyFigure.astro';
+import type { ExampleFigureText } from '../data/example-config';
 
-// The additional figures of an example: the `figures` list that its script writes to its
-// metadata with `save_extra_figure` (struphy_plots.gallery).
+// The additional figures of an example, below its main one. An example saves each as
+// `<slug>-<key>.plotly.json` (and .html, .png); example-config.ts lists the keys, in page order, with
+// their alt texts and captions. Older scripts instead write a `figures` list into their metadata,
+// with `save_extra_figure` of struphy_plots.gallery.
 interface ExampleFigure {
   key: string;
   interactive: string;
   thumbnail: string;
   alt: string;
   caption: string;
+  aspect?: string;
 }
 
-const { figures = [] } = Astro.props as { figures?: ExampleFigure[] };
+const { slug, figures: listed = [], texts } = Astro.props as {
+  slug: string;
+  figures?: ExampleFigure[];
+  texts?: Record<string, ExampleFigureText>;
+};
+const figures: ExampleFigure[] = texts
+  ? Object.entries(texts).map(([key, text]) => ({
+      key,
+      interactive: `/examples/${slug}-${key}.plotly.json`,
+      thumbnail: `/images/examples/${slug}-${key}.png`,
+      ...text,
+    }))
+  : listed;
 const htmlHref = (interactive: string) => interactive.replace(/\.plotly\.json$/, '.html');
 ---
 
 {figures.map((figure) => (
   <figure class="extra">
-    <div class="plot-frame"><PlotlyFigure src={figure.interactive.replace(/\.html$/, '.plotly.json')} title={figure.alt} /></div>
+    <div class="plot-frame" style={figure.aspect ? `aspect-ratio:${figure.aspect};width:min(100%,${figure.aspect.split('/')[0]}px)` : undefined}><PlotlyFigure src={figure.interactive.replace(/\.html$/, '.plotly.json')} title={figure.alt} /></div>
     <img class="plot-static" src={figure.thumbnail} alt={figure.alt} width="2200" height="1300" />
     <figcaption>
       {figure.caption}

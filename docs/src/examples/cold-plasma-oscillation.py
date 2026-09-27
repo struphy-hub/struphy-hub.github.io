@@ -6,7 +6,9 @@ oscillates at the plasma frequency omega_p, independently of k and of the backgr
 Its energy passes back and forth between the electric field and the electron flow, as cos^2(omega_p t) and
 sin^2(omega_p t). The plasma frequency scales as sqrt(n0), which a short scan over the density confirms.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -71,10 +73,29 @@ def oscillation_frequency(times, values):
     return float(np.pi / np.mean(np.diff(roots)))
 
 
-def pproc(sim: Simulation):
-    from plotly.subplots import make_subplots
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
+    from plotly.subplots import make_subplots
 
     runs = {1.0: sim.output}
     for n0 in densities:
@@ -90,9 +111,8 @@ def pproc(sim: Simulation):
     exact = {n0: alpha / epsilon * np.sqrt(n0) for n0 in runs}
     if not all(np.isfinite(list(measured.values()))):
         raise RuntimeError("A plasma frequency could not be measured")
-    if is_root():
-        for n0 in runs:
-            print(f"n0 = {n0}: omega = {measured[n0]:.4f} (omega_p = {exact[n0]:.4f})")
+    for n0 in runs:
+        print(f"n0 = {n0}: omega = {measured[n0]:.4f} (omega_p = {exact[n0]:.4f})")
 
     run = runs[1.0]
     omega_p = exact[1.0]
@@ -139,7 +159,7 @@ def pproc(sim: Simulation):
     figure.update_yaxes(title_text="E_z", range=[-1.2 * amplitude, 1.2 * amplitude], row=1, col=1)
     figure.update_xaxes(title_text="t", row=2, col=1)
     figure.update_yaxes(title_text="energy / initial energy", row=2, col=1)
-    save_figure(figure, "cold-plasma-oscillation", width=900, height=850)
+    save(figure, "cold-plasma-oscillation", width=900, height=850, show=show)
 
     # The frequency against the density, on the line omega = omega_p.
     n_line = np.linspace(0.0, max(densities) * 1.05, 100)
@@ -151,25 +171,7 @@ def pproc(sim: Simulation):
     scan.update_layout(title="Oscillation frequency against density", template="plotly_white",
                        xaxis_title="density n₀", yaxis_title="angular frequency ω",
                        margin={"l": 70, "r": 30, "t": 80, "b": 60})
-    figures = [
-        save_extra_figure(
-            scan, "cold-plasma-oscillation", "frequency-scan",
-            alt="Measured oscillation frequency of a cold plasma against density, on the square-root law",
-            caption=(
-                "The oscillation frequency of the same run at four densities, measured from the zero crossings of the "
-                "field, on the analytic plasma frequency ω_p = √n₀ (α = 1)."
-            ),
-        ),
-    ]
-
-    merge_metadata(
-        "cold-plasma-oscillation",
-        plasmaFrequency=omega_p,
-        measuredFrequency=measured[1.0],
-        frequencyScan={str(n0): {"measured": measured[n0], "exact": exact[n0]} for n0 in runs},
-        figures=figures,
-        **export_profiling(sim, "cold-plasma-oscillation"),
-    )
+    save(scan, "cold-plasma-oscillation-frequency-scan", show=show)
 
 
 if __name__ == "__main__":
@@ -179,12 +181,13 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
+        simulation.run()
         for n0 in densities:
             if n0 != 1.0:
                 create_simulation(n0, f"cold_plasma_oscillation_n{n0}").run()
-    pproc(simulation)
+    pproc(simulation, show=args.show)

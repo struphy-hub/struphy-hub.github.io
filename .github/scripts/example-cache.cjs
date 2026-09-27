@@ -5,6 +5,7 @@ async function exampleCache(example, prefix, suffix, glob) {
     'submodules/struphy-plots/src/struphy_plots/**/*.py',
     'catalogue_docs.py',
     'generate_examples.py',
+    'run_example.py',
     'generate_example_domain.py',
     'generate_domains.py',
     'submodules/struphy-plots/struphy/src/struphy/**/*.py',

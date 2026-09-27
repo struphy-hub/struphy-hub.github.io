@@ -6,7 +6,9 @@ decays twice as fast, as exp(-2 eta k^2 t). Struphy's variational discretization
 thermal energy (Ohmic heating) and keeps the total energy constant to the accuracy of its nonlinear solver. The field is weak, so that
 the pressure gradient it produces sets only a negligible flow. A scan over three resistivities confirms the rate.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -95,10 +97,29 @@ def mode_amplitude(x, values):
     return 2.0 * np.mean(values[:, :-1] * np.sin(wavenumber * x[:-1]), axis=1)
 
 
-def pproc(sim: Simulation):
-    from plotly.subplots import make_subplots
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
+    from plotly.subplots import make_subplots
 
     runs = {0.1: sim.output}
     for eta in resistivities:
@@ -115,9 +136,8 @@ def pproc(sim: Simulation):
     exact_rate = {eta: eta * wavenumber**2 for eta in runs}
     if not all(np.isfinite(list(fitted.values()))):
         raise RuntimeError("A decay rate could not be fitted")
-    if is_root():
-        for eta in runs:
-            print(f"eta = {eta}: decay rate {fitted[eta]:.4f} (exact {exact_rate[eta]:.4f})")
+    for eta in runs:
+        print(f"eta = {eta}: decay rate {fitted[eta]:.4f} (exact {exact_rate[eta]:.4f})")
 
     run = runs[0.1]
     eta_main = 0.1
@@ -161,7 +181,7 @@ def pproc(sim: Simulation):
     figure.update_yaxes(title_text="B_z", range=[-1.2 * amplitude, 1.2 * amplitude], row=1, col=1)
     figure.update_xaxes(title_text="t", row=2, col=1)
     figure.update_yaxes(title_text="energy change / magnetic energy lost", row=2, col=1)
-    save_figure(figure, "resistive-diffusion", width=900, height=850)
+    save(figure, "resistive-diffusion", width=900, height=850, show=show)
 
     colors = {0.05: "#168aad", 0.1: "#d62828", 0.2: "#f77f00"}
     decay = go.Figure()
@@ -175,27 +195,7 @@ def pproc(sim: Simulation):
         xaxis_title="t", yaxis_title="amplitude of the sin(kx) mode", yaxis_type="log",
         margin={"l": 75, "r": 30, "t": 80, "b": 60},
     )
-    figures = [
-        save_extra_figure(
-            decay, "resistive-diffusion", "decay",
-            alt="Decay of the amplitude of a magnetic field mode at three resistivities, on the exact exponentials",
-            caption=(
-                "The amplitude of the field mode at three resistivities, on log axes where the exact decay exp(−η k² t) "
-                "is a straight line. The fitted rates differ from η k² by "
-                + ", ".join(f"{100 * (fitted[eta] / exact_rate[eta] - 1):+.1f} % (η = {eta})" for eta in runs)
-                + "."
-            ),
-        ),
-    ]
-
-    merge_metadata(
-        "resistive-diffusion",
-        wavenumber=wavenumber,
-        decayRates={str(eta): {"measured": fitted[eta], "exact": exact_rate[eta]} for eta in runs},
-        maxEnergyDrift=energy_drift,
-        figures=figures,
-        **export_profiling(sim, "resistive-diffusion"),
-    )
+    save(decay, "resistive-diffusion-decay", show=show)
 
 
 if __name__ == "__main__":
@@ -205,12 +205,13 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
+        simulation.run()
         for eta in resistivities:
             if eta != 0.1:
                 create_simulation(eta, f"resistive_diffusion_eta{eta}").run()
-    pproc(simulation)
+    pproc(simulation, show=args.show)

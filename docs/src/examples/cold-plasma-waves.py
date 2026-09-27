@@ -6,7 +6,9 @@ the left-hand (L) wave. Both are cut off at low frequency, where the plasma refl
 noise in the transverse electric field excites all branches at once; the (k, omega) power spectrum of
 E_x shows them, and is compared with the analytic cold-plasma dispersion relation.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -82,9 +84,28 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc(physical=True)
 
@@ -152,7 +173,7 @@ def pproc(sim: Simulation):
     )
     figure.update_xaxes(range=[0, k_top])
     figure.update_yaxes(range=[0, omega_top])
-    save_figure(figure, "cold-plasma-waves", height=700)
+    save(figure, "cold-plasma-waves", height=700, show=show)
 
     # Energy channels: the noise starts purely electric, then shares its energy with the magnetic field
     # and the electron current, while the sum stays constant.
@@ -176,28 +197,7 @@ def pproc(sim: Simulation):
         template="plotly_white", autosize=True, legend={"orientation": "h", "y": -0.2},
         margin={"l": 75, "r": 30, "t": 80, "b": 100},
     )
-    figures = [
-        save_extra_figure(
-            energy_figure, "cold-plasma-waves", "energy",
-            alt="Electric, magnetic and electron-current energy of the cold plasma against time, with their constant sum",
-            caption=(
-                "The initial noise is purely electric. Within a cyclotron period it is shared with the magnetic "
-                "field and the kinetic energy of the electron current, while the total stays constant: its largest "
-                f"relative change over the run is {relative_drift:.1e}. Each propagator of the splitting is a "
-                "Crank–Nicolson step that conserves its share of the energy up to the tolerance of the linear solver."
-            ),
-        ),
-    ]
-
-    merge_metadata(
-        "cold-plasma-waves",
-        rWaveFrequencyError=errors["R-wave"],
-        lWaveFrequencyError=errors["L-wave"],
-        whistlerFrequencyError=errors["whistler"],
-        relativeEnergyDrift=relative_drift,
-        figures=figures,
-        **export_profiling(sim, "cold-plasma-waves"),
-    )
+    save(energy_figure, "cold-plasma-waves-energy", show=show)
 
 
 if __name__ == "__main__":
@@ -207,9 +207,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

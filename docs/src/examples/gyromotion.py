@@ -6,7 +6,9 @@ The orbit is a helix, and since a magnetic field does no work, the speed and the
 constants of the motion. Four markers with different perpendicular speeds are followed and compared with the exact
 helices: the gyroperiod is the same for all of them, the Larmor radius grows in proportion to v_perp.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -69,11 +71,28 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
-
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc()
@@ -146,7 +165,7 @@ def pproc(sim: Simulation):
     figure.update_yaxes(title_text="y", range=[centre - 2 * span, centre + 0.4 * span], scaleanchor="x", row=1, col=1)
     figure.update_xaxes(title_text="t", row=1, col=2)
     figure.update_yaxes(title_text="|x − x_exact|", type="log", row=1, col=2)
-    save_figure(figure, "gyromotion", width=1100, height=620)
+    save(figure, "gyromotion", width=1100, height=620, show=show)
 
     helix = go.Figure()
     for p in range(n_markers):
@@ -169,24 +188,8 @@ def pproc(sim: Simulation):
         xaxis_title="t", yaxis_title="relative change of speed (solid) and perpendicular speed (dotted)", yaxis_type="log",
         margin={"l": 75, "r": 30, "t": 80, "b": 60},
     )
-    figures = [
-        save_extra_figure(helix, "gyromotion", "helices",
-                          alt="Helical orbits of four charged particles around a uniform magnetic field",
-                          caption="The same four orbits in three dimensions: circles in the plane perpendicular to B, stretched "
-                                  "into helices by the free streaming along the field."),
-        save_extra_figure(conservation, "gyromotion", "conservation",
-                          alt="Relative change of the speed and the perpendicular speed of gyrating particles",
-                          caption="A magnetic field does no work, so the speed and the perpendicular speed of each marker are constant. "
-                                  "The relative changes stay at round-off level."),
-    ]
-
-    merge_metadata(
-        "gyromotion",
-        gyrofrequency=gyrofrequency, measuredGyrofrequency=measured_frequency,
-        larmorRadii={str(vp): float(r) for vp, r in zip(v_perp, radius)},
-        maxPositionError=float(position_error.max()), maxSpeedDrift=float(speed_drift.max()),
-        figures=figures, **export_profiling(sim, "gyromotion"),
-    )
+    save(helix, "gyromotion-helices", show=show)
+    save(conservation, "gyromotion-conservation", show=show)
 
 
 if __name__ == "__main__":
@@ -196,9 +199,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

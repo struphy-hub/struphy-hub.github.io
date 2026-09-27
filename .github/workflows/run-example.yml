@@ -175,7 +175,8 @@ jobs:
           # Stream Python output to the job log as it is produced.
           export PYTHONUNBUFFERED=1
           set -x
-          timeout 90m python "../../src/examples/${{ inputs.example }}.py"
+          # run_example.py runs the script and publishes its figures, profiling and metadata here.
+          timeout 90m python ../../../run_example.py "${{ inputs.example }}"
           set +x
           if [ ! -f "${{ inputs.example }}.plotly.json" ]; then
             echo "::error::${{ inputs.example }}: the run did not write the Plotly figure."

@@ -8,7 +8,9 @@ in a two-dimensional incompressible fluid.
 Follows the setup of Struphy's diocotron example (examples/ToyGyrokinetic/diocotron_instability):
 an annulus with grounded walls, a uniform background field, and the ToyDrift model.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy 3.2 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -107,12 +109,32 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     a1, a2 = sim.domain.params["a1"], sim.domain.params["a2"]
     time_opts = sim.time_opts
     import xarray as xr
     from scipy.ndimage import map_coordinates
-    from struphy_plots.gallery import export_profiling, heatmap_movie, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc()
@@ -139,17 +161,14 @@ def pproc(sim: Simulation):
         image[(rr < a1) | (rr > a2)] = np.nan
         images.append(image)
     mapped = xr.DataArray(np.array(images), dims=("t", "y", "x"), coords={"t": times[picks], "x": axis, "y": axis})
-    figure, _ = heatmap_movie(
-        mapped, x="x", y="y", title="Vortex merger: binned charge density",
-        xaxis_title="x", yaxis_title="y", colorbar_title="density", zmax=float(density.max()),
+    movie = mapped.struphy.plot.animation(
+        x="x", y="y", max_frames=150, vmin=0.0, vmax=float(density.max()), cmap="viridis",
+        title="Vortex merger: binned charge density", xlabel="x", ylabel="y", colorbar_label="density",
+        backend="plotly",
     )
-    figure.update_xaxes(range=[-a2, a2], constrain="domain")
-    figure.update_yaxes(range=[-a2, a2], scaleanchor="x", scaleratio=1)
-    still_position = len(figure.frames) // 2
-    still = go.Heatmap(figure.data[0])
-    still.z = figure.frames[still_position].data[0].z
-    save_figure(figure, "vortex-merger", height=750,
-                static_data=[still], static_active=still_position)
+    movie.fig.update_xaxes(range=[-a2, a2], constrain="domain")
+    movie.fig.update_yaxes(range=[-a2, a2], scaleanchor="x", scaleratio=1)
+    save(movie, "vortex-merger", height=750, frame=len(movie.fig.frames) // 2, show=show)
 
     # The first Poisson solve initializes the field energy after t=0. Compare
     # subsequent field energies to that first solved state, not to the zero placeholder.
@@ -158,13 +177,8 @@ def pproc(sim: Simulation):
     energy_figure = go.Figure(go.Scatter(x=energy.t.values, y=drift, mode="lines", name="field energy"))
     energy_figure.update_layout(title="Vortex merger: electrostatic-energy change", template="plotly_white",
                                xaxis_title="t", yaxis_title="(W − W₁) / W₁", margin={"l": 80, "r": 30, "t": 80, "b": 60})
-    figures = [save_extra_figure(
-        energy_figure, "vortex-merger", "energy",
-        alt="Electrostatic energy change after the first Poisson solve",
-        caption="Electrostatic energy relative to the first solved field, at t = 0.02. The t = 0 scalar is an uninitialized zero and is omitted. The drift measures the error of this finite-resolution particle and field calculation; it is not a convergence study.",
-    )]
-    merge_metadata("vortex-merger", finalTime=float(times[-1]), maxEnergyDrift=float(np.abs(drift).max()),
-                   figures=figures, **export_profiling(sim, "vortex-merger"))
+    print(f"Maximum relative drift of the electrostatic energy: {np.abs(drift).max():.2e}")
+    save(energy_figure, "vortex-merger-energy", show=show)
 
 
 if __name__ == "__main__":
@@ -174,9 +188,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

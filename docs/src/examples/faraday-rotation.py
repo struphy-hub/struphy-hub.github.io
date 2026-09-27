@@ -7,7 +7,9 @@ rotates as theta(z) = -z/2 for the signed-current convention used here (epsilon=
 This initializes an established wave train, not a pulse injected at a boundary.
 
 Reference: https://farside.ph.utexas.edu/teaching/315/Waveshtml/node76.html
-Requires the pinned Struphy with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -63,11 +65,31 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc(physical=True)
@@ -92,6 +114,7 @@ def pproc(sim: Simulation):
     rotation_rate = float(np.polyfit(z, angle, 1)[0])
     angle_error = float(np.max(np.abs(angle + z / 2)))
     energy_drift = float(np.max(np.abs(energy.values / energy.values[0] - 1.0)))
+    print(f"Measured rotation rate: {rotation_rate:.4f} rad per unit length (exact: -0.5)")
     if error > 0.03 or angle_error > 0.02 or energy_drift > 1e-6:
         raise RuntimeError(f"Faraday check failed: field={error:.3g}, angle={angle_error:.3g}, energy={energy_drift:.3g}")
 
@@ -122,7 +145,7 @@ def pproc(sim: Simulation):
     )
     figure.update_xaxes(title_text="z", row=1, col=2)
     figure.update_yaxes(title_text="polarization angle [degrees]", row=1, col=2)
-    save_figure(figure, stem, height=700)
+    save(figure, stem, height=700, show=show)
     probes = go.Figure()
     for target in (0.0, length / 4, length / 2):
         j = int(np.argmin(np.abs(z - target)))
@@ -130,11 +153,7 @@ def pproc(sim: Simulation):
     probes.update_layout(title="Local polarization remains linear", template="plotly_white",
                           xaxis_title="E_x", yaxis_title="E_y", yaxis={"scaleanchor": "x"},
                           margin={"l": 70, "r": 30, "t": 80, "b": 70})
-    figures = [save_extra_figure(probes, stem, "polarization", alt="Electric-field hodographs forming lines at three different angles",
-                                caption="At each position the electric vector traces a line. Its orientation changes with distance along the magnetic field.")]
-    merge_metadata(stem, measuredRotationRate=rotation_rate, exactRotationRate=-0.5,
-                   maxRelativeFieldError=error, maxAngleErrorRadians=angle_error, maxEnergyDrift=energy_drift,
-                   figures=figures, **export_profiling(sim, stem))
+    save(probes, f"{stem}-polarization", show=show)
 
 
 if __name__ == "__main__":
@@ -144,9 +163,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

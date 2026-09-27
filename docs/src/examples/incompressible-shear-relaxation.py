@@ -10,7 +10,9 @@ decays by viscous diffusion: u_x(y, t) = U sin(pi y / H) exp(-mu (pi / H)^2 t).
 Based on the verification test of the model in Struphy
 (models/tests/verification/test_verif_IncompressibleNavierStokesSPH.py).
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -105,10 +107,27 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from plotly.subplots import make_subplots
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_figure
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+def pproc(sim: Simulation, show: bool = False):
+    from plotly.subplots import make_subplots
 
     output = sim.output
     output.pproc()
@@ -129,12 +148,10 @@ def pproc(sim: Simulation):
     fitted_rate = float(-np.polyfit(times, np.log(np.abs(shear)), 1)[0])
     profile_error = float(np.max(np.abs(across.values[-1] - exact_shear[-1] * np.sin(np.pi * y / height))))
     wave_left = float(np.abs(wave[times >= 0.1]).max() / compressive_amplitude)
-    if is_root():
-        print(f"shear decay rate {fitted_rate:.3f} (exact {decay_rate:.3f}); compressive wave after t = 0.1: "
-              f"{100 * wave_left:.1f}% of its initial amplitude; profile error at the end {profile_error:.4f}")
+    print(f"shear decay rate {fitted_rate:.3f} (exact {decay_rate:.3f}); compressive wave after t = 0.1: "
+          f"{100 * wave_left:.1f}% of its initial amplitude; profile error at the end {profile_error:.4f}")
 
     dense_y = np.linspace(0.0, height, 201)
-    dense_x = np.linspace(0.0, 1.0, 201)
 
     def traces(index):
         return [
@@ -175,14 +192,7 @@ def pproc(sim: Simulation):
     figure.update_yaxes(title_text="u_x", range=[-limit, limit], row=1, col=2)
     figure.update_xaxes(title_text="t", row=2, col=1)
     figure.update_yaxes(title_text="amplitude", type="log", row=2, col=1)
-    save_figure(figure, "incompressible-shear-relaxation", width=1000, height=850)
-
-    merge_metadata(
-        "incompressible-shear-relaxation",
-        viscosity=viscosity, exactDecayRate=decay_rate, measuredDecayRate=fitted_rate,
-        profileError=profile_error, compressiveWaveRemaining=wave_left,
-        markers=boxes * boxes * markers_per_box, **export_profiling(sim, "incompressible-shear-relaxation"),
-    )
+    save(figure, "incompressible-shear-relaxation", width=1000, height=850, show=show)
 
 
 if __name__ == "__main__":
@@ -192,9 +202,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

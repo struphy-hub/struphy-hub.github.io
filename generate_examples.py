@@ -84,6 +84,8 @@ def build_metadata(sim, namespace: dict) -> dict:
     if integrator:
         metadata["integrator"] = integrator
     visualization = visualization_of(namespace)
+    if visualization is None and ".struphy.plotly." in (namespace.get("__source__") or ""):
+        visualization = "Plotly"  # figures from struphy-plots' Plotly accessor, which imports plotly itself
     if visualization:
         metadata["visualization"] = visualization
     # A few examples create optional or expensive runtime resources inside
@@ -126,7 +128,7 @@ def main(stems: list[str] | None = None) -> None:
 
         output_path = OUTPUT_DIR / f"{script.stem}.metadata.json"
         existing = json.loads(output_path.read_text()) if output_path.exists() else {}
-        metadata = {**existing, **build_metadata(sim, namespace)}
+        metadata = {**existing, **build_metadata(sim, {**namespace, "__source__": script.read_text()})}
         output_path.write_text(
             json.dumps(metadata, indent=2, ensure_ascii=False) + "\n"
         )

@@ -9,7 +9,9 @@ Random noise in the out-of-plane electric field E_z excites every mode at once. 
 averaged over the box, then has one peak per resonance, and each peak is compared with the exact frequency. Because
 the box is not a square, the resonances that would coincide in a square box separate.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -26,7 +28,7 @@ lx, ly = 1.0, 1.5
 def resonances(omega_max, count):
     """The `count` lowest distinct (l, m, omega) of the box; (l, m) and (-l, -m) are the same resonance."""
     modes = {}
-    for l in range(0, 8):
+    for l in range(0, 8):  # noqa: E741 (mode numbers l, m)
         for m in range(-8, 8):
             if (l, m) == (0, 0) or (l == 0 and m < 0):
                 continue
@@ -68,9 +70,28 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc(physical=True)
 
@@ -98,16 +119,16 @@ def pproc(sim: Simulation):
         found = float(omega[peak] + shift * (omega[1] - omega[0]))
         measured.append(found)
         errors.append(found / omega_exact - 1.0)
-    if is_root():
-        for (omega_exact, modes), found in zip(exact, measured):
-            print(f"modes {modes}: omega = {found:.4f} (exact {omega_exact:.4f})")
+    for (omega_exact, modes), found in zip(exact, measured):
+        print(f"modes {modes}: omega = {found:.4f} (exact {omega_exact:.4f})")
+    print(f"Maximum relative frequency error: {float(np.max(np.abs(errors))):.3e}")
 
     figure = go.Figure()
     figure.add_scatter(x=omega, y=power, mode="lines", name="power spectrum of E_z",
                        line={"color": "#168aad", "width": 2})
     for index, (omega_exact, modes) in enumerate(exact):
         # Annotation heights on a log axis are log10 of the value.
-        label = ", ".join(f"({l}, {m})" for l, m in modes[:2])
+        label = ", ".join(f"({l}, {m})" for l, m in modes[:2])  # noqa: E741
         figure.add_vline(x=omega_exact, line={"color": "#d62828", "width": 1.5, "dash": "dash"})
         figure.add_annotation(x=omega_exact, y=0.25 if index % 2 == 0 else -0.15, yref="y", text=label, showarrow=False,
                               xanchor="left", xshift=3, font={"size": 11, "color": "#d62828"})
@@ -121,7 +142,7 @@ def pproc(sim: Simulation):
     )
     figure.update_xaxes(range=[0.0, 14.0])
     figure.update_yaxes(range=[-8, 0.3])
-    save_figure(figure, "maxwell-cavity-resonances")
+    save(figure, "maxwell-cavity-resonances", show=show)
 
     error_figure = go.Figure(go.Scatter(
         x=[omega_exact for omega_exact, _ in exact], y=100.0 * np.asarray(errors), mode="markers+lines",
@@ -133,26 +154,7 @@ def pproc(sim: Simulation):
         xaxis_title="exact ω [a.u.]", yaxis_title="(measured − exact) / exact [%]",
         margin={"l": 75, "r": 30, "t": 80, "b": 60},
     )
-    figures = [
-        save_extra_figure(
-            error_figure, "maxwell-cavity-resonances", "frequency-error",
-            alt="Relative error of the measured resonance frequencies of a Maxwell box",
-            caption=(
-                "The relative difference between each measured peak and the exact resonance frequency, against that "
-                "frequency. It is set by the frequency resolution of the run (about 2π/T) and by the numerical dispersion "
-                "of the cubic splines, which lowers the higher frequencies."
-            ),
-        ),
-    ]
-
-    merge_metadata(
-        "maxwell-cavity-resonances",
-        resonances=[{"modes": modes, "exact": omega_exact, "measured": found}
-                    for (omega_exact, modes), found in zip(exact, measured)],
-        maxRelativeError=float(np.max(np.abs(errors))),
-        figures=figures,
-        **export_profiling(sim, "maxwell-cavity-resonances"),
-    )
+    save(error_figure, "maxwell-cavity-resonances-frequency-error", show=show)
 
 
 if __name__ == "__main__":
@@ -162,9 +164,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

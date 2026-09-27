@@ -5,7 +5,9 @@ velocity, u(x, 0) = A sin(2 pi x / L), on a periodic interval. Viscosity alone
 then damps that mode at 4 mu k^2 / 3, with k = 2 pi / L. The binned SPH current
 makes a small, fast verification case with an analytic answer.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`).
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -85,9 +87,28 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_figure
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc()
     velocity = output.evaluate("euler_fluid/e1_current_1/f")
@@ -102,13 +123,11 @@ def pproc(sim: Simulation):
     mode_amplitude = 2 * np.mean(values * np.sin(wavenumber * x), axis=1) / bin_average
     exact_amplitude = initial_amplitude * np.exp(-exact_decay_rate * times)
     measured_decay_rate = float(-np.polyfit(times, np.log(np.abs(mode_amplitude)), 1)[0])
-    relative_rate_error = abs(measured_decay_rate - exact_decay_rate) / exact_decay_rate
     rms_error = float(np.sqrt(np.mean((mode_amplitude - exact_amplitude) ** 2)))
-    if is_root():
-        print(
-            f"decay rate {measured_decay_rate:.4f} (exact {exact_decay_rate:.4f}); "
-            f"amplitude RMS error {rms_error:.4g}"
-        )
+    print(
+        f"decay rate {measured_decay_rate:.4f} (exact {exact_decay_rate:.4f}); "
+        f"amplitude RMS error {rms_error:.4g}"
+    )
 
     dense_x = np.linspace(0.0, length, 301)
     picks = np.unique(np.linspace(0, len(times) - 1, min(80, len(times)), dtype=int))
@@ -150,17 +169,7 @@ def pproc(sim: Simulation):
             for frame in figure.frames
         ]}],
     )
-    save_figure(figure, "sph-velocity-diffusion")
-    merge_metadata(
-        "sph-velocity-diffusion",
-        viscosity=viscosity,
-        exactDecayRate=exact_decay_rate,
-        measuredDecayRate=measured_decay_rate,
-        relativeRateError=relative_rate_error,
-        amplitudeRmsError=rms_error,
-        markers=boxes * markers_per_box,
-        **export_profiling(sim, "sph-velocity-diffusion"),
-    )
+    save(figure, "sph-velocity-diffusion", show=show)
 
 
 if __name__ == "__main__":
@@ -170,9 +179,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

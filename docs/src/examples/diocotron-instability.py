@@ -11,7 +11,9 @@ Adapted from Struphy's maintained example
 (examples/ToyGyrokinetic/diocotron_instability). Parameters follow Crouseilles,
 Mehrenberger & Vecil (2014), https://doi.org/10.1140/epjd/e2014-50180-9.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -105,9 +107,29 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     a1, a2 = sim.domain.params["a1"], sim.domain.params["a2"]
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output.pproc(create_vtk=False)
 
@@ -186,7 +208,7 @@ def pproc(sim: Simulation):
         ],
     )
 
-    save_figure(figure, "diocotron-instability", height=800)
+    save(figure, "diocotron-instability", height=800, show=show)
 
     mode_figure = go.Figure()
     for m, amplitude in mode_amplitudes.items():
@@ -255,32 +277,8 @@ def pproc(sim: Simulation):
         sliders=[{"steps": [{"args": [[frame.name], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate"}], "label": frame.name, "method": "animate"} for frame in interface_frames], "active": len(interface_frames) - 1, "x": 0.12, "len": 0.88, "y": -0.18, "currentvalue": {"prefix": "t = "}}],
     )
 
-    figures = [
-        save_extra_figure(
-            mode_figure,
-            "diocotron-instability",
-            "mode-growth",
-            alt="Growth of the diocotron instability's azimuthal modes",
-            caption="The seeded m = 4 perturbation grows above the other azimuthal modes. The dashed line is an exponential fit over the linear-growth interval, providing a quantitative companion to the animated density.",
-        ),
-        save_extra_figure(
-            interface_figure,
-            "diocotron-instability",
-            "ring-interfaces",
-            alt="Inner and outer diocotron ring interfaces evolving in physical space",
-            caption="The inner and outer density interfaces plotted in physical x-y space. Their four-lobed distortion reveals the seeded diocotron mode more directly than the radial-angular density map; drag the slider or press Play to follow the rotation.",
-        ),
-    ]
-
-    profiling = export_profiling(sim, "diocotron-instability")
-
-    merge_metadata(
-        "diocotron-instability",
-        measuredGrowthRate=growth_rate,
-        modeNumber=mode_number,
-        figures=figures,
-        **profiling,
-    )
+    save(mode_figure, "diocotron-instability-mode-growth", show=show)
+    save(interface_figure, "diocotron-instability-ring-interfaces", show=show)
 
 
 if __name__ == "__main__":
@@ -290,10 +288,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        # Profile every propagator, pusher and solver call in the simulation.
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

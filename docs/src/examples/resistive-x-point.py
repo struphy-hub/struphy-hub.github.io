@@ -5,7 +5,9 @@ B = (d_y A_z, -d_x A_z, 0). For positive lambda the null at the origin is an
 X-point. A small incompressible strain drives flux towards it and finite
 resistivity permits reconnection.
 
-Requires Struphy 3.3 with compiled kernels (``struphy compile``).
+Requires Struphy with compiled kernels (``struphy compile``) and struphy-plots with Plotly
+(``pip install "struphy-plots[plotly]"``). Run as a script, it saves its figures in the current
+directory (``--show`` shows them first).
 """
 
 import argparse
@@ -113,11 +115,30 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
-
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc(physical=True, celldivide=2)
@@ -154,6 +175,7 @@ def pproc(sim: Simulation):
     current_at_x = current[:, ix, iy]
     reconnection_rate = resistivity * current_at_x
     connected_flux = flux[:, ix, iy_o] - flux[:, ix, iy]
+    print(f"Peak reconnection rate |eta Jz| at the X-point: {float(np.max(np.abs(reconnection_rate))):.4e}")
     current_limit = float(np.percentile(np.abs(current), 99.5))
     flux_limit = float(np.max(np.abs(flux)))
     flux_levels = {"start": -flux_limit, "end": flux_limit, "size": 2 * flux_limit / 18}
@@ -216,10 +238,10 @@ def pproc(sim: Simulation):
     )
     figure.update_xaxes(title_text="x", range=[box_min, box_max], constrain="domain")
     figure.update_yaxes(title_text="y", range=[box_min, box_max], scaleanchor="x", scaleratio=1)
-    save_figure(
-        figure, "resistive-x-point", width=900, height=850,
-        static_data=field_traces(len(times) - 1), static_active=len(figure.frames) - 1,
-    )
+    # The still shows every layer at the final time, the flux contours included (the frames leave them static).
+    still = go.Figure(data=field_traces(len(times) - 1), layout=figure.layout)
+    still.layout.sliders[0].active = len(figure.frames) - 1
+    save(figure, "resistive-x-point", width=900, height=850, still=still, show=show)
 
     reconnection = make_subplots(
         rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.16,
@@ -264,34 +286,8 @@ def pproc(sim: Simulation):
         margin={"l": 80, "r": 35, "t": 90, "b": 75}, legend={"orientation": "h", "y": -0.18},
     )
 
-    figures = [
-        save_extra_figure(
-            reconnection, "resistive-x-point", "reconnection",
-            alt="Resistive electric field and connected magnetic flux at the X-point",
-            caption=(
-                "The resistive contribution eta Jz at the central null is the reconnection electric field in "
-                "this symmetric two-dimensional setup. The lower panel tracks the flux difference between "
-                "the neighbouring O-point and the X-point."
-            ),
-        ),
-        save_extra_figure(
-            conservation, "resistive-x-point", "conservation",
-            alt="MHD energy conversion, total-energy error and magnetic-divergence norm",
-            caption=(
-                "Resistivity converts magnetic energy into internal energy. Total-energy change and the "
-                "discrete L2 norm of div B monitor the numerical evolution."
-            ),
-        ),
-    ]
-    merge_metadata(
-        "resistive-x-point",
-        finalTime=float(times[-1]), resistivity=resistivity,
-        peakReconnectionRate=float(np.max(np.abs(reconnection_rate))),
-        connectedFluxChange=float(connected_flux[-1] - connected_flux[0]),
-        maxEnergyDrift=float(energy_drift.max()), maxDivB=float(divergence.max()),
-        minDensity=float(rho.min()), figures=figures,
-        **export_profiling(sim, "resistive-x-point"),
-    )
+    save(reconnection, "resistive-x-point-reconnection", show=show)
+    save(conservation, "resistive-x-point-conservation", show=show)
 
 
 if __name__ == "__main__":
@@ -301,9 +297,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

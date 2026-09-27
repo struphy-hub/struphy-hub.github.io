@@ -7,7 +7,9 @@ finite element Maxwell solver on the annulus is compared with this solution.
 
 Adapted from Struphy's tutorial (tutorials/tutorial_maxwell.ipynb) and its verification test.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -73,9 +75,28 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
 
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc(physical=True)
 
@@ -109,7 +130,6 @@ def pproc(sim: Simulation):
     print(f"Largest relative change of the total energy: {energy_drift:.1e}")
     electric = output.scalars["electric_energy"]
     magnetic = output.scalars["magnetic_energy"]
-    field_energy_variation = max(float((s.max() - s.min()) / s.mean()) for s in (electric, magnetic))
 
     # The animation: both fields are interpolated from the (r, theta) grid onto a Cartesian grid of
     # pixels, which are left empty outside the annulus. Every frame is embedded in the page, so the
@@ -219,13 +239,7 @@ def pproc(sim: Simulation):
 
     # The still image and thumbnail show the mode a little after the start of the run.
     still_position = len(frame_indices) // 4
-    save_figure(
-        figure,
-        "coaxial-waveguide",
-        height=650,
-        static_data=frame_traces(frame_indices[still_position]),
-        static_active=still_position,
-    )
+    save(figure, "coaxial-waveguide", height=650, frame=still_position, show=show)
 
     # The probe signal against the exact mode.
     probe_figure = go.Figure()
@@ -281,47 +295,8 @@ def pproc(sim: Simulation):
     energy_figure.update_xaxes(title_text="t [a.u.]", row=2, col=1)
     energy_figure.update_layout(template="plotly_white", autosize=True, margin={"l": 80, "r": 30, "t": 80, "b": 60})
 
-    figures = [
-        save_extra_figure(
-            probe_figure,
-            "coaxial-waveguide",
-            "frequency",
-            alt="Axial magnetic field at a probe against the exact coaxial mode",
-            caption=(
-                "The axial magnetic field at a fixed probe in the middle of the gap, from Struphy and from the exact "
-                f"mode, which is proportional to cos(3θ − t). A sinusoid fitted to the Struphy signal has frequency "
-                f"{measured_frequency:.5f} against the exact value 1, a relative error of {frequency_error:.1e}. This "
-                f"phase drift is the source of the field error of the animation: {frequency_error * times[-1]:.1e} "
-                f"of the mode amplitude at t = {times[-1]:.0f}, against the measured maximum of {relative_error.max():.1e}."
-            ),
-        ),
-        save_extra_figure(
-            energy_figure,
-            "coaxial-waveguide",
-            "energy",
-            alt="Electric, magnetic and total energy of the coaxial mode against time",
-            caption=(
-                "The electric and magnetic energies of the rotating mode are equal and constant to about "
-                f"{field_energy_variation:.0e} (relative), since the energy density pattern rotates with the mode, and so "
-                f"is their sum. The relative change of the total energy, below, stays under {energy_drift:.0e} over "
-                f"{len(times) - 1} steps: the implicit time integrator conserves the energy to round-off."
-            ),
-        ),
-    ]
-
-    profiling = export_profiling(sim, "coaxial-waveguide")
-
-    merge_metadata(
-        "coaxial-waveguide",
-        measuredFrequency=measured_frequency,
-        exactFrequency=1.0,
-        frequencyError=frequency_error,
-        maxRelativeError=float(relative_error.max()),
-        energyDrift=energy_drift,
-        modeNumber=mode_number,
-        figures=figures,
-        **profiling,
-    )
+    save(probe_figure, "coaxial-waveguide-frequency", show=show)
+    save(energy_figure, "coaxial-waveguide-energy", show=show)
 
 
 if __name__ == "__main__":
@@ -331,9 +306,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

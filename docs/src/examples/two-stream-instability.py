@@ -7,7 +7,9 @@ the growth saturates -- the classic two-stream instability.
 
 Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/two_stream).
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`).
+Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -94,16 +96,29 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     domain = sim.domain
-    from struphy_plots.gallery import (
-        export_profiling,
-        heatmap_figure,
-        heatmap_movie,
-        merge_metadata,
-        save_extra_figure,
-        save_figure,
-    )
 
     output = sim.output
 
@@ -135,7 +150,7 @@ def pproc(sim: Simulation):
         margin={"l": 70, "r": 30, "t": 80, "b": 60},
     )
 
-    save_figure(figure, "two-stream-instability")
+    save(figure, "two-stream-instability", show=show)
 
     output.pproc()
     f = output.evaluate("kinetic_ions/e1_v1_density/f")  # (t, e1, v1)
@@ -143,60 +158,35 @@ def pproc(sim: Simulation):
     # The classic two-stream "movie": phase-space (x, v) density, showing the
     # two beams' initially flat bands roll up into the characteristic vortex
     # ("cat's eye") pattern as the instability traps particles.
-    phase_space, phase_static = heatmap_movie(
-        f,
+    phase_space = f.assign_coords(eta1=f.eta1.values * domain.params["r1"]).struphy.plot.animation(
         x="eta1",
         y="v1",
-        x_values=f.eta1.values * domain.params["r1"],
+        max_frames=150,
+        vmin=0.0,
+        shared_clim=False,
+        cmap="viridis",
         title="Two-stream instability: phase-space density f(x, v)",
-        xaxis_title="x [a.u.]",
-        yaxis_title="v [a.u.]",
-        colorbar_title="f(x, v)",
+        xlabel="x [a.u.]",
+        ylabel="v [a.u.]",
+        colorbar_label="f(x, v)",
+        backend="plotly",
     )
 
     # The same distribution averaged over space: f(v, t).
-    velocity_time = heatmap_figure(
-        f.struphy.analysis.spatial_average(),
+    velocity_time = f.struphy.analysis.spatial_average().struphy.plot.slice(
         x="t",
         y="v1",
         title="Two-stream instability: space-averaged distribution f(v, t)",
-        xaxis_title="t [a.u.]",
-        yaxis_title="v [a.u.]",
-        colorbar_title="f(v)",
-        zmin=0.0,
+        xlabel="t [a.u.]",
+        ylabel="v [a.u.]",
+        colorbar_label="f(v)",
+        cmap="viridis",
+        vmin=0.0,
+        backend="plotly",
     )
 
-    figures = [
-        save_extra_figure(
-            velocity_time,
-            "two-stream-instability",
-            "velocity-time",
-            alt="Space-averaged velocity distribution as a function of time",
-            caption=(
-                "The distribution averaged over space, f(v, t). The two beams stay narrow and separate until about t = 20, when the instability saturates; over the following ten time units they merge into a single broad distribution that fills the gap between them."
-            ),
-        ),
-        save_extra_figure(
-            phase_space,
-            "two-stream-instability",
-            "phasespace",
-            static_z=phase_static,
-            alt="Phase-space density rolled up into the classic two-stream 'cat's eye' vortex pattern",
-            caption=(
-                "The classic two-stream picture: the phase-space density f(x, v); drag the slider or press Play. The two beams, initially flat bands at v = ±3, are bent by the growing wave and roll up into a trapped-particle “cat’s eye” hole. The frame shown is from the middle of the run (t = 25)."
-            ),
-        ),
-    ]
-
-    profiling = export_profiling(sim, "two-stream-instability")
-
-    merge_metadata(
-        "two-stream-instability",
-        measuredGrowthRate=growth_rate,
-        expectedGrowthRate=0.2845,
-        figures=figures,
-        **profiling,
-    )
+    save(velocity_time, "two-stream-instability-velocity-time", show=show)
+    save(phase_space, "two-stream-instability-phasespace", frame=len(phase_space.fig.frames) // 2, show=show)
 
 
 if __name__ == "__main__":
@@ -206,10 +196,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        # Profile every propagator, pusher and solver call in the simulation.
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)

@@ -4,7 +4,9 @@ Two periodic velocity and magnetic-field vortices are evolved to t = 1.
 The example shows nonlinear compression and field deformation, with
 energy and discrete magnetic-divergence diagnostics.
 
-Requires Struphy 3.3 with compiled kernels (``struphy compile``).
+Requires Struphy 3.3 with compiled kernels (``struphy compile``) and struphy-plots with Plotly
+(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+directory (`--show` shows them first).
 """
 
 import argparse
@@ -61,11 +63,31 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def pproc(sim: Simulation):
+def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
+    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
+
+    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
+    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
+    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
+    """
+    import struphy_plots
+    from struphy_plots.plotting import PlotResult
+
+    if not struphy_plots.is_plotting_rank():
+        return
+    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
+    if show:
+        result.show()
+    result.save(f"{name}.html")
+    image = PlotResult(still, None) if still is not None else result
+    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
+    result.save(f"{name}.plotly.json")
+
+
+def pproc(sim: Simulation, show: bool = False):
     model = sim.model
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
-    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     # The Slurm gallery job runs this example on four MPI ranks. Parallel
@@ -124,7 +146,7 @@ def pproc(sim: Simulation):
         sliders=[{"active": 0, "x": 0.12, "len": 0.88, "y": -0.07, "currentvalue": {"prefix": "t = "},
                   "steps": [{"args": [[frame.name], {"frame": {"duration": 0, "redraw": True}, "transition": {"duration": 0}, "mode": "immediate"}], "label": frame.name, "method": "animate"} for frame in figure.frames]}],
     )
-    save_figure(figure, "orszag-tang-vortex", width=900, height=850, static_data=traces(len(times)-1), static_active=len(picks)-1)
+    save(figure, "orszag-tang-vortex", frame=-1, width=900, height=850, show=show)
 
     scalars = output.scalars
     energy = scalars.en_tot
@@ -146,17 +168,9 @@ def pproc(sim: Simulation):
     for index, label in ((0, "initial"), (-1, "final")):
         cut.add_scatter(x=x, y=pressure[index, :, cut_index], name=label, mode="lines")
     cut.update_layout(title="Gas pressure along y = π", xaxis_title="x", yaxis_title="p", template="plotly_white")
-    figures = [
-        save_extra_figure(diagnostics, "orszag-tang-vortex", "conservation",
-            alt="MHD energy channels and conservation diagnostics over time",
-            caption="Kinetic, magnetic, internal and total energy, followed by the relative total-energy change and the L2 norm of the discrete magnetic divergence. The latter is the square root of tot_div_B, which stores the squared norm. Values below 1e-16 are clipped for display. Finite solver tolerances and time splitting affect energy conservation."),
-        save_extra_figure(cut, "orszag-tang-vortex", "pressure-cut",
-            alt="Initial and final gas pressure along the midplane",
-            caption="Gas pressure along y = π at the beginning and end of this run. This is a diagnostic of this finite-resolution evolution, not a comparison with reference data or a convergence result."),
-    ]
-    merge_metadata("orszag-tang-vortex", finalTime=float(times[-1]), maxEnergyDrift=float(drift.max()),
-                   maxDivB=float(divergence.max()), minDensity=float(rho.min()), figures=figures,
-                   **export_profiling(sim, "orszag-tang-vortex"))
+    print(f"Maximum relative total-energy drift: {float(drift.max()):.3e}; maximum ‖div B‖: {float(divergence.max()):.3e}")
+    save(diagnostics, "orszag-tang-vortex-conservation", show=show)
+    save(cut, "orszag-tang-vortex-pressure-cut", show=show)
 
 
 if __name__ == "__main__":
@@ -166,9 +180,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Run post-processing on an existing simulation instead of running a new one.",
     )
+    argparser.add_argument("--show", action="store_true", help="Show the figures before saving them.")
     args = argparser.parse_args()
 
     simulation = create_simulation()
     if not args.pproc_only:
-        simulation.run(profiling_activated=True)
-    pproc(simulation)
+        simulation.run()
+    pproc(simulation, show=args.show)
