@@ -108,7 +108,7 @@ def create_simulation() -> Simulation:
 def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
 
-    from struphy.utils._gallery import export_profiling, is_root, merge_metadata, save_figure
+    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_figure
 
     output = sim.output
     output.pproc()
@@ -116,7 +116,7 @@ def pproc(sim: Simulation):
     across = output.evaluate("fluid/e2_current_1/f")  # (t, e2): u_x against y, averaged over x
     along = output.evaluate("fluid/e1_current_1/f")  # (t, e1): u_x against x, averaged over y
     times = across.t.values
-    y, x = across.e2.values * height, along.e1.values
+    y, x = across.eta2.values * height, along.eta1.values
     if not (np.isfinite(across.values).all() and np.isfinite(along.values).all()):
         raise RuntimeError("Non-finite SPH result: refusing to publish the run")
 

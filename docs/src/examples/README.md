@@ -16,7 +16,7 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `orszag-tang-vortex.py` — nonlinear MHD to t = 1, density with magnetic field lines, energy/divergence diagnostics and a pressure cut
 - `resistive-x-point.py` — nonlinear visco-resistive MHD at a driven magnetic null, with current-density/flux animation, reconnection rate and conservation diagnostics
 - `mhd-slab-waves.py` — the shear Alfvén and the slow and fast magnetosonic waves of `LinearMHD`, from the (k, ω) spectra of the velocity and the pressure, with fitted against exact speeds
-- `toroidal-shear-alfven.py` — a small `LinearMHD` tokamak run with the m=10,11 perturbations, animated physical velocity components on a poloidal slice, ring histories, radial profiles, radius–time RMS maps, poloidal and temporal FFT spectra, frequency–radius maps, dominant-band reconstruction, and perturbation energies. Defaults to 8 × 48 × 4 cells, degree (3,3,2), dt=0.5 and t=20; edit the constants at the top for longer, finer runs. The short default record has only 21 samples and Δω≈0.299; this is an exploratory preview, not a converged TAE frequency measurement. Fourier diagnostics use the submodule's current `Output.fft`, `Output.time_fft` and `Output.filter_time` API.
+- `toroidal-shear-alfven.py` — a small `LinearMHD` tokamak run with the m=10,11 perturbations, animated physical velocity components on a poloidal slice, ring histories, radial profiles, radius–time RMS maps, poloidal and temporal FFT spectra, frequency–radius maps, dominant-band reconstruction, and perturbation energies. Defaults to 8 × 48 × 4 cells, degree (3,3,2), dt=0.5 and t=20; edit the constants at the top for longer, finer runs. The short default record has only 21 samples and Δω≈0.299; this is an exploratory preview, not a converged TAE frequency measurement. Fourier diagnostics use struphy-plots' `out.analysis.fft`, `out.analysis.time_fft` and `out.analysis.filter_time`.
 - `zeldovich-caustic.py` — pressureless SPH collapse to a caustic and multi-stream flow, with the exact density from the Lagrangian map (animated density and phase space)
 - `diffusion-methods.py` — the random-walk and the deterministic particle methods for the diffusion equation, compared with the exact decay (two simulations in one script)
 - `incompressible-shear-relaxation.py` — incompressible SPH between no-slip walls: the pressure projection removes a compressive wave, and the shear mode decays at the exact viscous rate
@@ -86,8 +86,8 @@ filename.
   serializes the completed figure as Plotly JSON; the site renders it with its single shared
   Plotly runtime. See an existing script for layout conventions (margins, slider/button
   placement if animated).
-- Save output with the helpers in `struphy.utils._gallery` (import them inside the `__main__` block):
-  `from struphy.utils._gallery import export_profiling, merge_metadata, save_figure`.
+- Save output with the helpers in `struphy_plots.gallery` (import them inside the `__main__` block):
+  `from struphy_plots.gallery import export_profiling, merge_metadata, save_figure`.
   `save_figure(figure, "<script-stem>")` writes `<script-stem>.png`, `.plotly.json`, and `.html`;
   `export_profiling(sim, "<script-stem>")` writes the profiling files and returns their metadata
   fields; `merge_metadata("<script-stem>", **fields)` adds result fields to the metadata JSON.
@@ -102,7 +102,7 @@ filename.
   Reductions such as `f.struphy.analysis.spatial_average()` and `.velocity_moments()` turn a
   binned distribution into f(v, t) or the velocity variance.
 - Analyze with the `Output` returned by the run (`sim.output`), e.g.
-  `sim.output.evaluate("electric_energy").struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True)`;
+  `sim.output.scalars["electric_energy"].struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True)`;
   see `weak-landau-damping.py`.
 - If the run produces a result worth reporting (a measured value, an error norm, ...), pass it
   to `merge_metadata`. This is additive — `generate_examples.py` (next step) only ever
@@ -111,7 +111,7 @@ filename.
 
 ## 2. Generate the structural metadata
 
-From the repo root, with Struphy installed (`pip install ./submodules/struphy` — no
+From the repo root, with Struphy installed (`pip install ./submodules/struphy-plots/struphy` — no
 compiled kernels needed for this step):
 
 ```sh
@@ -157,7 +157,7 @@ GitHub-hosted runners execute each example directly with Python in a single proc
 For optional local MPI runs: `python cli.py run <example> --mpi 4`, or
 `mpirun -n 4 python ../../src/examples/<script-stem>.py`.
 
-- The simulation, `output.pproc(...)` and the analysis run on every rank; the `struphy.utils._gallery` helpers
+- The simulation, `output.pproc(...)` and the analysis run on every rank; the `struphy_plots.gallery` helpers
   (`save_figure`, `save_extra_figure`, `merge_metadata`, `export_profiling`) write on rank 0 only. Write
   files only through them, or import and use `is_root()`.
 - The grid must split over the ranks: with four ranks, keep at least a few cells per rank and direction
@@ -221,7 +221,7 @@ in its metadata. No list to edit by hand.
 Use the Struphy revision pinned by this repository, including local submodule changes while developing.
 The full Orszag–Tang run needs the fix in `struphy/feec/mass.py` that preserves geometric weights
 between density-weighted matrix assemblies. Commit that fix and its regression test in Struphy,
-then update the website's submodule pointer before publishing. A website-only commit cannot
+then bump the `struphy` pointer in struphy-plots and the website's `submodules/struphy-plots` pointer before publishing. A website-only commit cannot
 reproduce this example in CI.
 
 The Orszag–Tang script checks for non-finite diagnostics, non-positive density and incomplete

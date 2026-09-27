@@ -2,7 +2,8 @@
 
 The Struphy documentation site: an [Astro](https://astro.build) site in `docs/`, backed by data
 generated from the [Struphy](https://github.com/struphy-hub/struphy) Python package (checked out
-here as a git submodule).
+here as a nested git submodule of [struphy-plots](https://github.com/struphy-hub/struphy-plots), at
+`submodules/struphy-plots/struphy`).
 
 ## Building the site locally
 
@@ -16,17 +17,17 @@ cd struphy-hub.github.io
 If you already cloned without `--recurse-submodules`:
 
 ```sh
-git submodule update --init
+git submodule update --init --recursive
 ```
 
-### 2. Install Struphy from the submodule
+### 2. Install Struphy and struphy-plots from the submodules
 
 Requires Python 3.12. From the repo root:
 
 ```sh
 python -m venv .venv
 source .venv/bin/activate
-pip install ./submodules/struphy
+pip install ./submodules/struphy-plots/struphy './submodules/struphy-plots[gallery]'
 ```
 
 ### 3. Generate the site's data
@@ -73,7 +74,7 @@ The full pipeline (including the CI-specific steps) is defined in
 
 `docs/src/examples/*.py` are full, runnable Struphy simulations shown on the `/examples/` pages,
 separate from the data pipeline above. They need `struphy compile` and a heavier install
-(`pip install './submodules/struphy[mpi]'`, or whatever extras the example needs) and aren't
+(`pip install './submodules/struphy-plots/struphy[mpi]'`, or whatever extras the example needs) and aren't
 required to build the site. `generate_examples.py` (repo root) generates their page metadata
 (name, description, equations, config summary) by importing each script without running its
 simulation — see `docs/src/examples/README.md` for the full step-by-step guide to adding a

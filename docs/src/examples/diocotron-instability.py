@@ -107,13 +107,13 @@ def create_simulation() -> Simulation:
 
 def pproc(sim: Simulation):
     a1, a2 = sim.domain.params["a1"], sim.domain.params["a2"]
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
-    output = sim.output.process(create_vtk=False)
+    output = sim.output.pproc(create_vtk=False)
 
-    density = output.distributions.kinetic_ions.e1_e2_density.f
-    radius = a1 + (a2 - a1) * np.asarray(density.e1)
-    angle_deg = 360.0 * np.asarray(density.e2)
+    density = output.evaluate("kinetic_ions/e1_e2_density/f")
+    radius = a1 + (a2 - a1) * np.asarray(density.eta1)
+    angle_deg = 360.0 * np.asarray(density.eta2)
     frames_data = np.asarray(density)  # (time, radius, angle)
     times = np.asarray(density.t)
 

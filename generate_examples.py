@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import runpy
+import traceback
 from pathlib import Path
 
 EXAMPLES_DIR = Path(__file__).parent / "docs" / "src" / "examples"
@@ -100,15 +101,23 @@ def main(stems: list[str] | None = None) -> None:
     )
     if stems:
         scripts = [path for path in scripts if path.stem in stems]
+    failures = []
     for script in scripts:
         # `run_name` deliberately isn't "__main__", so each script's own
         # `if __name__ == "__main__":` block (the run + plotting) stays skipped.
-        namespace = runpy.run_path(str(script), run_name=script.stem)
-        sim = namespace.get("sim")
-        if sim is None:
-            create_simulation = namespace.get("create_simulation")
-            if callable(create_simulation):
-                sim = create_simulation()
+        # A script that fails is reported with the others at the end rather than stopping
+        # the loop, so one broken example does not hide the state of the rest.
+        try:
+            namespace = runpy.run_path(str(script), run_name=script.stem)
+            sim = namespace.get("sim")
+            if sim is None:
+                create_simulation = namespace.get("create_simulation")
+                if callable(create_simulation):
+                    sim = create_simulation()
+        except Exception:
+            traceback.print_exc()
+            failures.append(script.name)
+            continue
         if sim is None:
             print(
                 f"Skipping {script.name}: no module-level `sim` or `create_simulation()` found"
@@ -122,6 +131,8 @@ def main(stems: list[str] | None = None) -> None:
             json.dumps(metadata, indent=2, ensure_ascii=False) + "\n"
         )
         print(f"Wrote {output_path}")
+    if failures:
+        raise SystemExit(f"Could not generate the metadata of {len(failures)} example(s): {', '.join(failures)}")
 
 
 if __name__ == "__main__":

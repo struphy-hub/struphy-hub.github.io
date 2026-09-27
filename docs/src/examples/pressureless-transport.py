@@ -58,14 +58,14 @@ def pproc(sim: Simulation):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
 
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
     output = sim.output
     output.pproc(physical=True)
-    rho = output.evaluate("fluid/density_xyz").isel(e2=0, e3=0)
-    velocity = output.evaluate("fluid/velocity_xyz").isel(component=0, e2=0, e3=0)
-    energy = output.evaluate("kinetic_energy")
-    times, x, density = rho.t.values, rho.e1.values * length, rho.values
+    rho = output.evaluate("fluid/density_xyz").isel(eta2=0, eta3=0)
+    velocity = output.evaluate("fluid/velocity_xyz").isel(component=0, eta2=0, eta3=0)
+    energy = output.scalars["kinetic_energy"]
+    times, x, density = rho.t.values, rho.eta1.values * length, rho.values
     exact = 1.0 + amplitude * np.cos(x[None, :] - speed * times[:, None])
     if not all(np.isfinite(a).all() for a in (density, velocity.values, energy.values)):
         raise RuntimeError("The transport run produced non-finite diagnostics")
@@ -98,7 +98,7 @@ def pproc(sim: Simulation):
     figure.update_layout(title="Pressureless transport at constant velocity", template="plotly_white",
                          legend={"orientation": "h", "y": -0.18}, margin={"l": 85, "r": 30, "t": 90, "b": 140})
     save_figure(figure, stem, height=800)
-    movie = space_time_figure(rho, space="e1", x_values=x, xaxis_title="x",
+    movie = space_time_figure(rho, space="eta1", x_values=x, xaxis_title="x",
                               title="Density transported around a periodic box", colorbar_title="ρ")
     figures = [save_extra_figure(movie, stem, "space-time", alt="Density ripple translating at constant speed",
                                 caption="The diagonal bands travel at speed 0.5 and wrap through the periodic boundary.")]

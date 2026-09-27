@@ -86,13 +86,13 @@ def create_simulation() -> Simulation:
 
 
 def pproc(sim: Simulation):
-    from struphy.utils._gallery import export_profiling, is_root, merge_metadata, save_figure
+    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_figure
 
     output = sim.output
     output.pproc()
     velocity = output.evaluate("euler_fluid/e1_current_1/f")
     times = np.asarray(velocity.t.values)
-    x = np.asarray(velocity.e1.values) * length
+    x = np.asarray(velocity.eta1.values) * length
     values = np.asarray(velocity.values)
     if not np.isfinite(values).all():
         raise RuntimeError("Non-finite SPH velocity: refusing to publish the run")

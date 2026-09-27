@@ -57,8 +57,8 @@ def create_simulation(n0=1.0, folder="cold_plasma_oscillation") -> Simulation:
 
 def mode_amplitude(run):
     """Time, and the amplitude of the cos(k z) mode of E_z, from a post-processed run."""
-    e_z = run.evaluate("em_fields/e_field_xyz").isel(e1=0, e2=0, component=2)
-    z = e_z.e3.values
+    e_z = run.evaluate("em_fields/e_field_xyz").isel(eta1=0, eta2=0, component=2)
+    z = e_z.eta3.values
     return e_z.t.values, 2.0 * np.mean(e_z.values * np.cos(2.0 * np.pi * z), axis=1)
 
 
@@ -74,7 +74,7 @@ def oscillation_frequency(times, values):
 def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
 
-    from struphy.utils._gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
     runs = {1.0: sim.output}
     for n0 in densities:
@@ -97,8 +97,8 @@ def pproc(sim: Simulation):
     run = runs[1.0]
     omega_p = exact[1.0]
     times, values = mode_amplitude(run)
-    e_z = run.evaluate("em_fields/e_field_xyz").isel(e1=0, e2=0, component=2)
-    z = e_z.e3.values * length
+    e_z = run.evaluate("em_fields/e_field_xyz").isel(eta1=0, eta2=0, component=2)
+    z = e_z.eta3.values * length
     electric = np.asarray(run.scalars["electric_energy"])
     kinetic = np.asarray(run.scalars["kinetic_energy"])
     scalar_times = np.asarray(run.time)[: len(electric)]

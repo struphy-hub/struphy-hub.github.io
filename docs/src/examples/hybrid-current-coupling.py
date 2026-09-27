@@ -103,24 +103,24 @@ def pproc(sim: Simulation):
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
-    from struphy.utils._gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure, space_time_figure
+    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
     output = sim.output
     output.pproc(physical=True)
 
-    energies = {key: output.evaluate(key) for key in ("en_U", "en_B", "en_p", "en_f", "en_tot")}
+    energies = {key: output.scalars[key] for key in ("en_U", "en_B", "en_p", "en_f", "en_tot")}
     times = energies["en_tot"].t.values
     values = {key: data.values for key, data in energies.items()}
     if not all(np.isfinite(data).all() for data in values.values()):
         raise RuntimeError("The hybrid run produced non-finite energies")
     if not np.isclose(times[-1], time_opts.Tend):
         raise RuntimeError(f"The hybrid run stopped at t={times[-1]}, before t={time_opts.Tend}")
-    if np.any(output.evaluate("n_lost_particles").values != 0):
+    if np.any(output.scalars["n_lost_particles"].values != 0):
         raise RuntimeError("Particles were lost from the periodic domain")
-    velocity = output.evaluate("mhd/velocity_xyz").isel(e1=0, e2=0, component=0)
+    velocity = output.evaluate("mhd/velocity_xyz").isel(eta1=0, eta2=0, component=0)
     if not np.isfinite(velocity.values).all():
         raise RuntimeError("The hybrid run produced a non-finite velocity field")
-    magnetic = output.evaluate("em_fields/b_field_xyz").isel(e1=0, e2=0, component=0)
+    magnetic = output.evaluate("em_fields/b_field_xyz").isel(eta1=0, eta2=0, component=0)
     if not np.isfinite(magnetic.values).all():
         raise RuntimeError("The hybrid run produced a non-finite magnetic field")
     if not np.array_equal(velocity.t.values, magnetic.t.values):
@@ -182,7 +182,7 @@ def pproc(sim: Simulation):
     def wave_traces(index):
         return [
             go.Scatter(
-                x=field.e3.values * length, y=field.values[index], mode="lines",
+                x=field.eta3.values * length, y=field.values[index], mode="lines",
                 name=label, line={"color": color, "width": 3},
             )
             for field, label, color in (
@@ -247,8 +247,8 @@ def pproc(sim: Simulation):
     )]
 
     wave = space_time_figure(
-        velocity, space="e3", title="Transverse fluid velocity with kinetic-ion feedback",
-        colorbar_title="U_x", xaxis_title="z [a.u.]", x_values=velocity.e3.values * length,
+        velocity, space="eta3", title="Transverse fluid velocity with kinetic-ion feedback",
+        colorbar_title="U_x", xaxis_title="z [a.u.]", x_values=velocity.eta3.values * length,
     )
     figures.append(save_extra_figure(
         wave, stem, "space-time",

@@ -108,7 +108,7 @@ MAX_POLOIDAL_MODE = 12
 
 def minor_radius(array):
     """Radius r = a1 + (a2 - a1) * e1 of the `e1` coordinate of `array`."""
-    return a1 + (a2 - a1) * np.asarray(array.e1)
+    return a1 + (a2 - a1) * np.asarray(array.eta1)
 
 
 def mode_amplitudes(phi):
@@ -117,22 +117,22 @@ def mode_amplitudes(phi):
     m >= 0 is the poloidal and n the axial mode number. The periodic end points e2 = 1 and e3 = 1 repeat the
     first ones and are dropped. A field `A cos(m*theta + 2*pi*n*z/length)` has |phi_mn| = A.
     """
-    field = phi.isel(e2=slice(None, -1), e3=slice(None, -1)).transpose("t", "e1", "e2", "e3")
-    n_theta, n_z = field.sizes["e2"], field.sizes["e3"]
+    field = phi.isel(eta2=slice(None, -1), eta3=slice(None, -1)).transpose("t", "eta1", "eta2", "eta3")
+    n_theta, n_z = field.sizes["eta2"], field.sizes["eta3"]
     spectrum = np.fft.fft(np.fft.rfft(field.values, axis=2), axis=3) / (n_theta * n_z)
     spectrum[:, :, 1:] *= 2.0  # fold the negative m
     if n_theta % 2 == 0:
         spectrum[:, :, -1] /= 2.0  # the Nyquist mode has no partner
     return xr.DataArray(
         spectrum,
-        dims=("t", "e1", "m", "n"),
-        coords={"t": field.t, "e1": field.e1, "m": np.arange(spectrum.shape[2]), "n": np.fft.fftfreq(n_z, d=1.0 / n_z).astype(int)},
+        dims=("t", "eta1", "m", "n"),
+        coords={"t": field.t, "eta1": field.eta1, "m": np.arange(spectrum.shape[2]), "n": np.fft.fftfreq(n_z, d=1.0 / n_z).astype(int)},
     )
 
 
 def radial_rms(spectrum):
     """Radial rms of |phi_mn|, over e1."""
-    return np.sqrt((np.abs(spectrum) ** 2).mean("e1"))
+    return np.sqrt((np.abs(spectrum) ** 2).mean("eta1"))
 
 
 def exponential_rate(amplitude, window):
@@ -212,7 +212,7 @@ def create_simulation() -> Simulation:
 def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
 
-    from struphy.utils._gallery import (
+    from struphy_plots.gallery import (
         export_profiling,
         heatmap_figure,
         heatmap_movie,
@@ -222,7 +222,7 @@ def pproc(sim: Simulation):
         space_time_figure,
     )
 
-    output = sim.output.process(create_vtk=False)
+    output = sim.output.pproc(create_vtk=False)
 
     # The field-projected density perturbation (cleaner than the raw,
     # particle-noise-dominated PIC histogram) is the standard diagnostic for
@@ -230,7 +230,7 @@ def pproc(sim: Simulation):
     rho = output.fields.diagnostics.rho
     rho = rho.isel(component=0) if "component" in rho.dims else rho
     times = np.asarray(rho.t)
-    perturbation_energy = np.asarray(output.norm(rho, squared=True))
+    perturbation_energy = np.asarray(rho.struphy.analysis.norm(squared=True))
 
     growth_window = (times > GROWTH_WINDOW[0]) & (times < GROWTH_WINDOW[1])
     growth_rate = float(np.polyfit(times[growth_window], np.log(perturbation_energy[growth_window]), 1)[0] / 2)
@@ -254,7 +254,9 @@ def pproc(sim: Simulation):
     save_figure(figure, "itg-drift-wave")
 
     # ---- further figures: the potential and its Fourier modes --------------------------------------------
-    phi = output.evaluate("em_fields/phi")
+    # the grid points of the cells and the periodic endpoints, which mode_amplitudes drops
+    points = {f"eta{i + 1}": np.linspace(0.0, 1.0, cells + 1) for i, cells in enumerate(output.grid.num_elements)}
+    phi = output.evaluate("em_fields/phi", **points)
     if not np.isfinite(phi.values).all():
         raise RuntimeError("Non-finite electrostatic potential: refusing to publish the run")
     radius = minor_radius(phi)
@@ -262,15 +264,15 @@ def pproc(sim: Simulation):
     figures = []
 
     # The potential on a poloidal cross section (radius against angle) at the start of the axis.
-    potential = phi.isel(e3=0, drop=True)
+    potential = phi.isel(eta3=0, drop=True)
     limit = float(np.percentile(np.abs(potential.values), 99.7))
     still_index = int(0.9 * (potential.sizes["t"] - 1))  # the middle of the run is still too faint on this scale
     movie, _ = heatmap_movie(
         potential,
-        x="e1",
-        y="e2",
+        x="eta1",
+        y="eta2",
         x_values=radius,
-        y_values=2 * np.pi * np.asarray(potential.e2),
+        y_values=2 * np.pi * np.asarray(potential.eta2),
         title="ITG drift wave: electrostatic potential φ",
         xaxis_title="r [a.u.]",
         yaxis_title="θ [rad]",
@@ -289,7 +291,7 @@ def pproc(sim: Simulation):
                 "The electrostatic potential at z = 0 against radius and poloidal angle. The colour scale is "
                 "fixed and symmetric about zero, so growth of the perturbation shows up as deepening colour."
             ),
-            static_z=potential.transpose("t", "e2", "e1").values[still_index],
+            static_z=potential.transpose("t", "eta2", "eta1").values[still_index],
             static_active=still_index,
         )
     )
@@ -386,7 +388,7 @@ def pproc(sim: Simulation):
 
     # Radial structure of the seeded mode.
     interior = slice(1, -1)  # phi = 0 at the Dirichlet boundaries r = a1, a2, which a log axis cannot show
-    profile = np.abs(spectrum.sel(m=mode_poloidal, n=mode_toroidal)).isel(e1=interior)
+    profile = np.abs(spectrum.sel(m=mode_poloidal, n=mode_toroidal)).isel(eta1=interior)
     picks = np.unique(np.linspace(0, profile.sizes["t"] - 1, 6).astype(int))
     radial_figure = go.Figure()
     for color, index in zip(sample_colorscale("Plasma", np.linspace(0, 0.9, len(picks))), picks):
@@ -410,10 +412,10 @@ def pproc(sim: Simulation):
     )
 
     # Where and when does the potential grow?
-    rms = np.sqrt((phi**2).mean(("e2", "e3"))).isel(e1=interior)
+    rms = np.sqrt((phi**2).mean(("eta2", "eta3"))).isel(eta1=interior)
     rms_map = heatmap_figure(
-        xr.DataArray(log10_or_nan(rms.values), dims=("t", "e1"), coords={"t": rms.t, "e1": rms.e1}),
-        x="e1",
+        xr.DataArray(log10_or_nan(rms.values), dims=("t", "eta1"), coords={"t": rms.t, "eta1": rms.eta1}),
+        x="eta1",
         y="t",
         x_values=radius[interior],
         title="ITG drift wave: where the potential grows",
@@ -432,15 +434,15 @@ def pproc(sim: Simulation):
     )
 
     # The flux-surface-averaged (m = n = 0) density change: does the profile flatten?
-    density = output.evaluate("diagnostics/rho")
+    density = output.evaluate("diagnostics/rho", **points)
     density = density.isel(component=0, drop=True) if "component" in density.dims else density
-    zonal = density.isel(e2=slice(None, -1), e3=slice(None, -1)).mean(("e2", "e3"))
+    zonal = density.isel(eta2=slice(None, -1), eta3=slice(None, -1)).mean(("eta2", "eta3"))
     zonal = zonal - zonal.isel(t=0)
     figures.append(
         save_extra_figure(
             space_time_figure(
                 zonal,
-                space="e1",
+                space="eta1",
                 x_values=radius,
                 title="ITG drift wave: change of the flux-surface-averaged density",
                 colorbar_title="δ⟨ρ⟩ [a.u.]",

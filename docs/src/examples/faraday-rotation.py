@@ -67,14 +67,14 @@ def pproc(sim: Simulation):
     time_opts = sim.time_opts
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc(physical=True)
-    field = output.evaluate("em_fields/e_field_xyz").isel(e1=0, e2=0)
+    field = output.evaluate("em_fields/e_field_xyz").isel(eta1=0, eta2=0)
     ex, ey = (field.isel(component=i).values for i in (0, 1))
-    times, z = field.t.values, field.e3.values * length
-    energy = output.evaluate("total_energy")
+    times, z = field.t.values, field.eta3.values * length
+    energy = output.scalars["total_energy"]
     if not all(np.isfinite(a).all() for a in (ex, ey, energy.values)) or not np.isclose(times[-1], time_opts.Tend):
         raise RuntimeError("The Faraday run is incomplete or non-finite")
     carrier = amplitude * np.cos(1.5 * z[None, :] - omega * times[:, None])

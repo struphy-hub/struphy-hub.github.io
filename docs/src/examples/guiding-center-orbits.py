@@ -98,7 +98,7 @@ def pproc(sim: Simulation):
     equil = sim.equil
     b_start = float(equil.absB0(start_eta1, 0.0, 0.0, squeeze_out=True))
     model = sim.model
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc()
@@ -106,11 +106,11 @@ def pproc(sim: Simulation):
     # (t, marker, quantity) with the quantities named x, y, z, v1, v2, ...: the position in Cartesian
     # coordinates, then the parallel velocity (v1) and the magnetic moment (v2) of a 5D marker. The
     # labels after v2 do not describe these columns and are not used here.
-    orbits = output.evaluate("kinetic_ions")
+    orbits = output.orbits.kinetic_ions.to_dataarray("quantity").transpose("t", "marker", "quantity")
     times = orbits.t.values
     x, y, z = (orbits.sel(quantity=name).values for name in ("x", "y", "z"))
-    v_parallel = orbits.sel(quantity="v1").values
-    moment = orbits.sel(quantity="v2").values
+    v_parallel = orbits.sel(quantity="v_par").values
+    moment = orbits.sel(quantity="mu").values
     major_radius = np.hypot(x, y)
     n_markers = x.shape[1]
 

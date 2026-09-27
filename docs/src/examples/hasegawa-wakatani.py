@@ -111,24 +111,26 @@ def pproc(sim: Simulation):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
 
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc(celldivide=1)
 
-    density = output.evaluate("plasma/density").isel(e3=0, drop=True)
-    vorticity = output.evaluate("plasma/vorticity").isel(e3=0, drop=True)
-    potential = output.evaluate("em_fields/phi").isel(e3=0, drop=True)
+    # the grid points of the cells and the periodic endpoint, in the plane eta3 = 0
+    plane = {f"eta{i + 1}": np.linspace(0.0, 1.0, cells + 1) for i, cells in enumerate(output.grid.num_elements[:2])}
+    density = output.evaluate("plasma/density", **plane, eta3=0.0)
+    vorticity = output.evaluate("plasma/vorticity", **plane, eta3=0.0)
+    potential = output.evaluate("em_fields/phi", **plane, eta3=0.0)
     times = np.asarray(density.t)
     if times[-1] < time_opts.Tend - env.save_step * time_opts.dt:
         raise RuntimeError("Hasegawa-Wakatani simulation ended before the requested final time")
 
     # xarray stores these fields as (t, e1, e2); Plotly heatmaps expect
     # (row=y, column=x), hence the final transpose in each frame.
-    x = np.asarray(density.e1) * length
-    y = np.asarray(density.e2) * length
-    n_values = density.transpose("t", "e1", "e2").values
-    w_values = vorticity.transpose("t", "e1", "e2").values
+    x = np.asarray(density.eta1) * length
+    y = np.asarray(density.eta2) * length
+    n_values = density.transpose("t", "eta1", "eta2").values
+    w_values = vorticity.transpose("t", "eta1", "eta2").values
     if not (np.isfinite(n_values).all() and np.isfinite(w_values).all()):
         raise RuntimeError("Non-finite Hasegawa-Wakatani field: refusing to publish the run")
 
@@ -195,7 +197,7 @@ def pproc(sim: Simulation):
     # up to roundoff on the sampled grid.
     # The sampled periodic grid includes the repeated right/top boundary.
     # Remove it before the FFT so it is not counted as a second grid point.
-    phi = potential.transpose("t", "e1", "e2").values[:, :-1, :-1]
+    phi = potential.transpose("t", "eta1", "eta2").values[:, :-1, :-1]
     nx, ny = phi.shape[1:]
     kx = 2 * np.pi * np.fft.fftfreq(nx, d=length / nx)[:, None]
     ky = 2 * np.pi * np.fft.fftfreq(ny, d=length / ny)[None, :]

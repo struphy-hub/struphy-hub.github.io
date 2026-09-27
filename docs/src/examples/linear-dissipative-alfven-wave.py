@@ -60,15 +60,15 @@ def pproc(sim: Simulation):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
 
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
     output = sim.output
     output.pproc(physical=True)
-    velocity = output.evaluate("mhd/velocity_xyz").isel(component=0, e1=0, e2=0)
-    magnetic = output.evaluate("em_fields/b_field_xyz").isel(component=0, e1=0, e2=0)
-    kinetic = output.evaluate("en_U")
-    magnetic_energy = output.evaluate("en_mag_1")
-    times, z = velocity.t.values, velocity.e3.values * length
+    velocity = output.evaluate("mhd/velocity_xyz").isel(component=0, eta1=0, eta2=0)
+    magnetic = output.evaluate("em_fields/b_field_xyz").isel(component=0, eta1=0, eta2=0)
+    kinetic = output.scalars["en_U"]
+    magnetic_energy = output.scalars["en_mag_1"]
+    times, z = velocity.t.values, velocity.eta3.values * length
     if not all(np.isfinite(a.values).all() for a in (velocity, magnetic, kinetic, magnetic_energy)):
         raise RuntimeError("The linear MHD run produced non-finite diagnostics")
     if abs(times[-1] - time_opts.Tend) > time_opts.dt:
@@ -103,7 +103,7 @@ def pproc(sim: Simulation):
     figure.update_layout(title="Viscous and resistive damping of a linear Alfvén wave", template="plotly_white",
                          legend={"orientation": "h", "y": -0.18}, margin={"l": 85, "r": 30, "t": 90, "b": 140})
     save_figure(figure, stem, height=800)
-    space_time = space_time_figure(velocity, space="e3", x_values=z, xaxis_title="z",
+    space_time = space_time_figure(velocity, space="eta3", x_values=z, xaxis_title="z",
                                    title="A standing Alfvén wave with a fading amplitude", colorbar_title="u_x")
     figures = [save_extra_figure(space_time, stem, "space-time", alt="Standing Alfvén wave fading under viscosity and resistivity",
                                 caption="The nodes remain fixed while viscosity and resistivity damp the wave.")]

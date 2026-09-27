@@ -112,16 +112,16 @@ def create_simulation() -> Simulation:
 def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
 
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc()
 
-    density = output.evaluate("euler_fluid/view_0/n").isel(e2=0, e3=0)  # (t, e1): the SPH density estimate
-    orbits = output.evaluate("euler_fluid")  # (t, marker, quantity)
+    density = output.evaluate("euler_fluid/view_0/n", eta2=0, eta3=0)  # (t, e1): the SPH density estimate
+    orbits = output.orbits.euler_fluid.to_dataarray("quantity").transpose("t", "marker", "quantity")  # (t, marker, quantity)
     times = orbits.t.values
     assert np.allclose(times, density.t.values)
-    grid = density.e1.values * box_length
+    grid = density.eta1.values * box_length
     marker_position = orbits.sel(quantity="x").values  # (t, marker)
     marker_velocity = orbits.sel(quantity="v1").values
 

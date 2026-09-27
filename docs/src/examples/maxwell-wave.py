@@ -21,7 +21,6 @@ from struphy import (
     grids,
     perturbations,
 )
-from struphy.diagnostics.diagn_tools import power_spectrum_2d
 from struphy.models import Maxwell
 
 
@@ -70,7 +69,7 @@ def create_simulation() -> Simulation:
 
 def pproc(sim: Simulation):
     domain = sim.domain
-    from struphy.utils._gallery import (
+    from struphy_plots.gallery import (
         export_profiling,
         merge_metadata,
         save_extra_figure,
@@ -79,32 +78,27 @@ def pproc(sim: Simulation):
     )
 
     # Run, evaluate the FEEC fields on a grid, and load the result.
-    output = sim.output.process(create_vtk=False)
+    output = sim.output.pproc(create_vtk=False)
 
-    # Struphy's diagnostic computes the (k, omega) spectrum and fits its branch.
+    # The (k, omega) power spectrum of E_x along z, and a fit of its branch.
+    from struphy_plots.analysis import fit_dispersion_branches, power_spectrum
+
     electric_field = output.fields.em_fields.e_field
-    omega, kvec, dispersion, coefficients = power_spectrum_2d(
-        electric_field,
-        component=0,
-        slice_at=[0, 0, None],
-        physical=True,
-        do_plot=False,
-        fit_branches=1,
-        noise_level=0.5,
-        extr_order=10,
-        fit_degree=(1,),
-    )
-
-    phase_velocity = float(coefficients[0][0])
+    e_x = electric_field.isel(component=0, eta1=0, eta2=0)
+    e_x = e_x.assign_coords(eta3=e_x.eta3 * (domain.params["r3"] - domain.params["l3"]))  # physical z
+    spectrum = power_spectrum(e_x, dim="eta3")
+    # Peaks count above half the column's peak amplitude, i.e. a quarter of its peak power.
+    branch = fit_dispersion_branches(spectrum, n_branches=1, noise_level=0.5**2, order=10)[0]
+    phase_velocity = float(branch.velocity)
     print(f"Measured phase velocity: {phase_velocity:.5f} (exact: 1.0)")
 
-    # Build an interactive Plotly view of the normalized power spectrum.
-    omega = np.asarray(omega)
-    kvec = np.asarray(kvec)
-    power = np.asarray(dispersion) ** 2
-    power /= power.max()
+    # Build an interactive Plotly view of the normalized power spectrum, for omega, k >= 0.
+    quadrant = spectrum.sel(omega=spectrum.omega >= 0, k=spectrum.k >= 0)
+    omega = quadrant.omega.values
+    kvec = quadrant.k.values
+    power = quadrant.values / float(quadrant.max())
     log_power = np.log10(np.clip(power, 1e-15, None))
-    fit = np.polyval(np.asarray(coefficients[0]), kvec)
+    fit = phase_velocity * kvec
 
     figure = go.Figure(
         go.Heatmap(
@@ -158,11 +152,14 @@ def pproc(sim: Simulation):
 
     # The same field along z, over time: waves travelling in both directions leave diagonal
     # stripes, whose slope is the wave speed.
-    transverse = output.evaluate("em_fields/e_field").isel(component=0, e1=0, e2=0)  # (t, e3)
+    transverse = output.evaluate(
+        "em_fields/e_field", eta1=0.0, eta2=0.0, eta3=np.linspace(0.0, 1.0, output.grid.num_elements[2] + 1),
+        representation="1",
+    ).isel(component=0)  # (t, eta3)
     space_time = space_time_figure(
         transverse,
-        space="e3",
-        x_values=transverse.e3.values * domain.params["r3"],
+        space="eta3",
+        x_values=transverse.eta3.values * domain.params["r3"],
         xaxis_title="z [a.u.]",
         title="Maxwell light waves: electric field E(z, t)",
         colorbar_title="E_x",

@@ -77,21 +77,21 @@ def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
     from scipy.interpolate import griddata
 
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc(physical=True)
 
-    e_z = output.evaluate("em_fields/e_field_xyz").isel(component=2, e3=0)  # (t, e1, e2), on the mesh points
+    e_z = output.evaluate("em_fields/e_field_xyz").isel(component=2, eta3=0)  # (t, e1, e2), on the mesh points
     times = e_z.t.values
     mesh_x, mesh_y = e_z.X.values, e_z.Y.values
-    numeric = e_z.transpose("t", "e1", "e2").values
+    numeric = e_z.transpose("t", "eta1", "eta2").values
     exact = np.array([exact_field(mesh_x, mesh_y, t) for t in times])
     scale = float(np.abs(exact[0]).max())
     error = np.sqrt(np.mean((numeric - exact) ** 2, axis=(1, 2))) / np.sqrt(np.mean(exact[0] ** 2))
     if not np.isfinite(error).all():
         raise RuntimeError("Non-finite field")
-    total = output.evaluate("total_energy").values
+    total = output.scalars["total_energy"].values
     energy_drift = float(np.max(np.abs(total / total[0] - 1.0)))
     print(f"Largest rms error of E_z, relative to the initial rms: {error.max():.3e}")
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")

@@ -69,14 +69,14 @@ def create_simulation() -> Simulation:
 
 
 def pproc(sim: Simulation):
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
     output = sim.output
     output.pproc(physical=True)
 
-    kinetic = output.evaluate("en_U")
-    magnetic = output.evaluate("en_B")
-    total = output.evaluate("en_tot")
+    kinetic = output.scalars["en_U"]
+    magnetic = output.scalars["en_B"]
+    total = output.scalars["en_tot"]
     time = total.t.values
     total_values = total.values
     energy_scale = float(total_values[0])
@@ -117,11 +117,14 @@ def pproc(sim: Simulation):
 
     # The velocity along z over time: a standing wave keeps its nodes, so the stripes are vertical,
     # unlike the diagonal stripes of the travelling waves in `shear-alfven-wave`.
-    velocity = output.evaluate("mhd/velocity").isel(component=0, e1=0, e2=0)
+    cells = output.grid.num_elements[2]
+    velocity = output.evaluate(
+        "mhd/velocity", eta1=0.0, eta2=0.0, eta3=np.linspace(0.0, 1.0, cells + 1), representation="2"
+    ).isel(component=0)
     space_time = space_time_figure(
         velocity,
-        space="e3",
-        x_values=velocity.e3.values * length,
+        space="eta3",
+        x_values=velocity.eta3.values * length,
         xaxis_title="z [a.u.]",
         title="Standing Alfvén wave: transverse velocity u(z, t)",
         colorbar_title="u₁ (logical component)",

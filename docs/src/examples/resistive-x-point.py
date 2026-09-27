@@ -117,22 +117,22 @@ def pproc(sim: Simulation):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
 
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc(physical=True, celldivide=2)
     if not all(bool(np.isfinite(value).all()) for value in output.scalars.values()):
         raise RuntimeError("Non-finite X-point diagnostics: refusing to publish the run")
 
-    b = output.evaluate("em_fields/b_field_xyz").isel(e3=0)
-    rho = output.evaluate("mhd/density_xyz").isel(e3=0).squeeze(drop=True)
+    b = output.evaluate("em_fields/b_field_xyz").isel(eta3=0)
+    rho = output.evaluate("mhd/density_xyz").isel(eta3=0).squeeze(drop=True)
     times = np.asarray(b.t.values)
     if times[-1] < time_opts.Tend - 0.5 * time_opts.dt or float(rho.min()) <= 0:
         raise RuntimeError("Incomplete X-point evolution or non-positive density")
 
     x = np.asarray(b.X)[:, 0]
     y = np.asarray(b.Y)[0, :]
-    bx, by = (b.isel(component=index).transpose("t", "e1", "e2").values for index in (0, 1))
+    bx, by = (b.isel(component=index).transpose("t", "eta1", "eta2").values for index in (0, 1))
     nx, ny = (
         count - 1 if abs(coordinates[-1] - coordinates[0] - period) < 1e-6 * period else count
         for count, coordinates in ((len(x), x), (len(y), y))

@@ -93,13 +93,16 @@ def create_simulation(k=0.5, folder="langmuir_wave_dispersion") -> Simulation:
 
 def mode_amplitude(run):
     """Time and the amplitude of the sin(k x) mode of the electric field E_x, from a post-processed run."""
-    e_x = run.evaluate("em_fields/e_field").isel(component=0, e2=0, e3=0)
-    e1 = e_x.e1.values
+    cells = run.grid.num_elements[0]
+    e_x = run.evaluate(
+        "em_fields/e_field", eta1=np.linspace(0.0, 1.0, cells + 1), eta2=0.0, eta3=0.0, representation="1"
+    ).isel(component=0)
+    e1 = e_x.eta1.values
     return e_x.t.values, 2.0 * np.mean(e_x.values[:, :-1] * np.sin(2 * np.pi * e1[:-1]), axis=1)
 
 
 def pproc(sim: Simulation):
-    from struphy.utils._gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, is_root, merge_metadata, save_extra_figure, save_figure
 
     runs = {0.5: sim.output}
     for k in wavenumbers:

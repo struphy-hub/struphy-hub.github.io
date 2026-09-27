@@ -90,7 +90,7 @@ def create_simulation() -> Simulation:
 
 def pproc(sim: Simulation):
     domain = sim.domain
-    from struphy.utils._gallery import (
+    from struphy_plots.gallery import (
         export_profiling,
         merge_metadata,
         save_extra_figure,
@@ -105,7 +105,7 @@ def pproc(sim: Simulation):
         return (4 * perturbation_amplitude * r * np.exp(omega_i * t) * np.cos(omega_r * t - phi)) ** 2 * np.pi
 
     output = sim.output
-    field_energy = output.evaluate("electric_energy")
+    field_energy = output.scalars["electric_energy"]
     time = np.asarray(field_energy.t)
 
     # Fit the damping rate from the envelope maxima, for comparison with omega_i = -0.1533.
@@ -153,11 +153,14 @@ def pproc(sim: Simulation):
 
     # The electric field along x, over time.
     output.pproc()
-    electric_field = output.evaluate("em_fields/e_field").isel(component=0, e2=0, e3=0)  # (t, e1)
+    electric_field = output.evaluate(
+        "em_fields/e_field", eta1=np.linspace(0.0, 1.0, output.grid.num_elements[0] + 1), eta2=0.0, eta3=0.0,
+        representation="1",
+    ).isel(component=0)  # (t, eta1)
     space_time = space_time_figure(
         electric_field,
-        space="e1",
-        x_values=electric_field.e1.values * domain.params["r1"],
+        space="eta1",
+        x_values=electric_field.eta1.values * domain.params["r1"],
         title="Weak Landau damping: electric field E(x, t)",
         colorbar_title="E_x",
     )

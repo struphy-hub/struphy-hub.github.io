@@ -17,7 +17,6 @@ import numpy as np
 import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
-from struphy.diagnostics.diagn_tools import power_spectrum_2d
 from struphy.models import LinearExtendedMHDuniform
 
 # Background field along z with n0 = B0 = 1, so the Alfvén speed is 1. With epsilon = 1 the ion cyclotron
@@ -75,16 +74,25 @@ def create_simulation() -> Simulation:
 def pproc(sim: Simulation):
     from plotly.subplots import make_subplots
 
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc(physical=True)
 
-    common = {"slice_at": [0, 0, None], "physical": True, "do_plot": False}
-    omega_b, k_b, spectrum_b, _ = power_spectrum_2d(output.fields.em_fields.b_field, component=0, **common)
-    omega_p, k_p, spectrum_p, _ = power_spectrum_2d(output.fields.mhd.pressure, component=0, **common)
-    omega_b, k_b, spectrum_b = np.asarray(omega_b), np.asarray(k_b), np.asarray(spectrum_b)
-    omega_p, k_p, spectrum_p = np.asarray(omega_p), np.asarray(k_p), np.asarray(spectrum_p)
+    from struphy_plots.analysis import power_spectrum
+
+    length = output.domain.params["r3"] - output.domain.params["l3"]
+
+    def spectrum_along_z(field):
+        """omega >= 0, k >= 0 and the Fourier amplitude (the square root of the power) of a field along z."""
+        line = field.isel(eta1=0, eta2=0)
+        line = line.isel(component=0) if "component" in line.dims else line
+        spectrum = power_spectrum(line.assign_coords(eta3=line.eta3 * length), dim="eta3")  # physical z
+        quadrant = spectrum.sel(omega=spectrum.omega >= 0, k=spectrum.k >= 0)
+        return quadrant.omega.values, quadrant.k.values, np.sqrt(quadrant.values)
+
+    omega_b, k_b, spectrum_b = spectrum_along_z(output.fields.em_fields.b_field)
+    omega_p, k_p, spectrum_p = spectrum_along_z(output.fields.mhd.pressure)
 
     k_top, omega_top = 3.0, 6.0
     k_fine = np.linspace(0.0, k_top, 300)

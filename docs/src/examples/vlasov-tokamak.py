@@ -85,16 +85,16 @@ def create_simulation() -> Simulation:
 def pproc(sim: Simulation):
     domain = sim.domain
     time_opts = sim.time_opts
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_figure
 
-    output = sim.output.process(create_vtk=False)
+    output = sim.output.pproc(create_vtk=False)
 
     # (time, particle, [x, y, z, v1, v2, v3, weight, id]) in physical coordinates.
-    orbits = np.asarray(output.orbits.kinetic_ions)
+    orbits = np.asarray(output.orbits.kinetic_ions.to_dataarray("quantity").transpose("t", "marker", "quantity"))
 
     # A magnetic field alone does no work, so each particle's speed should be
     # conserved -- a genuine accuracy check on the pusher, not just a demo.
-    speed = np.linalg.norm(np.asarray(output.orbits.kinetic_ions.sel(quantity=["v1", "v2", "v3"])), axis=2)
+    speed = np.linalg.norm(np.asarray(output.orbits.kinetic_ions.to_dataarray("quantity").transpose("t", "marker", "quantity").sel(quantity=["v1", "v2", "v3"])), axis=2)
     max_relative_speed_drift = float(np.max(np.abs(speed - speed[0]) / speed[0]))
     print(f"Max relative drift in particle speed (should be ~0): {max_relative_speed_drift:.5f}")
 

@@ -62,9 +62,9 @@ def create_simulation() -> Simulation:
 
 def pproc(sim: Simulation):
 
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_figure
 
-    output = sim.output.process(create_vtk=False)
+    output = sim.output.pproc(create_vtk=False)
     domain = sim.domain
 
     # Exact solution of -d^2(phi)/dx^2 = rho(t, x), rho = A cos(k x) cos(omega t).
@@ -75,7 +75,7 @@ def pproc(sim: Simulation):
         return AMPLITUDE / k**2 * np.cos(k * x) * np.cos(OMEGA * t)
 
     phi = output.fields.em_fields.phi
-    phi_line = phi.isel(e2=0, e3=0)
+    phi_line = phi.isel(eta2=0, eta3=0)
     if "component" in phi_line.dims:
         phi_line = phi_line.isel(component=0)
     x = np.asarray(phi_line.X)

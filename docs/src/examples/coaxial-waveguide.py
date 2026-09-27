@@ -74,13 +74,13 @@ def create_simulation() -> Simulation:
 
 
 def pproc(sim: Simulation):
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc(physical=True)
 
     # The axial magnetic field on the (r, theta) evaluation grid, and the exact mode at the same points.
-    b_z = output.evaluate("em_fields/b_field_xyz").isel(component=2, e3=0)  # (t, e1, e2)
+    b_z = output.evaluate("em_fields/b_field_xyz").isel(component=2, eta3=0)  # (t, e1, e2)
     times = b_z.t.values
     radius = np.hypot(b_z.X.values, b_z.Y.values)
     angle = np.arctan2(b_z.Y.values, b_z.X.values)
@@ -96,7 +96,7 @@ def pproc(sim: Simulation):
 
     # The mode's frequency, from a sinusoid fitted to B_z at a probe in the middle of the gap. The
     # exact mode is proportional to cos(m theta - t), so its frequency is 1.
-    probe = (b_z.sizes["e1"] // 2, 0)
+    probe = (b_z.sizes["eta1"] // 2, 0)
     signal = b_z.values[:, probe[0], probe[1]]
     exact_signal = exact_b_z(times[:, None, None])[:, probe[0], probe[1]]
     fit, _ = curve_fit(lambda t, a, w, phase: a * np.cos(w * t + phase), times, signal, p0=[signal.max(), 1.0, 0.0])
@@ -104,11 +104,11 @@ def pproc(sim: Simulation):
     frequency_error = abs(measured_frequency - 1.0)
     print(f"Measured frequency: {measured_frequency:.5f} (exact: 1, error {frequency_error:.1e})")
 
-    energy = output.evaluate("total_energy")
+    energy = output.scalars["total_energy"]
     energy_drift = float(np.abs(energy.values / energy.values[0] - 1.0).max())
     print(f"Largest relative change of the total energy: {energy_drift:.1e}")
-    electric = output.evaluate("electric_energy")
-    magnetic = output.evaluate("magnetic_energy")
+    electric = output.scalars["electric_energy"]
+    magnetic = output.scalars["magnetic_energy"]
     field_energy_variation = max(float((s.max() - s.min()) / s.mean()) for s in (electric, magnetic))
 
     # The animation: both fields are interpolated from the (r, theta) grid onto a Cartesian grid of
@@ -120,8 +120,8 @@ def pproc(sim: Simulation):
         pixel_radius = np.hypot(pixel_x, pixel_y)
         pixel_angle = np.mod(np.arctan2(pixel_y, pixel_x), 2.0 * np.pi)
         outside = (pixel_radius < inner_radius) | (pixel_radius > outer_radius)
-        index_r = (pixel_radius - inner_radius) / (outer_radius - inner_radius) * (b_z.sizes["e1"] - 1)
-        index_theta = pixel_angle / (2.0 * np.pi) * (b_z.sizes["e2"] - 1)
+        index_r = (pixel_radius - inner_radius) / (outer_radius - inner_radius) * (b_z.sizes["eta1"] - 1)
+        index_theta = pixel_angle / (2.0 * np.pi) * (b_z.sizes["eta2"] - 1)
         return axis, outside, index_r, index_theta
 
     def on_pixels(values, grid):

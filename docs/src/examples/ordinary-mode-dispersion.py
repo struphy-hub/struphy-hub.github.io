@@ -59,13 +59,13 @@ def create_simulation() -> Simulation:
 def pproc(sim: Simulation):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure, space_time_figure
 
     output = sim.output
     output.pproc(physical=True)
-    field = output.evaluate("em_fields/e_field_xyz").isel(component=2, e2=0, e3=0)
-    energy = output.evaluate("total_energy")
-    times, x = field.t.values, field.e1.values * length
+    field = output.evaluate("em_fields/e_field_xyz").isel(component=2, eta2=0, eta3=0)
+    energy = output.scalars["total_energy"]
+    times, x = field.t.values, field.eta1.values * length
     if not np.isfinite(field.values).all() or not np.isfinite(energy.values).all() or not np.isclose(times[-1], time_opts.Tend):
         raise RuntimeError("The ordinary-mode run is incomplete or non-finite")
     # Drop the repeated endpoint of the periodic spatial evaluation grid.
@@ -107,7 +107,7 @@ def pproc(sim: Simulation):
     figure.update_layout(title="Ordinary electromagnetic waves in a cold plasma", template="plotly_white",
                          legend={"orientation": "h", "y": -0.2}, margin={"l": 70, "r": 30, "t": 100, "b": 140})
     save_figure(figure, stem, height=650)
-    space_time = space_time_figure(field, space="e1", x_values=x, xaxis_title="x",
+    space_time = space_time_figure(field, space="eta1", x_values=x, xaxis_title="x",
                                    title="Superposed ordinary waves: E_z(x, t)", colorbar_title="E_z")
     figures = [save_extra_figure(space_time, stem, "space-time", alt="Space-time map of four superposed ordinary electromagnetic waves",
                                 caption="The longer waves oscillate near the plasma frequency; shorter waves oscillate faster.")]

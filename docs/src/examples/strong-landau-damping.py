@@ -89,17 +89,17 @@ def create_simulation() -> Simulation:
 
 
 def pproc(sim: Simulation):
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_figure
 
     output = sim.output
-    field_energy_array = output.evaluate("electric_energy")
+    field_energy_array = output.scalars["electric_energy"]
     time = np.asarray(field_energy_array.t)
     field_energy = np.asarray(field_energy_array)
 
     # The bounce period of trapped particles shows up as the spacing between
     # local maxima in the field energy, once the initial (linear) damping
     # phase has given way to nonlinear trapping oscillations.
-    maxima_t = np.asarray(output.envelope(field_energy_array).t)
+    maxima_t = np.asarray(field_energy_array.struphy.analysis.envelope().t)
     bounce_period = float(np.mean(np.diff(maxima_t))) if len(maxima_t) > 1 else float("nan")
     print(f"Estimated trapped-particle bounce period: {bounce_period:.2f}")
 

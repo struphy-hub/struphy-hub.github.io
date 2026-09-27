@@ -106,13 +106,13 @@ def create_simulation() -> Simulation:
 
 
 def pproc(sim: Simulation):
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc()
 
-    density = output.evaluate("euler_fluid/view_0/n").isel(e3=0)  # (t, e1, e2)
-    orbits = output.evaluate("euler_fluid")  # (t, marker, quantity); the first two quantities are x and y
+    density = output.evaluate("euler_fluid/view_0/n", eta3=0)  # (t, e1, e2)
+    orbits = output.orbits.euler_fluid.to_dataarray("quantity").transpose("t", "marker", "quantity")  # (t, marker, quantity); the first two quantities are x and y
     x = orbits.sel(quantity="x")
     y = orbits.sel(quantity="y")
     times = orbits.t.values
@@ -128,8 +128,8 @@ def pproc(sim: Simulation):
 
     # Colour each marker by where it started in the column, to follow the mixing.
     shade = x.isel(t=0).values / 0.25
-    positions = density.e1.values  # the density is estimated on a grid over the unit box
-    heights = density.e2.values
+    positions = density.eta1.values  # the density is estimated on a grid over the unit box
+    heights = density.eta2.values
     density_limit = float(density.max())
 
     def frame_traces(index, webgl=True):
@@ -147,7 +147,7 @@ def pproc(sim: Simulation):
                 yaxis="y",
             ),
             go.Heatmap(
-                z=density.isel(t=index).transpose("e2", "e1").values,
+                z=density.isel(t=index).transpose("eta2", "eta1").values,
                 x=positions,
                 y=heights,
                 zmin=0.0,

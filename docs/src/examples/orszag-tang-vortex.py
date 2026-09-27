@@ -65,7 +65,7 @@ def pproc(sim: Simulation):
     model = sim.model
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     # The Slurm gallery job runs this example on four MPI ranks. Parallel
@@ -73,16 +73,16 @@ def pproc(sim: Simulation):
     output.pproc(parallel=True, physical=True, celldivide=2)
     if not all(bool(np.isfinite(value).all()) for value in output.scalars.values()):
         raise RuntimeError("Non-finite MHD diagnostics: refusing to publish the run")
-    b = output.evaluate("em_fields/b_field_xyz").isel(e3=0)
-    rho = output.evaluate("mhd/density_xyz").isel(e3=0).squeeze(drop=True)
-    entropy = output.evaluate("mhd/entropy_xyz").isel(e3=0).squeeze(drop=True)
+    b = output.evaluate("em_fields/b_field_xyz").isel(eta3=0)
+    rho = output.evaluate("mhd/density_xyz").isel(eta3=0).squeeze(drop=True)
+    entropy = output.evaluate("mhd/entropy_xyz").isel(eta3=0).squeeze(drop=True)
     times = b.t.values
     if times[-1] < time_opts.Tend - 0.5 * time_opts.dt or float(rho.min()) <= 0:
         raise RuntimeError("Incomplete MHD evolution or non-positive density")
     x, y = np.asarray(b.X)[:, 0], np.asarray(b.Y)[0, :]
-    bx, by = (b.isel(component=i).transpose("t", "e1", "e2").values for i in (0, 1))
-    rho_values = rho.transpose("t", "e1", "e2").values
-    entropy_values = entropy.transpose("t", "e1", "e2").values
+    bx, by = (b.isel(component=i).transpose("t", "eta1", "eta2").values for i in (0, 1))
+    rho_values = rho.transpose("t", "eta1", "eta2").values
+    entropy_values = entropy.transpose("t", "eta1", "eta2").values
     gamma = model.propagators.variat_dens.options.gamma
     pressure = (gamma - 1) * rho_values**gamma * np.exp(entropy_values / rho_values)
 

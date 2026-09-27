@@ -72,8 +72,16 @@ def create_simulation(label=reference_label) -> Simulation:
     )
 
 
+def e_x(run):
+    """E_x(t, z) of a run, at the grid points of its cells and the periodic endpoint."""
+    cells = run.grid.num_elements[2]
+    return run.evaluate(
+        "em_fields/e_field", eta1=0.0, eta2=0.0, eta3=np.linspace(0.0, 1.0, cells + 1), representation="1"
+    ).isel(component=0)
+
+
 def pproc(sim: Simulation):
-    from struphy.utils._gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, merge_metadata, save_extra_figure, save_figure
 
     runs = {}
     for label in schemes:
@@ -91,7 +99,7 @@ def pproc(sim: Simulation):
     drifts = {}
     figure = go.Figure()
     for label, run in runs.items():
-        total = run.evaluate("total_energy")
+        total = run.scalars["total_energy"]
         time = total.t.values
         relative_error = np.abs(total.values / total.values[0] - 1.0)
         drifts[label] = float(np.max(relative_error))
@@ -118,12 +126,12 @@ def pproc(sim: Simulation):
     profile = go.Figure()
     for label in stable:
         run = runs[label]
-        field = run.evaluate("em_fields/e_field").isel(component=0, e1=0, e2=0, t=-1)
-        z = field.e3.values * length
+        field = e_x(run).isel(t=-1)
+        z = field.eta3.values * length
         profile.add_scatter(x=z, y=field.values, mode="lines", name=label,
                             line={"color": colors[label], "width": 2.5})
-    exact_field = runs[reference_label].evaluate("em_fields/e_field").isel(component=0, e1=0, e2=0, t=0)
-    z = exact_field.e3.values * length
+    exact_field = e_x(runs[reference_label]).isel(t=0)
+    z = exact_field.eta3.values * length
     end_time = periods * 2.0 * np.pi / frequency
     profile.add_scatter(x=z, y=exact_field.values * np.cos(frequency * end_time), mode="markers",
                         name="exact", marker={"color": "#264653", "size": 5, "symbol": "circle-open"})

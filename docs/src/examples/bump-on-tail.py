@@ -93,7 +93,7 @@ def create_simulation() -> Simulation:
 
 def pproc(sim: Simulation):
     domain = sim.domain
-    from struphy.utils._gallery import (
+    from struphy_plots.gallery import (
         export_profiling,
         heatmap_figure,
         heatmap_movie,
@@ -104,7 +104,7 @@ def pproc(sim: Simulation):
 
     output = sim.output
 
-    field_energy = output.evaluate("electric_energy")
+    field_energy = output.scalars["electric_energy"]
 
     # Fit the exponential growth rate over the clean linear-growth window.
     growth_rate = field_energy.struphy.analysis.growth_rate(window=(5.0, 25.0), amplitude=True).rate
@@ -155,9 +155,9 @@ def pproc(sim: Simulation):
     # The x-v phase space as a movie.
     phase_space, phase_static = heatmap_movie(
         f,
-        x="e1",
+        x="eta1",
         y="v1",
-        x_values=f.e1.values * length,
+        x_values=f.eta1.values * length,
         title="Bump-on-tail instability: phase-space density f(x, v)",
         xaxis_title="x [a.u.]",
         yaxis_title="v [a.u.]",

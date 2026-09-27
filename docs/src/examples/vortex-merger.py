@@ -112,7 +112,7 @@ def pproc(sim: Simulation):
     time_opts = sim.time_opts
     import xarray as xr
     from scipy.ndimage import map_coordinates
-    from struphy.utils._gallery import export_profiling, heatmap_movie, merge_metadata, save_extra_figure, save_figure
+    from struphy_plots.gallery import export_profiling, heatmap_movie, merge_metadata, save_extra_figure, save_figure
 
     output = sim.output
     output.pproc()
@@ -128,12 +128,12 @@ def pproc(sim: Simulation):
     rr = np.hypot(xx, yy)
     eta_r = (rr - a1) / (a2 - a1)
     eta_theta = np.mod(np.arctan2(yy, xx) / (2 * np.pi), 1.0)
-    ir = (eta_r - float(density.e1[0])) / float(density.e1[1] - density.e1[0])
-    itheta = (eta_theta - float(density.e2[0])) / float(density.e2[1] - density.e2[0]) + 1
+    ir = (eta_r - float(density.eta1[0])) / float(density.eta1[1] - density.eta1[0])
+    itheta = (eta_theta - float(density.eta2[0])) / float(density.eta2[1] - density.eta2[0]) + 1
     picks = np.unique(np.linspace(0, len(times) - 1, min(100, len(times)), dtype=int))
     images = []
     for index in picks:
-        bins = density.isel(t=index).transpose("e1", "e2").values
+        bins = density.isel(t=index).transpose("eta1", "eta2").values
         padded = np.pad(bins, ((0, 0), (1, 1)), mode="wrap")
         image = map_coordinates(padded, [ir, itheta], order=1, mode="nearest").astype(np.float32)
         image[(rr < a1) | (rr > a2)] = np.nan
@@ -153,7 +153,7 @@ def pproc(sim: Simulation):
 
     # The first Poisson solve initializes the field energy after t=0. Compare
     # subsequent field energies to that first solved state, not to the zero placeholder.
-    energy = output.evaluate("en_phi").isel(t=slice(1, None))
+    energy = output.scalars["en_phi"].isel(t=slice(1, None))
     drift = (energy / energy.isel(t=0) - 1).values
     energy_figure = go.Figure(go.Scatter(x=energy.t.values, y=drift, mode="lines", name="field energy"))
     energy_figure.update_layout(title="Vortex merger: electrostatic-energy change", template="plotly_white",

@@ -30,7 +30,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
       - name: Trust the checked-out worktree
         # Actions containers run as root; git refuses to touch a worktree owned by another
@@ -52,7 +52,7 @@ jobs:
 
       - name: Install Struphy from this repo's pinned submodule commit
         # Same approach as struphy's own CI
-        # (submodules/struphy/.github/actions/install/struphy_in_container/action.yml):
+        # (submodules/struphy-plots/struphy/.github/actions/install/struphy_in_container/action.yml):
         # the image bakes in whatever struphy commit was HEAD when it was last built, so
         # move /struphy_fortran_'s own checkout to the exact commit our submodule pins
         # (rather than reinstalling editable from a second copy of the source) and
@@ -63,10 +63,16 @@ jobs:
         # struphy's own dev/doc extras) but the example scripts need both: scope-profiler's
         # pproc submodule for the durations/gantt/flame plot-data export, kaleido for
         # figure.write_image(...)'s static PNG export.
+        #
+        # struphy-plots registers the .struphy accessors that the example scripts use, and its
+        # gallery extra brings struphy_plots.gallery, the helpers that write every example's
+        # figures, profiling and metadata. It has no compiled parts, so it is installed straight
+        # from our pinned submodule.
         if: steps.cache-example.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          STRUPHY_SHA=$(git -C submodules/struphy rev-parse HEAD)
+          STRUPHY_PLOTS="$PWD/submodules/struphy-plots"
+          STRUPHY_SHA=$(git -C submodules/struphy-plots/struphy rev-parse HEAD)
           cd /struphy_fortran_
           git fetch origin --tags
           git checkout "$STRUPHY_SHA"
@@ -77,6 +83,7 @@ jobs:
           # exists from 0.6.1 onward -- --upgrade forces past struphy's conservative pin
           # to the version this was actually developed and tested against.
           pip install --upgrade "scope-profiler[pproc]>=0.6.1" kaleido
+          pip install "$STRUPHY_PLOTS[gallery]"
 
       - name: Rebuild GVEC for this runner's CPU
         # The published gvec wheel is built with -march=native. GitHub-hosted
@@ -103,7 +110,7 @@ jobs:
           path: |
             /struphy_fortran_/src/struphy/**/__pyccel__
             /struphy_fortran_/src/struphy/**/*.so
-          key: struphy-kernels-${{ hashFiles('submodules/struphy/src/struphy/**/*.py') }}
+          key: struphy-kernels-${{ hashFiles('submodules/struphy-plots/struphy/src/struphy/**/*.py') }}
 
       # Chrome doesn't depend on the struphy commit or example scripts, so cache it under
       # its own static key instead of the cache-example key above -- otherwise every
@@ -148,14 +155,15 @@ jobs:
           struphy compile -y --language fortran
 
       - name: Generate example metadata
-        # Cheap (imports the script's module-level Simulation(...) without running it) and
-        # runs for every script regardless of which example this shard is -- harmless, and
-        # this shard's own cache above only retains its own example's metadata JSON anyway.
+        # Cheap (imports the script's module-level Simulation(...) without running it). Only
+        # this shard's example: its cache above only retains that example's metadata JSON, and
+        # a script that fails to import must fail its own shard, not every shard. check-site in
+        # build-site.yml generates the metadata of every example.
         if: steps.cache-example.outputs.cache-hit != 'true'
         shell: bash
         run: |
           source /struphy_fortran_/env_fortran_/bin/activate
-          python generate_examples.py
+          python generate_examples.py "${{ inputs.example }}"
 
       - name: Run example
         if: steps.cache-example.outputs.cache-hit != 'true'
