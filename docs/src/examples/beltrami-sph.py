@@ -329,17 +329,8 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_xaxes(title_text="t", range=[0, float(times[-1])], row=1, col=2)
     figure.update_yaxes(title_text="relative error", type="log", range=[-7, -0.7], row=1, col=2)
 
-    last = len(times) - 1
-    final_data = [
-        contour,
-        marker_trace(last),
-        error_trace(last, velocity_error, "velocity RMS", "#00a884"),
-        error_trace(last, energy_error, "Hamiltonian drift", "#9b51e0"),
-    ]
-    # The frames name only the markers and errors (the contour stays), so build the final still.
-    still = go.Figure(data=final_data, layout=figure.layout)
-    still.layout.sliders[0].active = len(figure.frames) - 1
-    save_figure(figure, "beltrami-sph", still=still, width=1100, height=680, show=show)
+    # The image shows the last frame, the end of the run (the contour stays as it is).
+    save_figure(figure, "beltrami-sph", frame=-1, width=1100, height=680, show=show)
 
     # The kernel reconstruction shows the simulated mass density independently of the marker view.
     # The exact divergence-free Beltrami transport preserves the initially uniform rho = 1.

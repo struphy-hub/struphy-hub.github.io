@@ -283,11 +283,8 @@ def pproc(sim: Simulation, show: bool = False):
         ],
     )
 
-    # The still image shows the end of the run, with all trails.
-    # (A frame names only the moving traces, so the still is built from them and the fixed ones.)
-    still = go.Figure(data=list(figure.data[:first_moving]) + moving_traces(len(times) - 1), layout=figure.layout)
-    still.layout.sliders[0].active = len(frames) - 1
-    save_figure(figure, "guiding-center-orbits", height=750, still=still, show=show)
+    # The image shows the last frame, the end of the run, with all trails.
+    save_figure(figure, "guiding-center-orbits", frame=-1, height=750, show=show)
 
     # One panel per particle: the orbit in the poloidal plane.
     panels = make_subplots(rows=2, cols=4, subplot_titles=labels, horizontal_spacing=0.03, vertical_spacing=0.12)

@@ -40,6 +40,7 @@ from struphy import (
     maxwellians,
 )
 from struphy.models import GuidingCenter
+import plasma_plots
 from plasma_plots import save_figure
 
 # Keep both the GVEC solve and the following FEEC simulation deliberately
@@ -371,85 +372,34 @@ def pproc(sim: Simulation, show: bool = False):
     )
     save_figure(figure, "gvec-equilibrium", height=760, show=show)
 
-    # A poloidal slice reveals the nesting more quantitatively; the adjacent
-    # radial profiles come from the very same state file used by Struphy.
-    cut_radii = np.linspace(0.1, 1.0, 10)
-    # The cut at zeta = 0 for the flux-surface panel, and a few more across one field period: the
+    # The nesting of the flux surfaces, quantitatively: |B| on the poloidal plane at zeta = 0 with the
+    # flux-coordinate lines, beside the rotational transform (with its rational surfaces) and the
+    # pressure, all read from the very state file Struphy uses.
+    flux = plasma_plots.from_gvec(
+        equilibrium.state.evaluate("mod_B", "pos", "iota", "p", "theta_P", "N_FP", rho=17, theta=64, zeta=40)
+    )
+    # The cut comes last, so that its colour bar sits at the right edge of the figure.
+    with plasma_plots.figure(1, 3, backend="plotly", title="GVEC equilibrium profiles and flux geometry") as profiles:
+        flux.iota.plasma.plot.lineout(rationals=4, title="rotational transform ι", ax=profiles[0])
+        flux.p.plasma.plot.lineout(title="pressure p", ax=profiles[1])
+        flux.mod_B.plasma.plot.slice(
+            coords="physical",
+            plane="RZ",
+            zeta=0.0,
+            overlays={"coordinate_lines": {"rho": 5, "theta_P": 8}},
+            title="|B| and flux surfaces (ζ = 0)",
+            ax=profiles[2],
+        )
+    save_figure(profiles, "gvec-equilibrium-flux-surfaces", width=1300, show=show)
+
+    # The cut at zeta = 0 and a few more across one field period, for the orbit panels: the
     # cross-section of a stellarator turns with the toroidal angle, so a projected orbit lives inside
     # the envelope of all of them rather than on any single cut.
+    cut_radii = np.linspace(0.1, 1.0, 10)
     panel_angles = np.linspace(0.0, 2.0 * np.pi / int(equilibrium.state.nfp), 5)
-    cut_data = equilibrium.state.evaluate(
-        "pos", rho=cut_radii, theta=181, zeta=np.append(np.array((0.0,)), panel_angles)
+    panel_positions = np.asarray(
+        equilibrium.state.evaluate("pos", rho=cut_radii, theta=181, zeta=panel_angles)["pos"]
     )
-    cut_positions = np.asarray(cut_data["pos"])[..., :1]
-    panel_positions = np.asarray(cut_data["pos"])[..., 1:]
-    profile_radii = np.linspace(0.0, 1.0, 101)
-    profile_data = equilibrium.state.evaluate(
-        "iota", "p", rho=profile_radii, theta=0, zeta=0
-    )
-
-    profiles = make_subplots(
-        rows=1,
-        cols=2,
-        specs=[[{}, {"secondary_y": True}]],
-        subplot_titles=(
-            "Poloidal flux surfaces (ζ = 0)",
-            "Radial equilibrium profiles",
-        ),
-        horizontal_spacing=0.14,
-    )
-    for index, radius in enumerate(cut_radii):
-        # Not x, y, z: those hold the orbits, which the panels below still need.
-        cut_x = cut_positions[0, index, :, 0]
-        cut_y = cut_positions[1, index, :, 0]
-        cut_z = cut_positions[2, index, :, 0]
-        radial_position = np.sqrt(cut_x**2 + cut_y**2)
-        profiles.add_scatter(
-            x=np.append(radial_position, radial_position[0]),
-            y=np.append(cut_z, cut_z[0]),
-            mode="lines",
-            line={"color": "#168aad", "width": 1.5 + 1.2 * radius},
-            opacity=0.35 + 0.65 * radius,
-            name=f"ρ = {radius:.1f}",
-            legendgroup="surfaces",
-            showlegend=index in (0, len(cut_radii) - 1),
-            row=1,
-            col=1,
-        )
-    profiles.add_scatter(
-        x=profile_radii,
-        y=np.asarray(profile_data["p"]),
-        mode="lines",
-        name="pressure p",
-        line={"color": "#d62828", "width": 3},
-        row=1,
-        col=2,
-        secondary_y=False,
-    )
-    profiles.add_scatter(
-        x=profile_radii,
-        y=np.asarray(profile_data["iota"]),
-        mode="lines",
-        name="rotational transform ι",
-        line={"color": "#f4a261", "width": 3},
-        row=1,
-        col=2,
-        secondary_y=True,
-    )
-    profiles.update_xaxes(title_text="R", scaleanchor="y", scaleratio=1, row=1, col=1)
-    profiles.update_yaxes(title_text="Z", row=1, col=1)
-    profiles.update_xaxes(title_text="normalized flux radius ρ", row=1, col=2)
-    profiles.update_yaxes(title_text="pressure p", row=1, col=2, secondary_y=False)
-    profiles.update_yaxes(
-        title_text="rotational transform ι", row=1, col=2, secondary_y=True
-    )
-    profiles.update_layout(
-        title="GVEC flux geometry and equilibrium profiles",
-        template="plotly_white",
-        legend={"orientation": "h", "y": -0.2},
-        margin={"l": 70, "r": 70, "t": 90, "b": 100},
-    )
-    save_figure(profiles, "gvec-equilibrium-flux-surfaces", show=show)
 
     # One panel per marker, the orbit projected on the (R, Z) plane, as in the tokamak example. The
     # cross-section of a stellarator turns with the toroidal angle, so the surfaces drawn behind each
