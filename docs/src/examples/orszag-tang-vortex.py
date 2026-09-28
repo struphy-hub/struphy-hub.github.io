@@ -16,6 +16,7 @@ import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, FieldsBackground, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ViscoResistiveMHD
+from struphy_plots import save_figure
 
 
 def create_simulation() -> Simulation:
@@ -61,27 +62,6 @@ def create_simulation() -> Simulation:
         derham_opts=derham_opts,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -145,7 +125,7 @@ def pproc(sim: Simulation, show: bool = False):
         sliders=[{"active": 0, "x": 0.12, "len": 0.88, "y": -0.07, "currentvalue": {"prefix": "t = "},
                   "steps": [{"args": [[frame.name], {"frame": {"duration": 0, "redraw": True}, "transition": {"duration": 0}, "mode": "immediate"}], "label": frame.name, "method": "animate"} for frame in figure.frames]}],
     )
-    save(figure, "orszag-tang-vortex", frame=-1, width=900, height=850, show=show)
+    save_figure(figure, "orszag-tang-vortex", frame=-1, width=900, height=850, show=show)
 
     scalars = output.scalars
     energy = scalars.en_tot
@@ -168,8 +148,8 @@ def pproc(sim: Simulation, show: bool = False):
         eta2=cut_index, backend="plotly",
     )
     print(f"Maximum relative total-energy drift: {float(drift.max()):.3e}; maximum ‖div B‖: {float(divergence.max()):.3e}")
-    save(diagnostics, "orszag-tang-vortex-conservation", show=show)
-    save(cut, "orszag-tang-vortex-pressure-cut", show=show)
+    save_figure(diagnostics, "orszag-tang-vortex-conservation", show=show)
+    save_figure(cut, "orszag-tang-vortex-pressure-cut", show=show)
 
 
 if __name__ == "__main__":

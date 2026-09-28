@@ -22,6 +22,7 @@ import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ShearAlfven
+from struphy_plots import save_figure
 
 # A uniform background with B0 along z and n0 = 1, so the Alfvén speed is 1.
 B0z, n0, beta = 1.0, 1.0, 0.1
@@ -70,27 +71,6 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc(physical=True)
@@ -132,7 +112,7 @@ def pproc(sim: Simulation, show: bool = False):
         margin={"l": 75, "r": 30, "t": 80, "b": 100},
     )
     figure.update_yaxes(range=[-0.05, 1.15])
-    save(figure, "alfven-standing-wave", show=show)
+    save_figure(figure, "alfven-standing-wave", show=show)
 
     # The velocity along z over time: a standing wave keeps its nodes, so the stripes are vertical,
     # unlike the diagonal stripes of the travelling waves in `shear-alfven-wave`.
@@ -151,7 +131,7 @@ def pproc(sim: Simulation, show: bool = False):
         colorbar_label="u₁ (logical component)",
         backend="plotly",
     )
-    save(space_time, "alfven-standing-wave-space-time", show=show)
+    save_figure(space_time, "alfven-standing-wave-space-time", show=show)
 
 
 if __name__ == "__main__":

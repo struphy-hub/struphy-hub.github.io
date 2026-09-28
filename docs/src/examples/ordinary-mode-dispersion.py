@@ -20,6 +20,7 @@ from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains
 from struphy.models import ColdPlasma
 from struphy.linear_algebra.solver import SolverParameters
 from struphy_plots.theory.waves import plasma_light_wave
+from struphy_plots import save_figure
 
 stem = "ordinary-mode-dispersion"
 length = 8.0 * np.pi
@@ -57,27 +58,6 @@ def create_simulation() -> Simulation:
         equil=equils.HomogenSlab(B0z=1.0, n0=1.0),
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -131,12 +111,12 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_yaxes(title_text="E-mode / A + vertical offset", row=1, col=2)
     figure.update_layout(title="Ordinary electromagnetic waves in a cold plasma", template="plotly_white",
                          legend={"orientation": "h", "y": -0.2}, margin={"l": 70, "r": 30, "t": 100, "b": 140})
-    save(figure, stem, height=650, show=show)
+    save_figure(figure, stem, height=650, show=show)
     space_time = field.assign_coords(eta1=x).struphy.plot.slice(
         x="eta1", y="t", symmetric=True, cmap="RdBu_r", title="Superposed ordinary waves: E_z(x, t)",
         xlabel="x", ylabel="t [a.u.]", colorbar_label="E_z", backend="plotly",
     )
-    save(space_time, f"{stem}-space-time", show=show)
+    save_figure(space_time, f"{stem}-space-time", show=show)
 
 
 if __name__ == "__main__":

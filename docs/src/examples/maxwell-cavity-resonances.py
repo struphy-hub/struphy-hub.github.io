@@ -22,6 +22,7 @@ import xarray as xr
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, grids, perturbations
 from struphy.models import Maxwell
+from struphy_plots import save_figure
 
 lx, ly = 1.0, 1.5
 
@@ -71,27 +72,6 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc(physical=True)
@@ -131,7 +111,7 @@ def pproc(sim: Simulation, show: bool = False):
     figure = spectrum.struphy.plot.power_spectrum(
         frequencies=exact_lines, omega_max=14.0, title="Resonances of a rectangular box", backend="plotly",
     )
-    save(figure, "maxwell-cavity-resonances", show=show)
+    save_figure(figure, "maxwell-cavity-resonances", show=show)
 
     error_figure = go.Figure(go.Scatter(
         x=[omega_exact for omega_exact, _ in exact], y=100.0 * np.asarray(errors), mode="markers+lines",
@@ -143,7 +123,7 @@ def pproc(sim: Simulation, show: bool = False):
         xaxis_title="exact ω [a.u.]", yaxis_title="(measured − exact) / exact [%]",
         margin={"l": 75, "r": 30, "t": 80, "b": 60},
     )
-    save(error_figure, "maxwell-cavity-resonances-frequency-error", show=show)
+    save_figure(error_figure, "maxwell-cavity-resonances-frequency-error", show=show)
 
 
 if __name__ == "__main__":

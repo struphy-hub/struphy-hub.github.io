@@ -33,6 +33,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import VlasovAmpereOneSpecies
+from struphy_plots import save_figure
 
 # Two counter-streaming Maxwellians (u1 = +/-3), each seeded with the same cosine mode.
 perturbation_amplitude = 0.001
@@ -96,27 +97,6 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     from struphy_plots.theory.kinetic import two_stream
 
@@ -135,7 +115,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     figure = field_energy.struphy.plot.timeseries(logy=True, title="Two-stream instability: electric field energy", backend="plotly")
 
-    save(figure, "two-stream-instability", show=show)
+    save_figure(figure, "two-stream-instability", show=show)
 
     output.pproc()
     f = output.evaluate("kinetic_ions/e1_v1_density/f")  # (t, e1, v1)
@@ -170,8 +150,8 @@ def pproc(sim: Simulation, show: bool = False):
         backend="plotly",
     )
 
-    save(velocity_time, "two-stream-instability-velocity-time", show=show)
-    save(phase_space, "two-stream-instability-phasespace", frame=len(phase_space.fig.frames) // 2, show=show)
+    save_figure(velocity_time, "two-stream-instability-velocity-time", show=show)
+    save_figure(phase_space, "two-stream-instability-phasespace", frame=len(phase_space.fig.frames) // 2, show=show)
 
 
 if __name__ == "__main__":

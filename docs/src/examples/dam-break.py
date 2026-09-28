@@ -34,6 +34,7 @@ from struphy import (
 )
 from struphy.models import ViscousEulerSPH
 from struphy.ode.utils import ButcherTableau
+from struphy_plots import save_figure
 
 # Weakly compressible SPH: the isothermal pressure p = kappa * rho, with kappa = c_s^2 small
 # enough that the flow stays roughly subsonic, and a little viscosity for stability.
@@ -105,27 +106,6 @@ def create_simulation() -> Simulation:
         derham_opts=None,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -243,7 +223,7 @@ def pproc(sim: Simulation, show: bool = False):
     still_index = int(np.argmin(abs(times - 0.5)))
     still = go.Figure(data=frame_traces(still_index, webgl=False), layout=figure.layout)
     still.layout.sliders[0].active = still_index
-    save(figure, "dam-break", height=750, still=still, show=show)
+    save_figure(figure, "dam-break", height=750, still=still, show=show)
 
     trajectory = go.Figure()
     trajectory.add_scatter(
@@ -269,7 +249,7 @@ def pproc(sim: Simulation, show: bool = False):
         legend={"x": 0.98, "y": 0.5, "xanchor": "right", "bgcolor": "rgba(255,255,255,0.82)"},
         margin={"l": 70, "r": 30, "t": 80, "b": 60},
     )
-    save(trajectory, "dam-break-front", show=show)
+    save_figure(trajectory, "dam-break-front", show=show)
 
 
 if __name__ == "__main__":

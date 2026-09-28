@@ -39,6 +39,7 @@ from struphy import (
 )
 from struphy.models import DeterministicParticleDiffusion, RandomParticleDiffusion
 from struphy.ode.utils import ButcherTableau
+from struphy_plots import save_figure
 
 diffusion = 0.05  # D
 amplitude = 0.5  # of the initial density perturbation, relative to the uniform density 1
@@ -101,25 +102,6 @@ def create_simulation(method="Random walk") -> Simulation:
     )
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 def pproc(sim: Simulation, show: bool = False):
     from plotly.subplots import make_subplots
 
@@ -188,7 +170,7 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_yaxes(title_text="density", range=[0.4, 1.6], row=1, col=1)
     figure.update_xaxes(title_text="t", row=2, col=1)
     figure.update_yaxes(title_text="amplitude", type="log", row=2, col=1)
-    save(figure, "diffusion-methods", width=900, height=850, show=show)
+    save_figure(figure, "diffusion-methods", width=900, height=850, show=show)
 
 
 if __name__ == "__main__":

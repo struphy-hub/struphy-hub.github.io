@@ -23,6 +23,7 @@ from struphy import (
     SavingParameters, Simulation, Time, domains, equils, grids, maxwellians,
 )
 from struphy.models import Vlasov
+from struphy_plots import save_figure
 
 stem = "grad-b-drift"
 box, ripple = 40.0, 0.3
@@ -77,27 +78,6 @@ def create_simulation() -> Simulation:
         time_opts=time_opts, domain=domain, grid=grid, derham_opts=derham_opts, equil=equil,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -155,7 +135,7 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_yaxes(title_text="mean drift velocity in y", row=1, col=2)
     figure.update_layout(title="Grad-B drift in a straight magnetic field", template="plotly_white",
                          legend={"orientation": "h", "y": -0.2}, margin={"l": 70, "r": 35, "t": 100, "b": 120})
-    save(figure, stem, height=650, show=show)
+    save_figure(figure, stem, height=650, show=show)
     drift = go.Figure()
     for j, color in enumerate(palette):
         drift.add_scatter(x=times, y=center_y[:, j] - center_y[0, j], name=f"v⊥ = {speed[0, j]:.1f}", line={"color": color})
@@ -164,7 +144,7 @@ def pproc(sim: Simulation, show: bool = False):
     drift.update_layout(title="Guiding-center displacement extracted from full orbits", template="plotly_white",
                          xaxis_title="t", yaxis_title="Y_gc(t) − Y_gc(0)",
                          legend={"orientation": "h", "y": -0.2}, margin={"l": 80, "r": 30, "t": 80, "b": 110})
-    save(drift, f"{stem}-drift", show=show)
+    save_figure(drift, f"{stem}-drift", show=show)
 
 
 if __name__ == "__main__":

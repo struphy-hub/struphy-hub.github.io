@@ -35,6 +35,7 @@ from struphy import (
     maxwellians,
 )
 from struphy.models import GuidingCenter
+from struphy_plots import save_figure
 
 # Eight markers on the outboard midplane of the flux surface eta1 = 0.5, all with speed 3 and
 # different pitch. The state of a guiding center is (position, v_parallel, mu), with the magnetic
@@ -93,27 +94,6 @@ def create_simulation() -> Simulation:
         derham_opts=derham_opts,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -307,7 +287,7 @@ def pproc(sim: Simulation, show: bool = False):
     # (A frame names only the moving traces, so the still is built from them and the fixed ones.)
     still = go.Figure(data=list(figure.data[:first_moving]) + moving_traces(len(times) - 1), layout=figure.layout)
     still.layout.sliders[0].active = len(frames) - 1
-    save(figure, "guiding-center-orbits", height=750, still=still, show=show)
+    save_figure(figure, "guiding-center-orbits", height=750, still=still, show=show)
 
     # One panel per particle: the orbit in the poloidal plane.
     panels = make_subplots(rows=2, cols=4, subplot_titles=labels, horizontal_spacing=0.03, vertical_spacing=0.12)
@@ -403,9 +383,9 @@ def pproc(sim: Simulation, show: bool = False):
         margin={"l": 70, "r": 30, "t": 100, "b": 60},
     )
 
-    save(panels, "guiding-center-orbits-panels", show=show)
-    save(velocity, "guiding-center-orbits-velocity", show=show)
-    save(conservation, "guiding-center-orbits-conservation", show=show)
+    save_figure(panels, "guiding-center-orbits-panels", show=show)
+    save_figure(velocity, "guiding-center-orbits-velocity", show=show)
+    save_figure(conservation, "guiding-center-orbits-conservation", show=show)
 
 
 if __name__ == "__main__":

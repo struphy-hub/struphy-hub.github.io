@@ -21,6 +21,7 @@ import plotly.graph_objects as go
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids
 from struphy.initial.base import GenericPerturbation
 from struphy.models import ColdPlasma
+from struphy_plots import save_figure
 
 # Plasma frequency equal to the cyclotron frequency, time in units of the inverse cyclotron frequency, c = 1.
 alpha, epsilon, n0, B0z = 1.0, 1.0, 1.0, 1.0
@@ -78,27 +79,6 @@ def create_simulation() -> Simulation:
         derham_opts=derham_opts,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -169,7 +149,7 @@ def pproc(sim: Simulation, show: bool = False):
     )
     figure.update_xaxes(range=[0.0, length])
     figure.update_yaxes(range=[0.0, time_opts.Tend])
-    save(figure, "cold-plasma-wave-packet", width=1100, height=750, show=show)
+    save_figure(figure, "cold-plasma-wave-packet", width=1100, height=750, show=show)
 
     centroids = go.Figure()
     colors = {"whistler": "#168aad", "R wave": "#2a9d8f", "L wave": "#d62828"}
@@ -186,7 +166,7 @@ def pproc(sim: Simulation, show: bool = False):
     )
     centroids.update_xaxes(range=[0.0, time_opts.Tend])
     centroids.update_yaxes(range=[0.0, center])
-    save(centroids, "cold-plasma-wave-packet-centroid", show=show)
+    save_figure(centroids, "cold-plasma-wave-packet-centroid", show=show)
 
 
 if __name__ == "__main__":

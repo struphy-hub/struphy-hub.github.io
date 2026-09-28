@@ -21,6 +21,7 @@ from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains
 from struphy.initial.base import GenericPerturbation
 from struphy.linear_algebra.solver import SolverParameters
 from struphy.models import Poisson
+from struphy_plots import save_figure
 
 lx, ly = 2.0, 3.0
 kx, ky = 2 * np.pi / lx, 2 * np.pi / ly
@@ -75,27 +76,6 @@ def computed_potential(run, celldivide):
     return run.evaluate("em_fields/phi", **plane, eta3=0.0).isel(t=-1)
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     from plotly.subplots import make_subplots
     from scipy.interpolate import griddata
@@ -143,7 +123,7 @@ def pproc(sim: Simulation, show: bool = False):
         xaxis_title="cells in x, n = 1 / h", yaxis_title="rms error of φ", xaxis_type="log", yaxis_type="log",
         legend={"x": 1.02, "y": 0.5}, margin={"l": 80, "r": 30, "t": 80, "b": 65},
     )
-    save(figure, "poisson-convergence", width=1300, height=650, show=show)
+    save_figure(figure, "poisson-convergence", width=1300, height=650, show=show)
 
     # The solution and its error on the distorted mesh, at degree 2 and 8 x 12 cells.
     run = create_simulation(2, 8, distortion, "poisson_convergence_map").output
@@ -168,7 +148,7 @@ def pproc(sim: Simulation, show: bool = False):
         maps.update_xaxes(title_text="x", range=[0, lx], constrain="domain", row=1, col=column)
         maps.update_yaxes(title_text="y", range=[0, ly], scaleanchor=f"x{column}" if column > 1 else "x", row=1, col=column)
     maps.update_layout(template="plotly_white", autosize=True, margin={"l": 70, "r": 30, "t": 80, "b": 60})
-    save(maps, "poisson-convergence-maps", show=show)
+    save_figure(maps, "poisson-convergence-maps", show=show)
 
 
 if __name__ == "__main__":

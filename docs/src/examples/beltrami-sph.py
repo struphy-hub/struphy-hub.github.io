@@ -41,6 +41,7 @@ from struphy import (
 )
 from struphy.models import PressureLessSPH
 from struphy.ode.utils import ButcherTableau
+from struphy_plots import save_figure
 
 box_min = -0.5
 box_max = 0.5
@@ -137,27 +138,6 @@ def create_simulation() -> Simulation:
         ),
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -359,7 +339,7 @@ def pproc(sim: Simulation, show: bool = False):
     # The frames name only the markers and errors (the contour stays), so build the final still.
     still = go.Figure(data=final_data, layout=figure.layout)
     still.layout.sliders[0].active = len(figure.frames) - 1
-    save(figure, "beltrami-sph", still=still, width=1100, height=680, show=show)
+    save_figure(figure, "beltrami-sph", still=still, width=1100, height=680, show=show)
 
     # The kernel reconstruction shows the simulated mass density independently of the marker view.
     # The exact divergence-free Beltrami transport preserves the initially uniform rho = 1.
@@ -594,10 +574,10 @@ def pproc(sim: Simulation, show: bool = False):
         f"maximum marker-cell area deviation from 1 {max_area_deviation:.3e}"
     )
 
-    save(density_figure, "beltrami-sph-density", frame=-1, show=show)
-    save(compression_figure, "beltrami-sph-compression", frame=-1, show=show)
-    save(area_figure, "beltrami-sph-area-deformation", frame=-1, show=show)
-    save(trajectory_figure, "beltrami-sph-trajectories", show=show)
+    save_figure(density_figure, "beltrami-sph-density", frame=-1, show=show)
+    save_figure(compression_figure, "beltrami-sph-compression", frame=-1, show=show)
+    save_figure(area_figure, "beltrami-sph-area-deformation", frame=-1, show=show)
+    save_figure(trajectory_figure, "beltrami-sph-trajectories", show=show)
 
 
 if __name__ == "__main__":

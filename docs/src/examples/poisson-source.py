@@ -16,6 +16,7 @@ import numpy as np
 from struphy import (EnvironmentOptions, Simulation, Time, domains, grids,
                      perturbations)
 from struphy.models import Poisson
+from struphy_plots import save_figure
 
 # Problem parameters: a single cosine mode in space, oscillating in time.
 WAVENUMBER = 2
@@ -61,27 +62,6 @@ def create_simulation() -> Simulation:
     return simulation
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     output = sim.output.pproc(create_vtk=False)
     domain = sim.domain
@@ -113,7 +93,7 @@ def pproc(sim: Simulation, show: bool = False):
         backend="plotly",
     )
 
-    save(figure, "poisson-source", show=show)
+    save_figure(figure, "poisson-source", show=show)
 
 
 if __name__ == "__main__":

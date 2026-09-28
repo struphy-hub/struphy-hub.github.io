@@ -30,6 +30,7 @@ from struphy import (
 )
 from struphy.models import ViscousEulerSPH
 from struphy.ode.utils import ButcherTableau
+from struphy_plots import save_figure
 
 length = 1.0
 viscosity = 0.05
@@ -86,27 +87,6 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc()
@@ -135,7 +115,7 @@ def pproc(sim: Simulation, show: bool = False):
         title="SPH velocity diffusion: sinusoidal mode against its exact decay",
         backend="plotly",
     )
-    save(figure, "sph-velocity-diffusion", show=show)
+    save_figure(figure, "sph-velocity-diffusion", show=show)
 
 
 if __name__ == "__main__":

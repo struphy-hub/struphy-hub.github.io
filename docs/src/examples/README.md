@@ -86,10 +86,10 @@ filename.
 - `pproc(sim, show=False)` contains only the physics. Draw the figures with struphy-plots and
   `backend="plotly"`, e.g. `e_x.struphy.plot.slice(x="z", y="t", symmetric=True, backend="plotly")`
   or `spectrum.struphy.plot.dispersion(kmin=0, branches=..., fits=..., backend="plotly")` (or with
-  `plotly.graph_objects` for anything struphy-plots does not draw), and save each with the script's
-  own `save(figure, name, show=show)`, copied from `maxwell-wave.py`, which writes `name.html`,
-  `.png` and `.plotly.json` on MPI rank 0. Name the page's main figure `<script-stem>` and the
-  others `<script-stem>-<key>`.
+  `plotly.graph_objects` for anything struphy-plots does not draw), and save each with
+  `struphy_plots.save_figure(figure, name, show=show)`, which writes `name.html`, `.png` and
+  `.plotly.json` on MPI rank 0 (`frame=` or `still=` choose the image of an animation). Name the
+  page's main figure `<script-stem>` and the others `<script-stem>-<key>`.
 - The website's part is `run_example.py`, which `python cli.py run` and CI call: it runs the script
   in `docs/public/examples/`, profiles its simulation, exports the profiling data into
   `<script-stem>.metadata.json` and copies the PNGs to `docs/public/images/examples/`.
@@ -147,7 +147,7 @@ GitHub-hosted runners execute each example with `run_example.py` in a single pro
 For optional local MPI runs: `python cli.py run <example> --mpi 4`, or, from the repository root,
 `mpirun -n 4 python run_example.py <script-stem>`.
 
-- The simulation, `output.pproc(...)` and the analysis run on every rank; the scripts' `save`
+- The simulation, `output.pproc(...)` and the analysis run on every rank; `save_figure`
   writes on rank 0 only (struphy-plots draws nothing on the other ranks), as does `run_example.py`.
 - The grid must split over the ranks: with four ranks, keep at least a few cells per rank and direction
   (Orszag–Tang uses 32 × 32 × 1, i.e. 16 × 16 cells per rank).
