@@ -4,8 +4,8 @@ This compact gallery example follows Struphy's maintained Maxwell verification
 test. It excites a broadband electric field, evolves Maxwell's equations with
 FEEC, and plots the numerical dispersion relation against omega = c k.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -23,7 +23,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import Maxwell
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 
 def create_simulation() -> Simulation:
@@ -71,7 +71,7 @@ def create_simulation() -> Simulation:
 
 def pproc(sim: Simulation, show: bool = False):
     """Measure the speed of light from the (k, omega) spectrum, and save (and show) the figures."""
-    from struphy_plots.analysis import power_spectrum
+    from plasma_plots.analysis import power_spectrum
 
     output = sim.output
     length = sim.domain.params["r3"] - sim.domain.params["l3"]
@@ -86,10 +86,10 @@ def pproc(sim: Simulation, show: bool = False):
     # The branch of the (k, omega) power spectrum: its peaks count above half the peak amplitude of their
     # k, i.e. a quarter of its peak power.
     spectrum = power_spectrum(e_x, dim="z")
-    branch = spectrum.struphy.analysis.fit_branches(n_branches=1, noise_level=0.5**2, order=10)[0]
+    branch = spectrum.plasma.analysis.fit_branches(n_branches=1, noise_level=0.5**2, order=10)[0]
     print(f"Measured phase velocity: {branch.velocity:.5f} (exact: 1.0)")
 
-    dispersion = spectrum.struphy.plot.dispersion(
+    dispersion = spectrum.plasma.plot.dispersion(
         kmin=0,
         branches={"light wave, c = 1": lambda k: k},
         fits=[branch],
@@ -99,7 +99,7 @@ def pproc(sim: Simulation, show: bool = False):
         backend="plotly",
     )
     # Waves travelling in both directions leave diagonal stripes, whose slope is the wave speed.
-    space_time = e_x.struphy.plot.slice(
+    space_time = e_x.plasma.plot.slice(
         x="z",
         y="t",
         symmetric=True,

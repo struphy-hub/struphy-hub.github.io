@@ -8,8 +8,8 @@ excites both, and the sound wave along the field. The (k, omega) power spectra o
 the pressure are compared with the analytic Hall-MHD branches, and the phase velocities read off the
 spectrum with the exact ones.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -20,7 +20,7 @@ import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import LinearExtendedMHDuniform
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # Background field along z with n0 = B0 = 1, so the Alfvén speed is 1. With epsilon = 1 the ion cyclotron
 # frequency and the ion inertial length are 1 as well, i.e. k is measured in units of 1/d_i.
@@ -33,7 +33,7 @@ cyclotron_frequency = B0z / epsilon
 
 def hall_branches(k):
     """Parallel Hall-MHD branches: omega = v_A k (sqrt(1 + k^2 d_i^2 / 4) +- k d_i / 2) with d_i = v_A / Omega_i, and sound."""
-    from struphy_plots.theory.waves import hall_mhd_parallel
+    from plasma_plots.theory.waves import hall_mhd_parallel
 
     hall = hall_mhd_parallel(k, alfven_speed=alfven_speed, ion_inertial_length=alfven_speed / cyclotron_frequency)
     return {"whistler": hall["whistler"].real, "ion-cyclotron": hall["ion cyclotron"].real, "sound": sound_speed * k}
@@ -81,7 +81,7 @@ def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc(physical=True)
 
-    from struphy_plots.analysis import power_spectrum
+    from plasma_plots.analysis import power_spectrum
 
     length = output.domain.params["r3"] - output.domain.params["l3"]
 

@@ -8,8 +8,8 @@ result can be compared.
 Adapted from Struphy's tutorial (tutorials/tutorial_gas_expansion_sph.ipynb), reduced to one dimension
 so that an exact solution exists.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.2 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -33,7 +33,7 @@ from struphy import (
 )
 from struphy.models import ViscousEulerSPH
 from struphy.ode.utils import ButcherTableau
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # The gas is isothermal, p = kappa * rho, so the sound speed is c = sqrt(kappa) = 1.
 kappa = 1.0
@@ -138,11 +138,11 @@ def pproc(sim: Simulation, show: bool = False):
     compared = np.flatnonzero(times >= 0.1)
     density_errors = np.array([density_error(i) for i in compared])
     exact_velocity = np.array([exact_solution(marker_position[i], times[i])[1] for i in compared])  # (t, marker)
-    velocity_errors = orbits.sel(quantity="v1").isel(t=compared).struphy.analysis.error(exact_velocity, dims="marker")
+    velocity_errors = orbits.sel(quantity="v1").isel(t=compared).plasma.analysis.error(exact_velocity, dims="marker")
     velocity_errors = velocity_errors.values / sound_speed
     velocity_median_final = float(np.median(np.abs(marker_velocity[compared[-1]] - exact_velocity[-1])) / sound_speed)
     mass = density.integrate("eta1") * box_length
-    mass_error = float(mass.struphy.analysis.relative_error(ref=gas_density * release_point, skip_first=False).max())
+    mass_error = float(mass.plasma.analysis.relative_error(ref=gas_density * release_point, skip_first=False).max())
     print(
         f"Density error (relative L1): mean {density_errors.mean():.4f}, final {density_errors[-1]:.4f}; "
         f"velocity error (rms, units of c): mean {velocity_errors.mean():.4f}, final {velocity_errors[-1]:.4f}, "

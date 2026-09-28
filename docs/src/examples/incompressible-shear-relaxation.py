@@ -10,8 +10,8 @@ decays by viscous diffusion: u_x(y, t) = U sin(pi y / H) exp(-mu (pi / H)^2 t).
 Based on the verification test of the model in Struphy
 (models/tests/verification/test_verif_IncompressibleNavierStokesSPH.py).
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -38,7 +38,7 @@ from struphy import (
 from struphy.initial.base import GenericPerturbation
 from struphy.models import IncompressibleNavierStokesSPH
 from struphy.ode.utils import ButcherTableau
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 viscosity = 0.1  # mu
 height = 1.0  # H, the channel is 1 long in x and H high in y
@@ -123,12 +123,12 @@ def pproc(sim: Simulation, show: bool = False):
 
     # The amplitude of each mode, projected on it. A bin average lowers a mode by sinc(k dx / 2).
     # The shear mode sin(pi y / H) is half a wave along eta2 = y / H.
-    shear = across.struphy.analysis.project_mode(dim="eta2", number=0.5, bin_correction=True)
-    wave = along.struphy.analysis.project_mode(dim="eta1", number=1, bin_correction=True).values
+    shear = across.plasma.analysis.project_mode(dim="eta2", number=0.5, bin_correction=True)
+    wave = along.plasma.analysis.project_mode(dim="eta1", number=1, bin_correction=True).values
     exact_shear = shear_amplitude * np.exp(-decay_rate * times)
-    fitted_rate = -abs(shear).struphy.analysis.growth_rate().rate
+    fitted_rate = -abs(shear).plasma.analysis.growth_rate().rate
     profile_error = float(
-        across.isel(t=-1).struphy.analysis.error(exact_shear[-1] * np.sin(np.pi * y / height), norm="max")
+        across.isel(t=-1).plasma.analysis.error(exact_shear[-1] * np.sin(np.pi * y / height), norm="max")
     )
     shear = shear.values
     wave_left = float(np.abs(wave[times >= 0.1]).max() / compressive_amplitude)

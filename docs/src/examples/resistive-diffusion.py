@@ -6,8 +6,8 @@ decays twice as fast, as exp(-2 eta k^2 t). Struphy's variational discretization
 thermal energy (Ohmic heating) and keeps the total energy constant to the accuracy of its nonlinear solver. The field is weak, so that
 the pressure gradient it produces sets only a negligible flow. A scan over three resistivities confirms the rate.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -29,7 +29,7 @@ from struphy import (
 )
 from struphy.linear_algebra.solver import NonlinearSolverParameters
 from struphy.models import ViscoResistiveMHD
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 length = 2 * np.pi
 mode_number = 2
@@ -96,7 +96,7 @@ def field_profile(run):
 def mode_amplitude(run):
     """Amplitude of the sin(k x) mode of B_z over time, from a post-processed run."""
     b_z = run.evaluate("em_fields/b_field_xyz").isel(component=2, eta2=0, eta3=0)
-    return b_z.struphy.analysis.project_mode(dim="eta1", number=mode_number)
+    return b_z.plasma.analysis.project_mode(dim="eta1", number=mode_number)
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -113,7 +113,7 @@ def pproc(sim: Simulation, show: bool = False):
     for eta, run in runs.items():
         amplitudes[eta] = abs(mode_amplitude(run))
         amplitudes[eta].attrs = {"label": f"η = {eta}: Struphy"}
-        fitted[eta] = -amplitudes[eta].struphy.analysis.growth_rate().rate
+        fitted[eta] = -amplitudes[eta].plasma.analysis.growth_rate().rate
     exact_rate = {eta: eta * wavenumber**2 for eta in runs}
     if not all(np.isfinite(list(fitted.values()))):
         raise RuntimeError("A decay rate could not be fitted")
@@ -127,7 +127,7 @@ def pproc(sim: Simulation, show: bool = False):
     thermal = np.asarray(run.scalars["en_thermo"])
     total = np.asarray(run.scalars["en_tot"])
     scalar_times = np.asarray(run.time)[: len(total)]
-    energy_drift = float(run.scalars["en_tot"].struphy.analysis.relative_error().max())
+    energy_drift = float(run.scalars["en_tot"].plasma.analysis.relative_error().max())
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")
 
     def profile_traces(index):
@@ -165,7 +165,7 @@ def pproc(sim: Simulation, show: bool = False):
     save_figure(figure, "resistive-diffusion", width=900, height=850, show=show)
 
     first, *others = amplitudes.values()
-    decay = first.struphy.plot.timeseries(
+    decay = first.plasma.plot.timeseries(
         *others,
         logy=True,
         reference={f"η = {eta}: exp(−η k² t)": lambda t, eta=eta: amplitude * np.exp(-exact_rate[eta] * t) for eta in runs},

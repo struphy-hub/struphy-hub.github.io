@@ -5,8 +5,8 @@ B = (d_y A_z, -d_x A_z, 0). For positive lambda the null at the origin is an
 X-point. A small incompressible strain drives flux towards it and finite
 resistivity permits reconnection.
 
-Requires Struphy with compiled kernels (``struphy compile``) and struphy-plots with Plotly
-(``pip install "struphy-plots[plotly]"``). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (``struphy compile``) and plasma-plots with Plotly
+(``pip install "plasma-plots[plotly]"``). Run as a script, it saves its figures in the current
 directory (``--show`` shows them first).
 """
 
@@ -28,7 +28,7 @@ from struphy import (
 )
 from struphy.linear_algebra.solver import NonlinearSolverParameters
 from struphy.models import ViscoResistiveMHD
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 period = 2 * np.pi
 box_min, box_max = -np.pi, np.pi

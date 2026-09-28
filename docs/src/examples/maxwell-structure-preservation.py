@@ -12,8 +12,8 @@ at every step, and Heun's method is unstable for this operator and grows without
 is set by the largest eigenvalue the grid supports, not by the wave being modelled, so a smooth initial
 condition does not save it: round-off seeds the unstable modes and they take over.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -25,7 +25,7 @@ import plotly.graph_objects as go
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, grids, perturbations
 from struphy.models import Maxwell
 from struphy.ode.utils import ButcherTableau
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 length = 20.0
 mode_number = 2

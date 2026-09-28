@@ -7,8 +7,8 @@ rotates as theta(z) = -z/2 for the signed-current convention used here (epsilon=
 This initializes an established wave train, not a pulse injected at a boundary.
 
 Reference: https://farside.ph.utexas.edu/teaching/315/Waveshtml/node76.html
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -19,7 +19,7 @@ import numpy as np
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ColdPlasma
 from struphy.linear_algebra.solver import SolverParameters
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 stem = "faraday-rotation"
 length, amplitude, omega, density = 2.0 * np.pi, 0.05, 2.5, 3.15
@@ -93,7 +93,7 @@ def pproc(sim: Simulation, show: bool = False):
     angle = 0.5 * np.unwrap(np.arctan2(u, q))
     rotation_rate = float(np.polyfit(z, angle, 1)[0])
     angle_error = float(np.max(np.abs(angle + z / 2)))
-    energy_drift = float(energy.struphy.analysis.relative_error().max())
+    energy_drift = float(energy.plasma.analysis.relative_error().max())
     print(f"Measured rotation rate: {rotation_rate:.4f} rad per unit length (exact: -0.5)")
     if error > 0.03 or angle_error > 0.02 or energy_drift > 1e-6:
         raise RuntimeError(f"Faraday check failed: field={error:.3g}, angle={angle_error:.3g}, energy={energy_drift:.3g}")

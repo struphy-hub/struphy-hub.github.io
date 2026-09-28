@@ -7,8 +7,8 @@ population to the growing field until particle trapping saturates it.
 
 Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/bump_on).
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -31,7 +31,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import VlasovAmpereOneSpecies
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # A 90% bulk Maxwellian plus a 10% "bump" population drifting at u1 = -4.5.
 perturbation_amplitude = 0.05
@@ -100,10 +100,10 @@ def pproc(sim: Simulation, show: bool = False):
     field_energy = output.scalars["electric_energy"]
 
     # Fit the exponential growth rate over the clean linear-growth window.
-    growth_rate = field_energy.struphy.analysis.growth_rate(window=(5.0, 25.0), amplitude=True).rate
+    growth_rate = field_energy.plasma.analysis.growth_rate(window=(5.0, 25.0), amplitude=True).rate
     print(f"Measured growth rate: {growth_rate:.4f}")
 
-    figure = field_energy.struphy.plot.timeseries(logy=True, title="Bump-on-tail instability: electric field energy", backend="plotly")
+    figure = field_energy.plasma.plot.timeseries(logy=True, title="Bump-on-tail instability: electric field energy", backend="plotly")
 
     save_figure(figure, "bump-on-tail", show=show)
 
@@ -114,8 +114,8 @@ def pproc(sim: Simulation, show: bool = False):
 
     # The distribution averaged over space, f(v, t): how the whole velocity distribution changes,
     # with less sampling noise than the individual x-v bins.
-    f_of_v = f.struphy.analysis.spatial_average()
-    velocity_time = f_of_v.struphy.plot.slice(
+    f_of_v = f.plasma.analysis.spatial_average()
+    velocity_time = f_of_v.plasma.plot.slice(
         x="t",
         y="v1",
         title="Bump-on-tail instability: space-averaged distribution f(v, t)",
@@ -128,7 +128,7 @@ def pproc(sim: Simulation, show: bool = False):
     )
 
     # The x-v phase space as a movie.
-    phase_space = f.assign_coords(eta1=f.eta1.values * length).struphy.plot.animation(
+    phase_space = f.assign_coords(eta1=f.eta1.values * length).plasma.plot.animation(
         x="eta1",
         y="v1",
         max_frames=150,

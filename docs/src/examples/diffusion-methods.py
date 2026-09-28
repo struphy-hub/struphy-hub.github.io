@@ -12,8 +12,8 @@ with particles in two ways:
 
 Both start from the same markers and are compared with the exact decay.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -39,7 +39,7 @@ from struphy import (
 )
 from struphy.models import DeterministicParticleDiffusion, RandomParticleDiffusion
 from struphy.ode.utils import ButcherTableau
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 diffusion = 0.05  # D
 amplitude = 0.5  # of the initial density perturbation, relative to the uniform density 1
@@ -121,13 +121,13 @@ def pproc(sim: Simulation, show: bool = False):
 
     # The amplitude of the cosine mode relative to the mean. A bin average lowers a mode by sinc(k dx / 2).
     measured = {
-        name: values.struphy.analysis.project_mode(dim="eta1", number=1, kind="cos", bin_correction=True)
+        name: values.plasma.analysis.project_mode(dim="eta1", number=1, kind="cos", bin_correction=True)
         / values.mean("eta1")
         for name, values in density.items()
     }
-    fitted_rate = {name: -abs(amp).struphy.analysis.growth_rate().rate for name, amp in measured.items()}
+    fitted_rate = {name: -abs(amp).plasma.analysis.growth_rate().rate for name, amp in measured.items()}
     rms_error = {
-        name: float(values.struphy.analysis.error(profile_exact, dims=("t", "eta1"))) for name, values in density.items()
+        name: float(values.plasma.analysis.error(profile_exact, dims=("t", "eta1"))) for name, values in density.items()
     }
     if not all(np.isfinite(rate) for rate in fitted_rate.values()):
         raise RuntimeError("A decay rate could not be fitted")

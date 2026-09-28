@@ -10,8 +10,8 @@ with the plasma dispersion function Z. Four runs with wavenumbers between 0.3 an
 frequency and the damping rate of the electric field, and compare them with this root. The fluid estimate omega^2 = 1 + 3 k^2 (Bohm-Gross) is
 shown for reference: it ignores the kinetic effects and misses the frequency by several per cent already at k = 0.5.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -36,7 +36,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import VlasovAmpereOneSpecies
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 wavenumbers = (0.3, 0.4, 0.5, 0.6)  # the scan; the example itself is the k = 0.5 run
 amplitude = 0.001
@@ -87,7 +87,7 @@ def mode_amplitude(run):
     e_x = run.evaluate(
         "em_fields/e_field", eta1=np.linspace(0.0, 1.0, cells + 1), eta2=0.0, eta3=0.0, representation="1"
     ).isel(component=0)
-    return e_x.struphy.analysis.project_mode(dim="eta1", number=1)
+    return e_x.plasma.analysis.project_mode(dim="eta1", number=1)
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -98,7 +98,7 @@ def pproc(sim: Simulation, show: bool = False):
     for run in runs.values():
         run.pproc()
 
-    from struphy_plots.theory.kinetic import bohm_gross, langmuir
+    from plasma_plots.theory.kinetic import bohm_gross, langmuir
 
     exact, measured_frequency, measured_rate, amplitudes = {}, {}, {}, {}
     for k in sorted(runs):
@@ -117,7 +117,7 @@ def pproc(sim: Simulation, show: bool = False):
             values[crossings + 1] - values[crossings]
         )
         measured_frequency[k] = float(np.pi / np.mean(np.diff(roots)))
-        measured_rate[k] = abs(mode).struphy.analysis.damping_rate(window=(1.0, 12.0)).rate
+        measured_rate[k] = abs(mode).plasma.analysis.damping_rate(window=(1.0, 12.0)).rate
     if not (np.isfinite(list(measured_frequency.values())).all() and np.isfinite(list(measured_rate.values())).all()):
         raise RuntimeError("A frequency or a damping rate could not be measured")
     for k in sorted(runs):

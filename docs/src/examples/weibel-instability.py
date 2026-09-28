@@ -9,8 +9,8 @@ Adapted from Struphy's maintained example
 (examples/VlasovMaxwellOneSpecies/weibel_instability), at reduced particle
 count and run length to keep it a quick gallery run.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.2 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -35,7 +35,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import VlasovMaxwellOneSpecies
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 wavenumber = 1.25
 
@@ -125,7 +125,7 @@ def pproc(sim: Simulation, show: bool = False):
     growth_rate = float(np.polyfit(time[growth_window], np.log(magnetic_energy.values[growth_window]), 1)[0] / 2)
     print(f"Measured growth rate (in |B3|, from the energy fit): {growth_rate:.5f}")
 
-    figure = magnetic_energy.struphy.plot.timeseries(
+    figure = magnetic_energy.plasma.plot.timeseries(
         logy=True,
         title="Weibel instability: magnetic field energy",
         backend="plotly",
@@ -135,7 +135,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     # The magnetic field along x, over time.
     magnetic_field = b_field.isel(component=2, eta2=0, eta3=0)  # (t, e1)
-    space_time = magnetic_field.assign_coords(eta1=magnetic_field.eta1.values * domain.params["r1"]).struphy.plot.slice(
+    space_time = magnetic_field.assign_coords(eta1=magnetic_field.eta1.values * domain.params["r1"]).plasma.plot.slice(
         x="eta1",
         y="t",
         symmetric=True,
@@ -150,10 +150,10 @@ def pproc(sim: Simulation, show: bool = False):
     # The temperature anisotropy from the binned (v1, v2) distribution: the ratio of the velocity
     # variances, which the instability reduces by heating the cold direction.
     f = output.evaluate("kinetic_ions/v1_v2_density/f")  # (t, v1, v2)
-    moments = f.struphy.analysis.velocity_moments()
+    moments = f.plasma.analysis.velocity_moments()
     anisotropy = moments.variance_v2 / moments.variance_v1
     anisotropy.attrs = {"label": "⟨(v₂ − u₂)²⟩ / ⟨(v₁ − u₁)²⟩"}
-    anisotropy_figure = anisotropy.struphy.plot.timeseries(
+    anisotropy_figure = anisotropy.plasma.plot.timeseries(
         logy=False,
         title="Weibel instability: temperature anisotropy",
         backend="plotly",

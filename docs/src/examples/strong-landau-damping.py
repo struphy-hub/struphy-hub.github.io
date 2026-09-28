@@ -8,8 +8,8 @@ forth, a signature of nonlinear kinetic trapping.
 
 Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/strong_Landau_damping).
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -33,7 +33,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import VlasovAmpereOneSpecies
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # A large-amplitude cosine mode, well past the linear (weak-damping) regime.
 perturbation_amplitude = 0.5
@@ -97,11 +97,11 @@ def pproc(sim: Simulation, show: bool = False):
     # The bounce period of trapped particles shows up as the spacing between
     # local maxima in the field energy, once the initial (linear) damping
     # phase has given way to nonlinear trapping oscillations.
-    maxima_t = np.asarray(field_energy_array.struphy.analysis.envelope().t)
+    maxima_t = np.asarray(field_energy_array.plasma.analysis.envelope().t)
     bounce_period = float(np.mean(np.diff(maxima_t))) if len(maxima_t) > 1 else float("nan")
     print(f"Estimated trapped-particle bounce period: {bounce_period:.2f}")
 
-    figure = field_energy_array.struphy.plot.timeseries(
+    figure = field_energy_array.plasma.plot.timeseries(
         logy=True, title="Strong Landau damping: electric field energy", backend="plotly",
     )
 

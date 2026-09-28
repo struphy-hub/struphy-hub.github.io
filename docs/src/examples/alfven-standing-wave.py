@@ -10,8 +10,8 @@ moves fastest and magnetic a quarter period later when the field lines are bent 
 so each channel oscillates at twice the wave frequency while their sum stays constant. Struphy's
 propagator is a Crank-Nicolson step, which conserves that sum up to the tolerance of the linear solver.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -22,7 +22,7 @@ import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ShearAlfven
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # A uniform background with B0 along z and n0 = 1, so the Alfvén speed is 1.
 B0z, n0, beta = 1.0, 1.0, 0.1
@@ -86,7 +86,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     # The exchange period is half the wave period; measure it from the kinetic-energy maxima.
     kinetic_values = kinetic.values
-    peak_times = kinetic.struphy.analysis.envelope().t.values
+    peak_times = kinetic.plasma.analysis.envelope().t.values
     if peak_times.size < 3:
         raise RuntimeError("Too few kinetic-energy maxima to measure the exchange period")
     measured_period = float(np.mean(np.diff(peak_times)))
@@ -120,7 +120,7 @@ def pproc(sim: Simulation, show: bool = False):
     velocity = output.evaluate(
         "mhd/velocity", eta1=0.0, eta2=0.0, eta3=np.linspace(0.0, 1.0, cells + 1), representation="2"
     ).isel(component=0)
-    space_time = velocity.assign_coords(eta3=velocity.eta3.values * length).struphy.plot.slice(
+    space_time = velocity.assign_coords(eta3=velocity.eta3.values * length).plasma.plot.slice(
         x="eta3",
         y="t",
         symmetric=True,

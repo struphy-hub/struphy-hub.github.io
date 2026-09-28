@@ -6,8 +6,8 @@ oscillates at the plasma frequency omega_p, independently of k and of the backgr
 Its energy passes back and forth between the electric field and the electron flow, as cos^2(omega_p t) and
 sin^2(omega_p t). The plasma frequency scales as sqrt(n0), which a short scan over the density confirms.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -19,7 +19,7 @@ import xarray as xr
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ColdPlasma
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # Time in units of the inverse cyclotron frequency and alpha = omega_p / omega_c = 1: at n0 = 1 the plasma
 # frequency is 1 (as in the cold-plasma-waves example).
@@ -145,7 +145,7 @@ def pproc(sim: Simulation, show: bool = False):
     # The frequency against the density, on the line omega = omega_p (drawn from n0 = 0).
     n_line = np.linspace(0.0, max(densities) * 1.05, 100)
     frequencies = xr.DataArray(list(measured.values()), dims="n0", coords={"n0": list(measured)}, name="Struphy")
-    scan = frequencies.struphy.plot.against_theory(
+    scan = frequencies.plasma.plot.against_theory(
         {"ω_p ∝ √n₀": (n_line, alpha / epsilon * np.sqrt(n_line))}, show_error=False,
         xlabel="density n₀", ylabel="angular frequency ω", title="Oscillation frequency against density",
         backend="plotly",

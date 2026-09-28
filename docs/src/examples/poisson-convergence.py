@@ -7,8 +7,8 @@ falls at least as fast as h^(p+1) in the root-mean-square norm when the mesh is 
 the curved one. The slopes are measured from the runs and compared with p + 1: on the straight mesh they are close to it, and on the curved mesh,
 whose coarse meshes are not yet in the asymptotic range, they are steeper.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -21,7 +21,7 @@ from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains
 from struphy.initial.base import GenericPerturbation
 from struphy.linear_algebra.solver import SolverParameters
 from struphy.models import Poisson
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 lx, ly = 2.0, 3.0
 kx, ky = 2 * np.pi / lx, 2 * np.pi / ly
@@ -79,7 +79,7 @@ def computed_potential(run, celldivide):
 def pproc(sim: Simulation, show: bool = False):
     from plotly.subplots import make_subplots
     from scipy.interpolate import griddata
-    from struphy_plots.analysis import convergence_order
+    from plasma_plots.analysis import convergence_order
 
     errors = {}  # (alpha, degree) -> rms errors against the resolution
     for alpha in (distortion, 0.0):
@@ -90,7 +90,7 @@ def pproc(sim: Simulation, show: bool = False):
                 run.pproc(physical=True)
                 # three sample points per cell, to measure the error inside the cells
                 phi = computed_potential(run, celldivide=3)
-                values.append(float(phi.struphy.analysis.error(exact_potential, norm="rms", args=("X", "Y"))))
+                values.append(float(phi.plasma.analysis.error(exact_potential, norm="rms", args=("X", "Y"))))
             errors[(alpha, degree)] = np.array(values)
     if not all(np.isfinite(v).all() for v in errors.values()):
         raise RuntimeError("Non-finite errors")
@@ -130,7 +130,7 @@ def pproc(sim: Simulation, show: bool = False):
     run.pproc(physical=True)
     phi = computed_potential(run, celldivide=4)
     mesh_x, mesh_y, potential = phi.X.values, phi.Y.values, phi.values
-    difference = phi.struphy.analysis.error(exact_potential, norm="pointwise", args=("X", "Y")).values
+    difference = phi.plasma.analysis.error(exact_potential, norm="pointwise", args=("X", "Y")).values
     x_plot, y_plot = np.linspace(0, lx, 100), np.linspace(0, ly, 150)
     xx, yy = np.meshgrid(x_plot, y_plot)
     points = np.column_stack([mesh_x.ravel(), mesh_y.ravel()])

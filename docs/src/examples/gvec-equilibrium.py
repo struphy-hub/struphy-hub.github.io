@@ -13,7 +13,7 @@ magnetic wells: markers launched with a small parallel velocity are mirror-trapp
 in them, the faster ones circulate.
 
 Requires Struphy with compiled kernels (`struphy compile`) and its optional physics dependencies
-(`pip install -e ".[phys]"`), and struphy-plots with Plotly (`pip install "struphy-plots[plotly]"`).
+(`pip install -e ".[phys]"`), and plasma-plots with Plotly (`pip install "plasma-plots[plotly]"`).
 Run as a script, it saves its figures in the current directory (`--show` shows them first).
 """
 
@@ -40,7 +40,7 @@ from struphy import (
     maxwellians,
 )
 from struphy.models import GuidingCenter
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # Keep both the GVEC solve and the following FEEC simulation deliberately
 # small. The complete equilibrium input is defined below, so the example has

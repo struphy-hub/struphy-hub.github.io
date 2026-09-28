@@ -9,8 +9,8 @@ The run is deliberately two-dimensional and saves only every fifth step, so
 it remains a manageable gallery calculation while retaining the turbulent
 eddies and the slow reorganization of their energy.
 
-Requires Struphy with compiled kernels (``struphy compile``) and struphy-plots with Plotly
-(``pip install "struphy-plots[plotly]"``). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (``struphy compile``) and plasma-plots with Plotly
+(``pip install "plasma-plots[plotly]"``). Run as a script, it saves its figures in the current
 directory (``--show`` shows them first).
 """
 
@@ -23,7 +23,7 @@ from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains
 from struphy.initial.base import GenericPerturbation
 from struphy.models import HasegawaWakatani
 from struphy.ode.utils import ButcherTableau
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # A square periodic slab.  The third direction is inactive, making this a
 # genuinely 2D fluid calculation rather than a thin 3D one.
@@ -198,7 +198,7 @@ def pproc(sim: Simulation, show: bool = False):
     # up to roundoff on the sampled grid.
     # The sampled periodic grid includes the repeated right/top boundary.
     # Remove it before the FFT so it is not counted as a second grid point.
-    from struphy_plots.spectral import drop_periodic_endpoint
+    from plasma_plots.spectral import drop_periodic_endpoint
 
     phi = drop_periodic_endpoint(drop_periodic_endpoint(potential, "eta1"), "eta2").transpose("t", "eta1", "eta2").values
     nx, ny = phi.shape[1:]

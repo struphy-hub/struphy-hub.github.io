@@ -7,8 +7,8 @@ This periodic initial-value experiment measures propagating modes, not reflectio
 from an interface. The cutoff is the k -> 0 limit of the dispersion relation.
 
 Reference: https://farside.ph.utexas.edu/teaching/315/Waveshtml/node75.html
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -19,8 +19,8 @@ import numpy as np
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ColdPlasma
 from struphy.linear_algebra.solver import SolverParameters
-from struphy_plots.theory.waves import plasma_light_wave
-from struphy_plots import save_figure
+from plasma_plots.theory.waves import plasma_light_wave
+from plasma_plots import save_figure
 
 stem = "ordinary-mode-dispersion"
 length = 8.0 * np.pi
@@ -73,7 +73,7 @@ def pproc(sim: Simulation, show: bool = False):
         raise RuntimeError("The ordinary-mode run is incomplete or non-finite")
     # cos(k x) is mode n along eta1; project_mode drops the repeated periodic endpoint.
     signals = np.column_stack([
-        field.struphy.analysis.project_mode(dim="eta1", number=n, kind="cos").values for n in mode_numbers
+        field.plasma.analysis.project_mode(dim="eta1", number=n, kind="cos").values for n in mode_numbers
     ])
     measured = []
     for signal in signals.T:
@@ -86,7 +86,7 @@ def pproc(sim: Simulation, show: bool = False):
     reference = amplitude * np.cos(times[:, None] * frequencies[None, :])
     frequency_error = float(np.max(np.abs(measured / frequencies - 1.0)))
     mode_error = float(np.max(np.abs(signals - reference)) / amplitude)
-    energy_drift = float(energy.struphy.analysis.relative_error().max())
+    energy_drift = float(energy.plasma.analysis.relative_error().max())
     print(f"Measured frequencies: {np.round(measured, 4).tolist()} (exact: {np.round(frequencies, 4).tolist()})")
     if frequency_error > 0.01 or mode_error > 0.1 or energy_drift > 1e-6:
         raise RuntimeError(f"Ordinary-mode check failed: frequency={frequency_error:.3g}, field={mode_error:.3g}, energy={energy_drift:.3g}")
@@ -112,7 +112,7 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_layout(title="Ordinary electromagnetic waves in a cold plasma", template="plotly_white",
                          legend={"orientation": "h", "y": -0.2}, margin={"l": 70, "r": 30, "t": 100, "b": 140})
     save_figure(figure, stem, height=650, show=show)
-    space_time = field.assign_coords(eta1=x).struphy.plot.slice(
+    space_time = field.assign_coords(eta1=x).plasma.plot.slice(
         x="eta1", y="t", symmetric=True, cmap="RdBu_r", title="Superposed ordinary waves: E_z(x, t)",
         xlabel="x", ylabel="t [a.u.]", colorbar_label="E_z", backend="plotly",
     )

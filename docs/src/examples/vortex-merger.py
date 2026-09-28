@@ -8,8 +8,8 @@ in a two-dimensional incompressible fluid.
 Follows the setup of Struphy's diocotron example (examples/ToyGyrokinetic/diocotron_instability):
 an annulus with grounded walls, a uniform background field, and the ToyDrift model.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.2 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -35,7 +35,7 @@ from struphy import (
     maxwellians,
 )
 from struphy.models import ToyDrift
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # Two Gaussian blobs of peak density `peak` and width `width`, on the circle of radius `ring_radius`,
 # with their centres `separation` apart.
@@ -140,7 +140,7 @@ def pproc(sim: Simulation, show: bool = False):
         image[(rr < a1) | (rr > a2)] = np.nan
         images.append(image)
     mapped = xr.DataArray(np.array(images), dims=("t", "y", "x"), coords={"t": times[picks], "x": axis, "y": axis})
-    movie = mapped.struphy.plot.animation(
+    movie = mapped.plasma.plot.animation(
         x="x", y="y", max_frames=150, vmin=0.0, vmax=float(density.max()), cmap="viridis",
         title="Vortex merger: binned charge density", xlabel="x", ylabel="y", colorbar_label="density",
         equal_aspect=True, backend="plotly",
@@ -150,12 +150,12 @@ def pproc(sim: Simulation, show: bool = False):
     # The first Poisson solve initializes the field energy after t=0. Compare
     # subsequent field energies to that first solved state, not to the zero placeholder.
     energy = output.scalars["en_phi"].isel(t=slice(1, None))
-    change = energy.struphy.analysis.drift() / energy.isel(t=0)
+    change = energy.plasma.analysis.drift() / energy.isel(t=0)
     change.attrs.update(label="(W − W₁) / W₁", units="")
-    energy_figure = change.struphy.plot.timeseries(
+    energy_figure = change.plasma.plot.timeseries(
         logy=False, title="Vortex merger: electrostatic-energy change", backend="plotly"
     )
-    drift = float(energy.struphy.analysis.relative_error().max())
+    drift = float(energy.plasma.analysis.relative_error().max())
     print(f"Maximum relative drift of the electrostatic energy: {drift:.2e}")
     save_figure(energy_figure, "vortex-merger-energy", show=show)
 

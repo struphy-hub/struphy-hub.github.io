@@ -4,8 +4,8 @@ Two periodic velocity and magnetic-field vortices are evolved to t = 1.
 The example shows nonlinear compression and field deformation, with
 energy and discrete magnetic-divergence diagnostics.
 
-Requires Struphy 3.3 with compiled kernels (``struphy compile``) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (``struphy compile``) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -16,7 +16,7 @@ import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, FieldsBackground, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ViscoResistiveMHD
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 
 def create_simulation() -> Simulation:
@@ -129,7 +129,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     scalars = output.scalars
     energy = scalars.en_tot
-    drift = energy.struphy.analysis.relative_error(skip_first=False)
+    drift = energy.plasma.analysis.relative_error(skip_first=False)
     divergence = np.sqrt(np.maximum(scalars.tot_div_B, 0))
     diagnostics = make_subplots(rows=2, cols=1, shared_xaxes=True,
                                subplot_titles=("Energy channels", "Conservation diagnostics"), vertical_spacing=0.18)
@@ -143,7 +143,7 @@ def pproc(sim: Simulation, show: bool = False):
     diagnostics.update_layout(template="plotly_white", margin={"l": 70, "r": 30, "t": 70, "b": 60})
 
     cut_index = int(np.argmin(np.abs(y - np.pi)))
-    cut = pressure.struphy.plot.profiles(
+    cut = pressure.plasma.plot.profiles(
         x="eta1", at=[0, -1], x_of=lambda eta1: period * eta1, xlabel="x", title="Gas pressure along y = π",
         eta2=cut_index, backend="plotly",
     )

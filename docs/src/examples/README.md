@@ -16,7 +16,7 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `orszag-tang-vortex.py` — nonlinear MHD to t = 1, density with magnetic field lines, energy/divergence diagnostics and a pressure cut
 - `resistive-x-point.py` — nonlinear visco-resistive MHD at a driven magnetic null, with current-density/flux animation, reconnection rate and conservation diagnostics
 - `mhd-slab-waves.py` — the shear Alfvén and the slow and fast magnetosonic waves of `LinearMHD`, from the (k, ω) spectra of the velocity and the pressure, with fitted against exact speeds
-- `toroidal-shear-alfven.py` — a small `LinearMHD` tokamak run with the m=10,11 perturbations, animated physical velocity components on a poloidal slice, ring histories, radial profiles, radius–time RMS maps, poloidal and temporal FFT spectra, frequency–radius maps, dominant-band reconstruction, and perturbation energies. Defaults to 8 × 48 × 4 cells, degree (3,3,2), dt=0.5 and t=20; edit the constants at the top for longer, finer runs. The short default record has only 21 samples and Δω≈0.299; this is an exploratory preview, not a converged TAE frequency measurement. Fourier diagnostics use struphy-plots' `out.analysis.fft`, `out.analysis.time_fft` and `out.analysis.filter_time`.
+- `toroidal-shear-alfven.py` — a small `LinearMHD` tokamak run with the m=10,11 perturbations, animated physical velocity components on a poloidal slice, ring histories, radial profiles, radius–time RMS maps, poloidal and temporal FFT spectra, frequency–radius maps, dominant-band reconstruction, and perturbation energies. Defaults to 8 × 48 × 4 cells, degree (3,3,2), dt=0.5 and t=20; edit the constants at the top for longer, finer runs. The short default record has only 21 samples and Δω≈0.299; this is an exploratory preview, not a converged TAE frequency measurement. Fourier diagnostics use plasma-plots' `out.analysis.fft`, `out.analysis.time_fft` and `out.analysis.filter_time`.
 - `zeldovich-caustic.py` — pressureless SPH collapse to a caustic and multi-stream flow, with the exact density from the Lagrangian map (animated density and phase space)
 - `diffusion-methods.py` — the random-walk and the deterministic particle methods for the diffusion equation, compared with the exact decay (two simulations in one script)
 - `incompressible-shear-relaxation.py` — incompressible SPH between no-slip walls: the pressure projection removes a compressive wave, and the shear mode decays at the exact viscous rate
@@ -83,11 +83,11 @@ filename.
   post-processing belong in the two functions above. The script must work on its own, without
   this repository: `python <script-stem>.py` simulates, post-processes and saves its figures in
   the current directory, and `--show` shows them first. See `maxwell-wave.py`.
-- `pproc(sim, show=False)` contains only the physics. Draw the figures with struphy-plots and
-  `backend="plotly"`, e.g. `e_x.struphy.plot.slice(x="z", y="t", symmetric=True, backend="plotly")`
-  or `spectrum.struphy.plot.dispersion(kmin=0, branches=..., fits=..., backend="plotly")` (or with
-  `plotly.graph_objects` for anything struphy-plots does not draw), and save each with
-  `struphy_plots.save_figure(figure, name, show=show)`, which writes `name.html`, `.png` and
+- `pproc(sim, show=False)` contains only the physics. Draw the figures with plasma-plots and
+  `backend="plotly"`, e.g. `e_x.plasma.plot.slice(x="z", y="t", symmetric=True, backend="plotly")`
+  or `spectrum.plasma.plot.dispersion(kmin=0, branches=..., fits=..., backend="plotly")` (or with
+  `plotly.graph_objects` for anything plasma-plots does not draw), and save each with
+  `plasma_plots.save_figure(figure, name, show=show)`, which writes `name.html`, `.png` and
   `.plotly.json` on MPI rank 0 (`frame=` or `still=` choose the image of an animation). Name the
   page's main figure `<script-stem>` and the others `<script-stem>-<key>`.
 - The website's part is `run_example.py`, which `python cli.py run` and CI call: it runs the script
@@ -96,12 +96,12 @@ filename.
 - Page texts live in `docs/src/data/example-config.ts`: the main figure's title and alt text, and
   under `figures` each other figure's key, in page order, with its alt text and caption.
 - Analyze with the `Output` of the run (`sim.output`), e.g.
-  `sim.output.scalars["electric_energy"].struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True)`;
+  `sim.output.scalars["electric_energy"].plasma.analysis.damping_rate(window=(None, 8.0), amplitude=True)`;
   see `weak-landau-damping.py`. Print the measured results; the page shows the figures.
 
 ## 2. Generate the structural metadata
 
-From the repo root, with Struphy installed (`pip install ./submodules/struphy-plots/struphy` — no
+From the repo root, with Struphy installed (`pip install ./submodules/plasma-plots/struphy` — no
 compiled kernels needed for this step):
 
 ```sh
@@ -148,7 +148,7 @@ For optional local MPI runs: `python cli.py run <example> --mpi 4`, or, from the
 `mpirun -n 4 python run_example.py <script-stem>`.
 
 - The simulation, `output.pproc(...)` and the analysis run on every rank; `save_figure`
-  writes on rank 0 only (struphy-plots draws nothing on the other ranks), as does `run_example.py`.
+  writes on rank 0 only (plasma-plots draws nothing on the other ranks), as does `run_example.py`.
 - The grid must split over the ranks: with four ranks, keep at least a few cells per rank and direction
   (Orszag–Tang uses 32 × 32 × 1, i.e. 16 × 16 cells per rank).
 - Particle results depend on the rank count (each rank draws its own markers), so measured rates move a little.
@@ -210,7 +210,7 @@ in its metadata. No list to edit by hand.
 Use the Struphy revision pinned by this repository, including local submodule changes while developing.
 The full Orszag–Tang run needs the fix in `struphy/feec/mass.py` that preserves geometric weights
 between density-weighted matrix assemblies. Commit that fix and its regression test in Struphy,
-then bump the `struphy` pointer in struphy-plots and the website's `submodules/struphy-plots` pointer before publishing. A website-only commit cannot
+then bump the `struphy` pointer in plasma-plots and the website's `submodules/plasma-plots` pointer before publishing. A website-only commit cannot
 reproduce this example in CI.
 
 The Orszag–Tang script checks for non-finite diagnostics, non-positive density and incomplete

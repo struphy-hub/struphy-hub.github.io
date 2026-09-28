@@ -5,8 +5,8 @@ test. A cosine-mode charge density oscillates in time; Struphy's FEEC solver
 recovers the potential at every step, compared here against the closed-form
 solution.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -16,7 +16,7 @@ import numpy as np
 from struphy import (EnvironmentOptions, Simulation, Time, domains, grids,
                      perturbations)
 from struphy.models import Poisson
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # Problem parameters: a single cosine mode in space, oscillating in time.
 WAVENUMBER = 2
@@ -79,11 +79,11 @@ def pproc(sim: Simulation, show: bool = False):
         phi_line = phi_line.isel(component=0)
     # The largest pointwise error over the whole run, relative to the amplitude of the exact potential.
     phi_scale = AMPLITUDE / k**2
-    max_error = phi_line.struphy.analysis.error(phi_exact, norm="max", dims=("t", "eta1"), args=("X", "t"))
+    max_error = phi_line.plasma.analysis.error(phi_exact, norm="max", dims=("t", "eta1"), args=("X", "t"))
     max_relative_error = float(max_error) / phi_scale
     print(f"Max relative error over the run: {max_relative_error:.5f}")
 
-    figure = phi_line.struphy.plot.line_animation(
+    figure = phi_line.plasma.plot.line_animation(
         x="eta1",
         reference={"Exact": phi_exact},
         x_of=lambda eta1: domain.params["l1"] + Lx * eta1,

@@ -11,8 +11,8 @@ total-energy error relative to the initial wave energy, including the pressure
 channel. Finite marker sampling introduces noise; this is a coupling and
 conservation demonstration, not a measurement of a kinetic damping rate.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -38,7 +38,7 @@ from struphy import (
 )
 from struphy.linear_algebra.solver import SolverParameters
 from struphy.models import LinearMHDVlasovCC
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 stem = "hybrid-current-coupling"
 length = 20.0
@@ -130,7 +130,7 @@ def pproc(sim: Simulation, show: bool = False):
     wave_energy = float(values["en_U"][0] + values["en_B"][0])
     if wave_energy <= 0:
         raise RuntimeError("The initial wave energy must be positive")
-    total_error = energies["en_tot"].struphy.analysis.drift().values
+    total_error = energies["en_tot"].plasma.analysis.drift().values
     wave_scaled_error = float(np.max(np.abs(total_error)) / wave_energy)
     # Require conservation error below 0.1% of the seeded wave energy.
     # Plot the measured error explicitly; the run does not conserve to roundoff.
@@ -149,7 +149,7 @@ def pproc(sim: Simulation, show: bool = False):
         ("en_p", "Pressure energy change", "#6a4c93"),
     ):
         # the ion and pressure energies relative to their initial values
-        energy = energies[key].struphy.analysis.drift().values if key in ("en_f", "en_p") else values[key]
+        energy = energies[key].plasma.analysis.drift().values if key in ("en_f", "en_p") else values[key]
         figure.add_scatter(
             x=times, y=energy / wave_energy, mode="lines", name=label,
             line={"color": color, "width": 2.5}, row=1, col=1,
@@ -236,7 +236,7 @@ def pproc(sim: Simulation, show: bool = False):
     )
     save_figure(animation, f"{stem}-wave-animation", show=show)
 
-    wave = velocity.assign_coords(eta3=velocity.eta3.values * length).struphy.plot.slice(
+    wave = velocity.assign_coords(eta3=velocity.eta3.values * length).plasma.plot.slice(
         x="eta3",
         y="t",
         symmetric=True,

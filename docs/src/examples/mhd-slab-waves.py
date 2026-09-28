@@ -7,8 +7,8 @@ magnetosonic branches, and the speeds fitted to them are compared with the exact
 
 Adapted from Struphy's tutorial (tutorials/tutorial_linear_mhd_slab_waves_1d.ipynb).
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -19,8 +19,8 @@ import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import LinearMHD
-from struphy_plots.theory.waves import magnetosonic_speeds
-from struphy_plots import save_figure
+from plasma_plots.theory.waves import magnetosonic_speeds
+from plasma_plots import save_figure
 
 # The background: B0 = (0, 1, 1), density 0.7 and a plasma beta of 3 (thermal over magnetic pressure).
 B0x, B0y, B0z = 0.0, 1.0, 1.0
@@ -77,7 +77,7 @@ def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc(physical=True)
 
-    from struphy_plots.analysis import fit_dispersion_branches, power_spectrum
+    from plasma_plots.analysis import fit_dispersion_branches, power_spectrum
 
     length = output.domain.params["r3"] - output.domain.params["l3"]
 

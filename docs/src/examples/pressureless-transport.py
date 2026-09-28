@@ -4,8 +4,8 @@ Without pressure, a uniform velocity transports any smooth density profile
 unchanged. Here rho = 1 + A cos(x - U t) makes one circuit of a periodic box.
 This is an exact nonlinear solution, without characteristic crossing.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -18,7 +18,7 @@ from struphy import (
     domains, equils, grids, perturbations,
 )
 from struphy.models import VariationalPressurelessFluid
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 stem = "pressureless-transport"
 length, speed, amplitude = 2.0 * np.pi, 0.5, 0.2
@@ -60,7 +60,7 @@ def create_simulation() -> Simulation:
 def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
-    from struphy_plots.theory.exact import advected
+    from plasma_plots.theory.exact import advected
 
     output = sim.output
     output.pproc(physical=True)
@@ -73,13 +73,13 @@ def pproc(sim: Simulation, show: bool = False):
         raise RuntimeError("The transport run produced non-finite diagnostics")
     if not np.isclose(times[-1], time_opts.Tend) or np.min(density) <= 0:
         raise RuntimeError("The transport run is incomplete or has non-positive density")
-    errors = rho.struphy.analysis.error(exact, norm="max", dims="eta1").values / amplitude
+    errors = rho.plasma.analysis.error(exact, norm="max", dims="eta1").values / amplitude
     velocity_error = float(np.max(np.abs(velocity.values - speed)) / speed)
-    energy_error = energy.struphy.analysis.relative_error(skip_first=False)
+    energy_error = energy.plasma.analysis.relative_error(skip_first=False)
     energy_drift = float(energy_error.max())
     # Sampled mass uses the periodic evaluation grid, dropping its repeated endpoint.
-    mass = length * rho.struphy.analysis.drop_periodic_endpoint("eta1").mean("eta1")
-    mass_error = mass.struphy.analysis.relative_error(skip_first=False)
+    mass = length * rho.plasma.analysis.drop_periodic_endpoint("eta1").mean("eta1")
+    mass_error = mass.plasma.analysis.relative_error(skip_first=False)
     mass_drift = float(mass_error.max())
     print(f"Maximum profile error against exact transport: {errors.max():.2e} (relative to A)")
     if errors.max() > 0.05 or velocity_error > 0.01 or max(energy_drift, mass_drift) > 1e-3:
@@ -103,7 +103,7 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_layout(title="Pressureless transport at constant velocity", template="plotly_white",
                          legend={"orientation": "h", "y": -0.18}, margin={"l": 85, "r": 30, "t": 90, "b": 140})
     save_figure(figure, stem, height=800, show=show)
-    movie = rho.assign_coords(eta1=x).struphy.plot.slice(
+    movie = rho.assign_coords(eta1=x).plasma.plot.slice(
         x="eta1", y="t", symmetric=True, cmap="RdBu_r", title="Density transported around a periodic box",
         xlabel="x", ylabel="t [a.u.]", colorbar_label="ρ", backend="plotly",
     )

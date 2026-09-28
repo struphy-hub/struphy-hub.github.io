@@ -7,8 +7,8 @@ energy back and forth through the coupling term while the discretization
 conserves the total -- the defining property of a structure-preserving hybrid
 scheme.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.2 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -35,7 +35,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import LinearMHDVlasovPC
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 
 def create_simulation() -> Simulation:
@@ -109,10 +109,10 @@ def pproc(sim: Simulation, show: bool = False):
     time = np.asarray(output.time)
     en_B = np.asarray(scalars["en_B"])
     en_U = np.asarray(scalars["en_U"])
-    en_f_change = np.asarray(scalars["en_f"].struphy.analysis.drift())
-    total_drift = np.asarray(scalars["en_tot"].struphy.analysis.drift() / scalars["en_tot"].isel(t=0))
+    en_f_change = np.asarray(scalars["en_f"].plasma.analysis.drift())
+    total_drift = np.asarray(scalars["en_tot"].plasma.analysis.drift() / scalars["en_tot"].isel(t=0))
 
-    relative_drift = float(scalars["en_tot"].struphy.analysis.relative_error().max())
+    relative_drift = float(scalars["en_tot"].plasma.analysis.relative_error().max())
     print(f"Max relative drift in total energy (should be ~0): {relative_drift:.2e}")
 
     figure = go.Figure(

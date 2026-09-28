@@ -8,8 +8,8 @@ handedness relative to their direction of propagation, so the packet splits into
 other way: the L packet is fast, the R packet slow and spreading, since the whistler frequency depends strongly on k. The measured speed of
 each packet is compared with the analytic group velocity d omega / d k of the cold-plasma dispersion relation.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -21,7 +21,7 @@ import plotly.graph_objects as go
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids
 from struphy.initial.base import GenericPerturbation
 from struphy.models import ColdPlasma
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # Plasma frequency equal to the cyclotron frequency, time in units of the inverse cyclotron frequency, c = 1.
 alpha, epsilon, n0, B0z = 1.0, 1.0, 1.0, 1.0
@@ -82,7 +82,7 @@ def create_simulation() -> Simulation:
 
 
 def pproc(sim: Simulation, show: bool = False):
-    from struphy_plots.theory.waves import Species, cold_plasma_waves, group_velocity
+    from plasma_plots.theory.waves import Species, cold_plasma_waves, group_velocity
 
     time_opts = sim.time_opts
 

@@ -9,8 +9,8 @@ toroidal momentum of every particle are conserved, which checks the guiding-cent
 
 Adapted from Struphy's particle-tracing tutorial (tutorials/tutorial_particle_tracing.ipynb).
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.2 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -35,7 +35,7 @@ from struphy import (
     maxwellians,
 )
 from struphy.models import GuidingCenter
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # Eight markers on the outboard midplane of the flux surface eta1 = 0.5, all with speed 3 and
 # different pitch. The state of a guiding center is (position, v_parallel, mu), with the magnetic

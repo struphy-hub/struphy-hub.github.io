@@ -7,8 +7,8 @@ finite element Maxwell solver on the annulus is compared with this solution.
 
 Adapted from Struphy's tutorial (tutorials/tutorial_maxwell.ipynb) and its verification test.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -23,7 +23,7 @@ from scipy.special import jv, yn
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import Maxwell
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # The inner and outer radii are two zeros of the derivative of the radial profile
 # J_m(r) - 0.28 Y_m(r), so that the tangential electric field vanishes on both conducting walls.
@@ -77,7 +77,7 @@ def create_simulation() -> Simulation:
 
 
 def pproc(sim: Simulation, show: bool = False):
-    from struphy_plots.analysis import evaluate_on
+    from plasma_plots.analysis import evaluate_on
 
     output = sim.output
     output.pproc(physical=True)
@@ -92,9 +92,9 @@ def pproc(sim: Simulation, show: bool = False):
         return profile * np.cos(mode_number * angle - time)
 
     exact = evaluate_on(b_z, exact_b_z)
-    error = b_z.struphy.analysis.error(exact, norm="pointwise").values
+    error = b_z.plasma.analysis.error(exact, norm="pointwise").values
     amplitude = float(np.abs(exact.isel(t=0)).max())
-    relative_error = b_z.struphy.analysis.error(exact, norm="max") / amplitude
+    relative_error = b_z.plasma.analysis.error(exact, norm="max") / amplitude
     print(f"Largest relative error of B_z: {float(relative_error.max()):.2e}")
 
     # The mode's frequency, from a sinusoid fitted to B_z at a probe in the middle of the gap. The
@@ -110,7 +110,7 @@ def pproc(sim: Simulation, show: bool = False):
     print(f"Measured frequency: {measured_frequency:.5f} (exact: 1, error {frequency_error:.1e})")
 
     energy = output.scalars["total_energy"]
-    energy_drift = float(energy.struphy.analysis.relative_error().max())
+    energy_drift = float(energy.plasma.analysis.relative_error().max())
     print(f"Largest relative change of the total energy: {energy_drift:.1e}")
     electric = output.scalars["electric_energy"]
     magnetic = output.scalars["magnetic_energy"]
@@ -226,7 +226,7 @@ def pproc(sim: Simulation, show: bool = False):
     save_figure(figure, "coaxial-waveguide", height=650, frame=still_position, show=show)
 
     # The probe signal against the exact mode.
-    probe_figure = signal.struphy.plot.timeseries(
+    probe_figure = signal.plasma.plot.timeseries(
         logy=False,
         reference={"exact mode": exact_signal},
         title=f"Coaxial waveguide: B_z at a probe, measured frequency {measured_frequency:.4f} (exact: 1)",

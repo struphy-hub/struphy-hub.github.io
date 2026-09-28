@@ -7,8 +7,8 @@ self-consistently -- this traces single-particle motion in a fixed background
 field, so each particle should gyrate around a field line while it circulates
 (or bounces) through the torus, conserving its speed exactly.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -29,7 +29,7 @@ from struphy.fields_background import equils
 from struphy.kinetic_background import maxwellians
 from struphy.models import Vlasov
 from struphy.pic.base import BoundaryParameters, LoadingParameters, SavingParameters
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # Load a small population; only a handful of markers have their full orbit saved.
 # eta1 is the radial flux coordinate on this domain, so it must reflect at the
@@ -97,8 +97,8 @@ def pproc(sim: Simulation, show: bool = False):
     # A magnetic field alone does no work, so each particle's speed should be
     # conserved -- a genuine accuracy check on the pusher, not just a demo.
     velocity = output.orbits.kinetic_ions.to_dataarray("quantity").sel(quantity=["v1", "v2", "v3"])
-    speed = velocity.struphy.analysis.norm(dims=["quantity"])
-    max_relative_speed_drift = float(speed.struphy.analysis.relative_error().max())
+    speed = velocity.plasma.analysis.norm(dims=["quantity"])
+    max_relative_speed_drift = float(speed.plasma.analysis.relative_error().max())
     print(f"Max relative drift in particle speed (should be ~0): {max_relative_speed_drift:.5f}")
 
     # The plasma boundary (outer flux surface), for visual context around the orbits.

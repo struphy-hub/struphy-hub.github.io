@@ -6,8 +6,8 @@ resistivity eta lets the field lines slip through the plasma, and the wave ampli
 gamma = eta k^2 / 2. (Viscosity would add nu k^2 / 2; it is left out because Struphy's viscosity propagator does not run in this
 configuration.) A scan over three resistivities compares the decay with the exact rate.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -29,7 +29,7 @@ from struphy import (
 )
 from struphy.linear_algebra.solver import NonlinearSolverParameters
 from struphy.models import ViscoResistiveMHD
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 length = 2 * np.pi
 wavenumber = 2 * np.pi / length  # one wavelength in the box
@@ -98,7 +98,7 @@ def velocity_profile(run):
 def mode_amplitude(run):
     """Amplitude of the sin(k x) mode of u_y over time, from a post-processed run."""
     u_y = run.evaluate("mhd/velocity_xyz").isel(component=1, eta2=0, eta3=0)
-    return u_y.struphy.analysis.project_mode(dim="eta1", number=1)
+    return u_y.plasma.analysis.project_mode(dim="eta1", number=1)
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -115,7 +115,7 @@ def pproc(sim: Simulation, show: bool = False):
     for eta, run in runs.items():
         amplitudes[eta] = mode_amplitude(run)
         # The local maxima of |amplitude| follow the decaying envelope.
-        fitted[eta] = -abs(amplitudes[eta]).struphy.analysis.damping_rate().rate
+        fitted[eta] = -abs(amplitudes[eta]).plasma.analysis.damping_rate().rate
         times = amplitudes[eta].t.values
         crossings = np.where(np.diff(np.sign(amplitudes[eta].values)) != 0)[0]
         measured_frequency[eta] = float(np.pi / np.mean(np.diff(times[crossings])))
@@ -130,7 +130,7 @@ def pproc(sim: Simulation, show: bool = False):
     run = runs[eta_main]
     times, x, values = velocity_profile(run)
     gamma = exact_rate[eta_main]
-    energy_drift = float(run.scalars["en_tot"].struphy.analysis.relative_error().max())
+    energy_drift = float(run.scalars["en_tot"].plasma.analysis.relative_error().max())
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")
 
     def profile_traces(index):
@@ -169,7 +169,7 @@ def pproc(sim: Simulation, show: bool = False):
     colors = {0.05: "#168aad", 0.1: "#d62828", 0.2: "#f77f00"}
     decay = go.Figure()
     for eta, amp in amplitudes.items():
-        peaks = abs(amp).struphy.analysis.envelope()
+        peaks = abs(amp).plasma.analysis.envelope()
         decay.add_scatter(x=peaks.t.values, y=peaks.values, mode="markers", name=f"η = {eta}: peaks of Struphy",
                           marker={"color": colors[eta], "size": 9})
         decay.add_scatter(x=times, y=amplitude * np.exp(-exact_rate[eta] * times), mode="lines",

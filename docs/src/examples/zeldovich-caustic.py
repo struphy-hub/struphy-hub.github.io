@@ -10,8 +10,8 @@ own velocity, so the exact density at any time follows from the Lagrangian map x
 The SPH density estimate is compared with it. This is the classic test of pressureless SPH, and the
 first stage of the Zel'dovich approximation for structure formation.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -38,7 +38,7 @@ from struphy import (
 )
 from struphy.models import PressureLessSPH
 from struphy.ode.utils import ButcherTableau
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 amplitude = 0.5  # u(x) = amplitude * sin(2 pi x) on the periodic unit interval
 caustic_time = 1.0 / (2 * np.pi * amplitude)  # the density is singular here, at x = 1/2
@@ -125,7 +125,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     # The relative L1 error of the density estimate, before the caustic (a smooth density) and after it.
     exact = np.array([exact_density(edges, t) for t in times])
-    error = density.struphy.analysis.error(exact, norm="l1", relative=True).values
+    error = density.plasma.analysis.error(exact, norm="l1", relative=True).values
     before = times < 0.8 * caustic_time
     after = times > 1.2 * caustic_time
     error_before, error_after = float(error[before].mean()), float(error[after].mean())

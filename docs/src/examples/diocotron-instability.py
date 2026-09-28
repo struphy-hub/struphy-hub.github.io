@@ -11,8 +11,8 @@ Adapted from Struphy's maintained example
 (examples/ToyGyrokinetic/diocotron_instability). Parameters follow Crouseilles,
 Mehrenberger & Vecil (2014), https://doi.org/10.1140/epjd/e2014-50180-9.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -40,7 +40,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import ToyDrift
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # A uniform-density ring between r = 4 and r = 5, seeded with a tiny m = 4 azimuthal mode.
 r_minus, r_plus, mode_number = 4.0, 5.0, 4
@@ -124,10 +124,10 @@ def pproc(sim: Simulation, show: bool = False):
     # the animation.
     theta = np.deg2rad(angle_deg)
     ring = density.isel(eta1=(radius >= r_minus) & (radius <= r_plus))
-    spectrum = abs(ring.struphy.analysis.mode_spectrum(dims="eta2", names="m").mean("eta1")) / ring.mean(("eta1", "eta2"))
+    spectrum = abs(ring.plasma.analysis.mode_spectrum(dims="eta2", names="m").mean("eta1")) / ring.mean(("eta1", "eta2"))
     mode_amplitudes = {m: spectrum.sel(m=m) for m in range(1, 9)}
     growth_window = (times > 5.0) & (times < 15.0)
-    growth_fit = mode_amplitudes[mode_number].isel(t=growth_window).struphy.analysis.growth_rate()
+    growth_fit = mode_amplitudes[mode_number].isel(t=growth_window).plasma.analysis.growth_rate()
     growth_rate = growth_fit.rate
     print(f"Measured m = {mode_number} growth rate: {growth_rate:.4f}")
 

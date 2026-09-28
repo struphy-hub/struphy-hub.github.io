@@ -11,8 +11,8 @@ Adapted from Struphy's maintained example
 (examples/DriftKineticElectrostaticAdiabatic/itg_cylindre), at reduced
 resolution and run length to keep it a quick gallery run.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -43,7 +43,7 @@ from struphy import (
 from struphy.initial.base import GenericPerturbation
 from struphy.models import DriftKineticElectrostaticAdiabatic
 from struphy.propagators import implicit_diffusion
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # A magnetized annular column: radius in [a1, a2], periodic in angle and length.
 a1, a2, length = 0.1, 14.5, 1506.759067
@@ -120,7 +120,7 @@ def mode_amplitudes(phi):
     m >= 0 is the poloidal and n the axial mode number. The periodic end points e2 = 1 and e3 = 1 repeat the
     first ones and are dropped. A field `A cos(m*theta + 2*pi*n*z/length)` has |phi_mn| = A.
     """
-    field = phi.struphy.analysis.drop_periodic_endpoint("eta2").struphy.analysis.drop_periodic_endpoint("eta3")
+    field = phi.plasma.analysis.drop_periodic_endpoint("eta2").plasma.analysis.drop_periodic_endpoint("eta3")
     field = field.transpose("t", "eta1", "eta2", "eta3")
     n_theta, n_z = field.sizes["eta2"], field.sizes["eta3"]
     spectrum = np.fft.fft(np.fft.rfft(field.values, axis=2), axis=3) / (n_theta * n_z)
@@ -212,13 +212,13 @@ def pproc(sim: Simulation, show: bool = False):
     rho = output.fields.diagnostics.rho
     rho = rho.isel(component=0) if "component" in rho.dims else rho
     times = np.asarray(rho.t)
-    perturbation_energy = rho.struphy.analysis.norm(squared=True).assign_attrs(label="‖δn‖²")
+    perturbation_energy = rho.plasma.analysis.norm(squared=True).assign_attrs(label="‖δn‖²")
 
     growth_window = (times > GROWTH_WINDOW[0]) & (times < GROWTH_WINDOW[1])
     growth_rate = float(np.polyfit(times[growth_window], np.log(perturbation_energy.values[growth_window]), 1)[0] / 2)
     print(f"Measured growth rate: {growth_rate:.5f}")
 
-    figure = perturbation_energy.struphy.plot.timeseries(logy=True, title="ITG drift wave: density perturbation energy", backend="plotly")
+    figure = perturbation_energy.plasma.plot.timeseries(logy=True, title="ITG drift wave: density perturbation energy", backend="plotly")
 
     save_figure(figure, "itg-drift-wave", show=show)
 
@@ -235,7 +235,7 @@ def pproc(sim: Simulation, show: bool = False):
     potential = phi.isel(eta3=0, drop=True)
     limit = float(np.percentile(np.abs(potential.values), 99.7))
     still_index = int(0.9 * (potential.sizes["t"] - 1))  # the middle of the run is still too faint on this scale
-    movie = potential.assign_coords({"eta1": radius, "eta2": 2 * np.pi * np.asarray(potential.eta2)}).struphy.plot.animation(
+    movie = potential.assign_coords({"eta1": radius, "eta2": 2 * np.pi * np.asarray(potential.eta2)}).plasma.plot.animation(
         x="eta1",
         y="eta2",
         max_frames=150,
@@ -252,7 +252,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     # Amplitude of each poloidal mode (radial rms at the seeded axial mode number) and its growth rate.
     amplitude = radial_rms(spectrum.sel(n=mode_toroidal)).sel(m=slice(1, MAX_POLOIDAL_MODE))
-    rates = [amplitude.sel(m=m).struphy.analysis.growth_rate(window=GROWTH_WINDOW).rate for m in amplitude.m.values]
+    rates = [amplitude.sel(m=m).plasma.analysis.growth_rate(window=GROWTH_WINDOW).rate for m in amplitude.m.values]
     wavenumber = amplitude.m.values / float(radius.mean())
     colors = sample_colorscale("Viridis", np.linspace(0, 1, amplitude.sizes["m"]))
     growth_figure = make_subplots(
@@ -342,7 +342,7 @@ def pproc(sim: Simulation, show: bool = False):
     rms_map = (
         xr.DataArray(log10_or_nan(rms.values), dims=("t", "eta1"), coords={"t": rms.t, "eta1": rms.eta1})
         .assign_coords(eta1=radius[interior])
-        .struphy.plot.slice(
+        .plasma.plot.slice(
             x="eta1",
             y="t",
             title="ITG drift wave: where the potential grows",
@@ -358,10 +358,10 @@ def pproc(sim: Simulation, show: bool = False):
     # The flux-surface-averaged (m = n = 0) density change: does the profile flatten?
     density = output.evaluate("diagnostics/rho", **points)
     density = density.isel(component=0, drop=True) if "component" in density.dims else density
-    density = density.struphy.analysis.drop_periodic_endpoint("eta2").struphy.analysis.drop_periodic_endpoint("eta3")
+    density = density.plasma.analysis.drop_periodic_endpoint("eta2").plasma.analysis.drop_periodic_endpoint("eta3")
     zonal = density.mean(("eta2", "eta3"))
     zonal = zonal - zonal.isel(t=0)
-    profile_change = zonal.assign_coords(eta1=radius).struphy.plot.slice(
+    profile_change = zonal.assign_coords(eta1=radius).plasma.plot.slice(
         x="eta1",
         y="t",
         symmetric=True,

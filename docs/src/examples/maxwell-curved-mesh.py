@@ -7,8 +7,8 @@ still the periodic rectangle, the exact solution is known: a Gaussian pulse of E
 each oscillating at omega = c |k|, and it can be compared with the numerical field at every point of the distorted mesh. The
 energy, which the structure-preserving scheme conserves for any mesh, is followed as well.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -20,7 +20,7 @@ import plotly.graph_objects as go
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, grids
 from struphy.initial.base import GenericPerturbation
 from struphy.models import Maxwell
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 lx, ly = 2.0, 3.0
 distortion = 0.1
@@ -91,11 +91,11 @@ def pproc(sim: Simulation, show: bool = False):
     exact = np.array([exact_field(mesh_x, mesh_y, t) for t in times])
     scale = float(np.abs(exact[0]).max())
     # The rms error over the mesh points at each time, relative to the rms of the initial pulse.
-    error = (e_z.struphy.analysis.error(exact) / np.sqrt(np.mean(exact[0] ** 2))).values
+    error = (e_z.plasma.analysis.error(exact) / np.sqrt(np.mean(exact[0] ** 2))).values
     if not np.isfinite(error).all():
         raise RuntimeError("Non-finite field")
     total = output.scalars["total_energy"].values
-    energy_drift = float(output.scalars["total_energy"].struphy.analysis.relative_error().max())
+    energy_drift = float(output.scalars["total_energy"].plasma.analysis.relative_error().max())
     print(f"Largest rms error of E_z, relative to the initial rms: {error.max():.3e}")
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")
 

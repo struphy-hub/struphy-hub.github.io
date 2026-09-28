@@ -7,8 +7,8 @@ the growth saturates -- the classic two-stream instability.
 
 Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/two_stream).
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -33,7 +33,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import VlasovAmpereOneSpecies
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # Two counter-streaming Maxwellians (u1 = +/-3), each seeded with the same cosine mode.
 perturbation_amplitude = 0.001
@@ -98,7 +98,7 @@ def create_simulation() -> Simulation:
 
 
 def pproc(sim: Simulation, show: bool = False):
-    from struphy_plots.theory.kinetic import two_stream
+    from plasma_plots.theory.kinetic import two_stream
 
     domain = sim.domain
 
@@ -108,12 +108,12 @@ def pproc(sim: Simulation, show: bool = False):
 
     # Fit the exponential growth rate over the clean linear-growth window
     # (before trapping saturates it, roughly t in [5, 25] for this setup).
-    growth_rate = field_energy.struphy.analysis.growth_rate(window=(5.0, 25.0), amplitude=True).rate
+    growth_rate = field_energy.plasma.analysis.growth_rate(window=(5.0, 25.0), amplitude=True).rate
     # The linear kinetic theory of two Maxwellian beams at u = ±3 with v_th = 1, for the box mode k = 2π/L.
     expected = two_stream(2 * np.pi / domain.params["r1"], beam_speed=3.0, thermal_speed=1.0).imag
     print(f"Measured growth rate: {growth_rate:.4f} (expected: ~{expected:.4f}, from the linear dispersion relation)")
 
-    figure = field_energy.struphy.plot.timeseries(logy=True, title="Two-stream instability: electric field energy", backend="plotly")
+    figure = field_energy.plasma.plot.timeseries(logy=True, title="Two-stream instability: electric field energy", backend="plotly")
 
     save_figure(figure, "two-stream-instability", show=show)
 
@@ -123,7 +123,7 @@ def pproc(sim: Simulation, show: bool = False):
     # The classic two-stream "movie": phase-space (x, v) density, showing the
     # two beams' initially flat bands roll up into the characteristic vortex
     # ("cat's eye") pattern as the instability traps particles.
-    phase_space = f.assign_coords(eta1=f.eta1.values * domain.params["r1"]).struphy.plot.animation(
+    phase_space = f.assign_coords(eta1=f.eta1.values * domain.params["r1"]).plasma.plot.animation(
         x="eta1",
         y="v1",
         max_frames=150,
@@ -138,7 +138,7 @@ def pproc(sim: Simulation, show: bool = False):
     )
 
     # The same distribution averaged over space: f(v, t).
-    velocity_time = f.struphy.analysis.spatial_average().struphy.plot.slice(
+    velocity_time = f.plasma.analysis.spatial_average().plasma.plot.slice(
         x="t",
         y="v1",
         title="Two-stream instability: space-averaged distribution f(v, t)",

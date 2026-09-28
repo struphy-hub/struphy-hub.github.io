@@ -3,8 +3,8 @@
 Run from the repository root with:
     .venv/bin/python cli.py run toroidal-shear-alfven
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 The default is an exploratory local run, not a converged ITPA TAE benchmark.
 Increase NUM_ELEMENTS to (24, 96, 16), DEGREE to (3, 3, 3), and END_TIME
@@ -31,7 +31,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import LinearMHD
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 STEM = "toroidal-shear-alfven"
 NUM_ELEMENTS = (8, 48, 4)
@@ -68,7 +68,7 @@ def radial_mode_amplitudes(output, field_xyz, poloidal_modes=(9, 10, 11, 12), se
     # Convert to the rotating radial basis BEFORE transforming in toroidal angle.
     # Cartesian components themselves are not periodic across the sector seam.
     # mode_spectrum drops the duplicate periodic endpoints and labels integer (m, n_sector).
-    coefficients = radial.struphy.analysis.mode_spectrum(dims=("eta2", "eta3"), names=("m", "n"))
+    coefficients = radial.plasma.analysis.mode_spectrum(dims=("eta2", "eta3"), names=("m", "n"))
     if not set(poloidal_modes) <= set(coefficients.m.values) or sector_mode not in coefficients.n.values:
         raise ValueError("Angular sampling does not resolve the requested Fourier modes.")
     selected = coefficients.sel(m=list(poloidal_modes), n=sector_mode)
@@ -96,7 +96,7 @@ def fixed_theta_amplitudes(output, field_xyz, angles=(0.0, 45.0), sector_mode=-1
     # Interpolate the physical radial field only if an angle is off the display
     # grid. The default 0 and 45 degree rays lie exactly on that grid.
     rays = radial.interp(eta2=np.asarray(angles) / 360.0)
-    coefficients = rays.struphy.analysis.mode_spectrum(dims="eta3", names="n")
+    coefficients = rays.plasma.analysis.mode_spectrum(dims="eta3", names="n")
     if sector_mode not in coefficients.n.values:
         raise ValueError("Toroidal sampling does not resolve the requested Fourier mode.")
     selected = coefficients.sel(n=sector_mode)
@@ -383,7 +383,7 @@ def pproc(sim: Simulation, show: bool = False):
     # transforming a velocity magnitude/energy would change its frequencies.
     # Omit the duplicated poloidal endpoint from spatial sums.
     plane = velocity.copy(data=components).assign_coords(component=list(labels))
-    plane = plane.struphy.analysis.drop_periodic_endpoint("eta2").rename("physical_poloidal_velocity")
+    plane = plane.plasma.analysis.drop_periodic_endpoint("eta2").rename("physical_poloidal_velocity")
     temporal = output.analysis.time_fft(plane)
     band = output.analysis.filter_time(plane, dims=("eta1", "eta2"), pad_bins=0)
     positive = temporal.power.isel(omega=slice(1, None))
@@ -457,7 +457,7 @@ def pproc(sim: Simulation, show: bool = False):
         eta3=0.0,
         representation="2",
     ).isel(t=0, component=0)
-    poloidal_fft = logical_initial.struphy.analysis.mode_spectrum(dims="eta2", names="m")
+    poloidal_fft = logical_initial.plasma.analysis.mode_spectrum(dims="eta2", names="m")
     mode_numbers = poloidal_fft.m.values
     modal_amplitude = np.sqrt((abs(poloidal_fft) ** 2).mean("eta1")).values
     positive_modes = (mode_numbers > 0) & (mode_numbers <= grid.num_elements[1] // 2)

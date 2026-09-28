@@ -9,8 +9,8 @@ the full-orbit speed is an exact invariant in this benchmark. Run on one rank
 because this example needs the complete trajectories of individually tracked markers.
 
 Reference: https://farside.ph.utexas.edu/teaching/plasma/lectures/node19.html
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -23,7 +23,7 @@ from struphy import (
     SavingParameters, Simulation, Time, domains, equils, grids, maxwellians,
 )
 from struphy.models import Vlasov
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 stem = "grad-b-drift"
 box, ripple = 40.0, 0.3
@@ -85,7 +85,7 @@ def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-    from struphy_plots.theory.orbits import grad_b_drift
+    from plasma_plots.theory.orbits import grad_b_drift
 
     output = sim.output
     # Post-processing otherwise tries to reconstruct this script-local class

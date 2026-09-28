@@ -8,8 +8,8 @@ follows the free surface with markers alone, without a grid.
 
 Adapted from Struphy's tutorial (tutorials/tutorial_dam_break_sph.ipynb).
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -34,7 +34,7 @@ from struphy import (
 )
 from struphy.models import ViscousEulerSPH
 from struphy.ode.utils import ButcherTableau
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # Weakly compressible SPH: the isothermal pressure p = kappa * rho, with kappa = c_s^2 small
 # enough that the flow stays roughly subsonic, and a little viscosity for stability.

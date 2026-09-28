@@ -6,8 +6,8 @@ b_x = A exp(-nu*k**2*t) cos(k*z) sin(k*t), for B0 = rho0 = 1.
 The linear model dissipates the quadratic wave energy; heating is second order
 and is not part of this linear perturbation system.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -20,7 +20,7 @@ from struphy import (
     domains, equils, grids, perturbations,
 )
 from struphy.models import ViscoResistiveLinearMHD
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 stem = "linear-dissipative-alfven-wave"
 length, amplitude, diffusivity = 2.0 * np.pi, 0.1, 0.1
@@ -62,7 +62,7 @@ def create_simulation() -> Simulation:
 def pproc(sim: Simulation, show: bool = False):
     time_opts = sim.time_opts
     from plotly.subplots import make_subplots
-    from struphy_plots.theory.waves import dissipative_alfven
+    from plasma_plots.theory.waves import dissipative_alfven
 
     output = sim.output
     output.pproc(physical=True)
@@ -81,7 +81,7 @@ def pproc(sim: Simulation, show: bool = False):
     envelope = amplitude * np.exp(-decay * times[:, None])
     exact_u = envelope * np.cos(frequency * times[:, None]) * np.sin(z[None, :])
     exact_b = envelope * np.sin(frequency * times[:, None]) * np.cos(z[None, :])
-    error = max(float(field.struphy.analysis.error(exact, norm="max", dims=("t", "eta3")))
+    error = max(float(field.plasma.analysis.error(exact, norm="max", dims=("t", "eta3")))
                 for field, exact in ((velocity, exact_u), (magnetic, exact_b))) / amplitude
     energy_time = kinetic.t.values
     wave_energy = kinetic.values + magnetic_energy.values
@@ -91,8 +91,8 @@ def pproc(sim: Simulation, show: bool = False):
     if max(error, energy_error) > 0.03:
         raise RuntimeError(f"The dissipative Alfvén wave differs from its exact solution: field={error:.3g}, energy={energy_error:.3g}")
     # sin(z) and cos(z) are mode 1 along eta3; project_mode drops the repeated periodic endpoint.
-    u_mode = velocity.struphy.analysis.project_mode(dim="eta3", number=1, kind="sin").values / amplitude
-    b_mode = magnetic.struphy.analysis.project_mode(dim="eta3", number=1, kind="cos").values / amplitude
+    u_mode = velocity.plasma.analysis.project_mode(dim="eta3", number=1, kind="sin").values / amplitude
+    b_mode = magnetic.plasma.analysis.project_mode(dim="eta3", number=1, kind="cos").values / amplitude
     figure = make_subplots(rows=2, cols=1, vertical_spacing=0.18,
                            subplot_titles=("Damped velocity and magnetic modes", "Quadratic wave energy"))
     for values, label, color in ((u_mode, "Velocity mode", "#168aad"), (b_mode, "Magnetic mode", "#d62828")):
@@ -111,7 +111,7 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_layout(title="Viscous and resistive damping of a linear Alfvén wave", template="plotly_white",
                          legend={"orientation": "h", "y": -0.18}, margin={"l": 85, "r": 30, "t": 90, "b": 140})
     save_figure(figure, stem, height=800, show=show)
-    space_time = velocity.assign_coords(eta3=z).struphy.plot.slice(
+    space_time = velocity.assign_coords(eta3=z).plasma.plot.slice(
         x="eta3", y="t", symmetric=True, cmap="RdBu_r", title="A standing Alfvén wave with a fading amplitude",
         xlabel="z", ylabel="t [a.u.]", colorbar_label="u_x", backend="plotly",
     )

@@ -6,8 +6,8 @@ the left-hand (L) wave. Both are cut off at low frequency, where the plasma refl
 noise in the transverse electric field excites all branches at once; the (k, omega) power spectrum of
 E_x shows them, and is compared with the analytic cold-plasma dispersion relation.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -17,7 +17,7 @@ import numpy as np
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ColdPlasma
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # Plasma frequency equal to the cyclotron frequency (alpha = 1), and time in units of the inverse
 # cyclotron frequency (epsilon = 1). The R cutoff is then at (1 + sqrt 5)/2 and the L cutoff at (sqrt 5 - 1)/2.
@@ -89,7 +89,7 @@ def pproc(sim: Simulation, show: bool = False):
     output.pproc(physical=True)
 
     # The (k, omega) power spectrum of E_x along z, for omega, k >= 0.
-    from struphy_plots.analysis import power_spectrum
+    from plasma_plots.analysis import power_spectrum
 
     params = output.domain.params
     e_x = output.fields.em_fields.e_field.isel(component=0, eta1=0, eta2=0)
@@ -125,7 +125,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     # The normalized power spectrum over 8 decades, with the analytic branches and the cutoffs.
     labels = {"R-wave": "R wave", "L-wave": "L wave", "whistler": "whistler (R, below Ω_c)"}
-    figure = spectrum.struphy.plot.dispersion(
+    figure = spectrum.plasma.plot.dispersion(
         kmin=0,
         kmax=k_top,
         omega_max=omega_top,
@@ -141,9 +141,9 @@ def pproc(sim: Simulation, show: bool = False):
     # Energy channels: the noise starts purely electric, then shares its energy with the magnetic field
     # and the electron current, while the sum stays constant.
     energies = [output.scalars[name] for name in ("electric_energy", "magnetic_energy", "kinetic_energy", "total_energy")]
-    relative_drift = float(energies[-1].struphy.analysis.relative_error().max())
+    relative_drift = float(energies[-1].plasma.analysis.relative_error().max())
     print(f"Maximum relative drift of the total energy: {relative_drift:.2e}")
-    energy_figure = energies[0].struphy.plot.timeseries(
+    energy_figure = energies[0].plasma.plot.timeseries(
         *energies[1:], logy=False, title="Energy channels of the cold plasma", backend="plotly"
     )
     save_figure(energy_figure, "cold-plasma-waves-energy", show=show)

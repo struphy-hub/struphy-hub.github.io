@@ -6,8 +6,8 @@ linearized MHD induction/momentum equations with FEEC, and the numerical
 dispersion relation is compared against the exact Alfvén speed
 v_A = B0 / sqrt(n0) = 1.
 
-Requires Struphy with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -27,7 +27,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import ShearAlfven
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 
 def create_simulation() -> Simulation:
@@ -85,19 +85,19 @@ def pproc(sim: Simulation, show: bool = False):
     output = sim.output.pproc(create_vtk=False)
 
     # The (k, omega) power spectrum of u_x along z, and a fit of its branch.
-    from struphy_plots.analysis import power_spectrum
+    from plasma_plots.analysis import power_spectrum
 
     velocity = output.fields.mhd.velocity
     u_x = velocity.isel(component=0, eta1=0, eta2=0)
     u_x = u_x.assign_coords(eta3=u_x.eta3 * (domain.params["r3"] - domain.params["l3"]))  # physical z
     spectrum = power_spectrum(u_x, dim="eta3")
     # Peaks count above half the column's peak amplitude, i.e. a quarter of its peak power.
-    branch = spectrum.struphy.analysis.fit_branches(n_branches=1, noise_level=0.5**2, order=10)[0]
+    branch = spectrum.plasma.analysis.fit_branches(n_branches=1, noise_level=0.5**2, order=10)[0]
     phase_velocity = float(branch.velocity)
     print(f"Measured Alfvén speed: {phase_velocity:.5f} (exact: 1.0)")
 
     # The normalized power spectrum over 15 decades, for omega, k >= 0, with the exact and the fitted branch.
-    figure = spectrum.struphy.plot.dispersion(
+    figure = spectrum.plasma.plot.dispersion(
         kmin=0,
         branches={"Alfvén wave, v_A = 1": lambda k: k},
         fits=[branch],
@@ -116,7 +116,7 @@ def pproc(sim: Simulation, show: bool = False):
         "mhd/velocity", eta1=0.0, eta2=0.0, eta3=np.linspace(0.0, 1.0, output.grid.num_elements[2] + 1),
         representation="2",
     ).isel(component=0)  # (t, eta3)
-    space_time = transverse.assign_coords(eta3=transverse.eta3.values * domain.params["r3"]).struphy.plot.slice(
+    space_time = transverse.assign_coords(eta3=transverse.eta3.values * domain.params["r3"]).plasma.plot.slice(
         x="eta3",
         y="t",
         symmetric=True,

@@ -7,8 +7,8 @@ discretization against the analytically known damping rate.
 
 Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/weak_Landau_damping).
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.2 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -32,7 +32,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import VlasovAmpereOneSpecies
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 # A single small-amplitude cosine mode perturbs an otherwise uniform Maxwellian.
 perturbation_amplitude = 0.001
@@ -107,10 +107,10 @@ def pproc(sim: Simulation, show: bool = False):
     # Only fit the clean exponential-decay region -- once the signal drops
     # below the discrete-particle noise floor (around t ~ 8 here), later
     # envelope maxima track PIC noise rather than the physical damping.
-    measured_rate = field_energy.struphy.analysis.damping_rate(window=(None, 8.0), amplitude=True).rate
+    measured_rate = field_energy.plasma.analysis.damping_rate(window=(None, 8.0), amplitude=True).rate
     print(f"Measured damping rate: {measured_rate:.4f} (exact: -0.1533)")
 
-    figure = field_energy.struphy.plot.timeseries(
+    figure = field_energy.plasma.plot.timeseries(
         logy=True,
         reference={"Exact envelope": (time, field_energy_exact(time))},
         title="Weak Landau damping: electric field energy",
@@ -125,7 +125,7 @@ def pproc(sim: Simulation, show: bool = False):
         "em_fields/e_field", eta1=np.linspace(0.0, 1.0, output.grid.num_elements[0] + 1), eta2=0.0, eta3=0.0,
         representation="1",
     ).isel(component=0)  # (t, eta1)
-    space_time = electric_field.assign_coords(eta1=electric_field.eta1.values * domain.params["r1"]).struphy.plot.slice(
+    space_time = electric_field.assign_coords(eta1=electric_field.eta1.values * domain.params["r1"]).plasma.plot.slice(
         x="eta1",
         y="t",
         symmetric=True,

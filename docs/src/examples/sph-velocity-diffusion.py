@@ -5,8 +5,8 @@ velocity, u(x, 0) = A sin(2 pi x / L), on a periodic interval. Viscosity alone
 then damps that mode at 4 mu k^2 / 3, with k = 2 pi / L. The binned SPH current
 makes a small, fast verification case with an analytic answer.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -30,7 +30,7 @@ from struphy import (
 )
 from struphy.models import ViscousEulerSPH
 from struphy.ode.utils import ButcherTableau
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 length = 1.0
 viscosity = 0.05
@@ -97,17 +97,17 @@ def pproc(sim: Simulation, show: bool = False):
         raise RuntimeError("Non-finite SPH velocity: refusing to publish the run")
 
     # The sine amplitude of the mode; a finite bin records the average of a sine wave, rather than its point value.
-    mode_amplitude = velocity.struphy.analysis.project_mode(dim="eta1", number=1, bin_correction=True)
+    mode_amplitude = velocity.plasma.analysis.project_mode(dim="eta1", number=1, bin_correction=True)
     exact_amplitude = initial_amplitude * np.exp(-exact_decay_rate * times)
-    measured_decay_rate = -mode_amplitude.struphy.analysis.growth_rate().rate
-    rms_error = float(mode_amplitude.struphy.analysis.error(exact_amplitude, norm="rms", dims="t"))
+    measured_decay_rate = -mode_amplitude.plasma.analysis.growth_rate().rate
+    rms_error = float(mode_amplitude.plasma.analysis.error(exact_amplitude, norm="rms", dims="t"))
     print(
         f"decay rate {measured_decay_rate:.4f} (exact {exact_decay_rate:.4f}); "
         f"amplitude RMS error {rms_error:.4g}"
     )
 
     # The binned profile against the exact decaying mode, in at most 80 frames.
-    figure = velocity.assign_attrs(label="SPH velocity u").struphy.plot.line_animation(
+    figure = velocity.assign_attrs(label="SPH velocity u").plasma.plot.line_animation(
         x_of=lambda eta1: length * eta1,
         reference={"exact": lambda x, t: initial_amplitude * np.exp(-exact_decay_rate * t) * np.sin(wavenumber * x)},
         ylim=(-1.1 * initial_amplitude, 1.1 * initial_amplitude),

@@ -7,8 +7,8 @@ each other after the box has been traversed (the box is periodic), and reunite. 
 d'Alembert's, rho - 1 = (f(x - c t) + f(x + c t)) / 2. Struphy's variational discretization conserves the total energy: the pulse
 starts as pure thermodynamic energy, which the running pulses share with kinetic energy.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -30,7 +30,7 @@ from struphy import (
 )
 from struphy.linear_algebra.solver import NonlinearSolverParameters
 from struphy.models import VariationalCompressibleFluid
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 length = 2 * np.pi
 width = 0.5  # of the Gaussian pulse
@@ -116,14 +116,14 @@ def pproc(sim: Simulation, show: bool = False):
     x = rho.eta1.values * length
     density = rho.values
     exact = np.array([exact_density(x, t) for t in times])
-    error = float(rho.struphy.analysis.error(exact, norm="max", dims=("t", "eta1"))) / amplitude
+    error = float(rho.plasma.analysis.error(exact, norm="max", dims=("t", "eta1"))) / amplitude
     print(f"Maximum error of the density, relative to the pulse height: {error:.3f}")
 
     kinetic = np.asarray(output.scalars["en_U"])
     thermo = np.asarray(output.scalars["en_thermo"])
     total = np.asarray(output.scalars["en_tot"])
     scalar_times = np.asarray(output.time)[: len(total)]
-    energy_drift = float(output.scalars["en_tot"].struphy.analysis.relative_error().max())
+    energy_drift = float(output.scalars["en_tot"].plasma.analysis.relative_error().max())
     print(f"Maximum relative drift of the total energy: {energy_drift:.2e}")
     energy_scale = float(kinetic.max())  # the largest kinetic energy the pulse reaches
 
@@ -161,7 +161,7 @@ def pproc(sim: Simulation, show: bool = False):
     save_figure(figure, "acoustic-pulse", width=900, height=850, show=show)
 
     density_change = rho.copy(data=density - 1.0)
-    space_time = density_change.assign_coords(eta1=x).struphy.plot.slice(
+    space_time = density_change.assign_coords(eta1=x).plasma.plot.slice(
         x="eta1",
         y="t",
         symmetric=True,

@@ -84,8 +84,8 @@ def build_metadata(sim, namespace: dict) -> dict:
     if integrator:
         metadata["integrator"] = integrator
     visualization = visualization_of(namespace)
-    if visualization is None and ".struphy.plotly." in (namespace.get("__source__") or ""):
-        visualization = "Plotly"  # figures from struphy-plots' Plotly accessor, which imports plotly itself
+    if visualization is None and ".plasma.plotly." in (namespace.get("__source__") or ""):
+        visualization = "Plotly"  # figures from plasma-plots' Plotly accessor, which imports plotly itself
     if visualization:
         metadata["visualization"] = visualization
     # A few examples create optional or expensive runtime resources inside

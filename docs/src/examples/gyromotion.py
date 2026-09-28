@@ -6,8 +6,8 @@ The orbit is a helix, and since a magnetic field does no work, the speed and the
 constants of the motion. Four markers with different perpendicular speeds are followed and compared with the exact
 helices: the gyroperiod is the same for all of them, the Larmor radius grows in proportion to v_perp.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -20,7 +20,7 @@ from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains
 from struphy.kinetic_background import maxwellians
 from struphy.models import Vlasov
 from struphy.pic.base import BoundaryParameters, LoadingParameters, SavingParameters
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 B0 = 1.0  # q = m = 1, so the gyrofrequency is B0
 gyrofrequency = B0

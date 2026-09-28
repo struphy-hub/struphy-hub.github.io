@@ -9,8 +9,8 @@ Random noise in the out-of-plane electric field E_z excites every mode at once. 
 averaged over the box, then has one peak per resonance, and each peak is compared with the exact frequency. Because
 the box is not a square, the resonances that would coincide in a square box separate.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and struphy-plots with Plotly
-(`pip install "struphy-plots[plotly]"`). Run as a script, it saves its figures in the current
+Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 
@@ -22,7 +22,7 @@ import xarray as xr
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, grids, perturbations
 from struphy.models import Maxwell
-from struphy_plots import save_figure
+from plasma_plots import save_figure
 
 lx, ly = 1.0, 1.5
 
@@ -108,7 +108,7 @@ def pproc(sim: Simulation, show: bool = False):
     spectrum = xr.DataArray(power, dims="omega", coords={"omega": omega}, name="power")
     exact_lines = {"exact, (l, m) = " + ", ".join(f"({l}, {m})" for l, m in modes[:2]): omega_exact  # noqa: E741
                    for omega_exact, modes in exact}
-    figure = spectrum.struphy.plot.power_spectrum(
+    figure = spectrum.plasma.plot.power_spectrum(
         frequencies=exact_lines, omega_max=14.0, title="Resonances of a rectangular box", backend="plotly",
     )
     save_figure(figure, "maxwell-cavity-resonances", show=show)

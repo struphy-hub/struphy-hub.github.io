@@ -11,7 +11,7 @@ the website's part: it profiles the simulation, exports the profiling data (merg
 into `<stem>.metadata.json`, which `generate_examples.py` wrote) and copies the PNGs to
 `docs/public/images/examples/` as thumbnails.
 
-Scripts that still publish by themselves (they import `struphy_plots.gallery`) are run as they are.
+Scripts that still publish by themselves (they import `plasma_plots.gallery`) are run as they are.
 
 Usage (under MPI, prefix `mpirun -n 4`; `python cli.py run <example>` calls this):
 
@@ -36,7 +36,7 @@ IMAGES_DIR = ROOT / "docs" / "public" / "images" / "examples"
 
 def publishes_by_itself(script: Path) -> bool:
     """Whether the script writes the website's files itself, with the gallery helpers (the older convention)."""
-    return "struphy_plots.gallery" in script.read_text()
+    return "plasma_plots.gallery" in script.read_text()
 
 
 def profiled_simulations():
@@ -83,7 +83,7 @@ def main(argv: list[str] | None = None) -> None:
     simulations = profiled_simulations()
     runpy.run_path(str(script), run_name="__main__")
 
-    from struphy_plots.gallery import export_profiling, is_root, merge_metadata
+    from plasma_plots.gallery import export_profiling, is_root, merge_metadata
 
     if not (OUTPUT_DIR / f"{stem}.plotly.json").is_file() and is_root():
         raise SystemExit(f"{stem}: the script saved no main figure {stem}.plotly.json")
