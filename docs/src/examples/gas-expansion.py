@@ -33,6 +33,7 @@ from struphy import (
 )
 from struphy.models import ViscousEulerSPH
 from struphy.ode.utils import ButcherTableau
+from struphy_plots import save_figure
 
 # The gas is isothermal, p = kappa * rho, so the sound speed is c = sqrt(kappa) = 1.
 kappa = 1.0
@@ -109,27 +110,6 @@ def create_simulation() -> Simulation:
         derham_opts=None,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -270,7 +250,7 @@ def pproc(sim: Simulation, show: bool = False):
         ],
     )
     still_index = int(np.argmin(np.abs(times - 0.8)))
-    save(figure, "gas-expansion", height=750, frame=still_index, show=show)
+    save_figure(figure, "gas-expansion", height=750, frame=still_index, show=show)
 
     # A spatial view of every SPH particle. Fixed display lanes separate overlapping particles;
     # only x is a physical coordinate in this one-dimensional simulation.
@@ -332,7 +312,7 @@ def pproc(sim: Simulation, show: bool = False):
     )
     particles.add_vline(x=release_point, line_dash="dash", line_color="#64748b",
                         annotation_text="initial gas edge", annotation_position="top right")
-    save(particles, "gas-expansion-particles", show=show)
+    save_figure(particles, "gas-expansion-particles", show=show)
 
     # The same data against the similarity variable xi = (x - x0) / t, where every time falls on one curve.
     similarity = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1)
@@ -420,8 +400,8 @@ def pproc(sim: Simulation, show: bool = False):
         margin={"l": 70, "r": 30, "t": 80, "b": 60},
     )
 
-    save(similarity, "gas-expansion-similarity", show=show)
-    save(error_figure, "gas-expansion-error", show=show)
+    save_figure(similarity, "gas-expansion-similarity", show=show)
+    save_figure(error_figure, "gas-expansion-error", show=show)
 
 
 if __name__ == "__main__":

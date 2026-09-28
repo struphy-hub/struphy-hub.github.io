@@ -23,6 +23,7 @@ from scipy.special import jv, yn
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import Maxwell
+from struphy_plots import save_figure
 
 # The inner and outer radii are two zeros of the derivative of the radial profile
 # J_m(r) - 0.28 Y_m(r), so that the tangential electric field vanishes on both conducting walls.
@@ -73,27 +74,6 @@ def create_simulation() -> Simulation:
         derham_opts=derham_opts,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -243,7 +223,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     # The still image and thumbnail show the mode a little after the start of the run.
     still_position = len(frame_indices) // 4
-    save(figure, "coaxial-waveguide", height=650, frame=still_position, show=show)
+    save_figure(figure, "coaxial-waveguide", height=650, frame=still_position, show=show)
 
     # The probe signal against the exact mode.
     probe_figure = signal.struphy.plot.timeseries(
@@ -291,8 +271,8 @@ def pproc(sim: Simulation, show: bool = False):
     energy_figure.update_xaxes(title_text="t [a.u.]", row=2, col=1)
     energy_figure.update_layout(template="plotly_white", autosize=True, margin={"l": 80, "r": 30, "t": 80, "b": 60})
 
-    save(probe_figure, "coaxial-waveguide-frequency", show=show)
-    save(energy_figure, "coaxial-waveguide-energy", show=show)
+    save_figure(probe_figure, "coaxial-waveguide-frequency", show=show)
+    save_figure(energy_figure, "coaxial-waveguide-energy", show=show)
 
 
 if __name__ == "__main__":

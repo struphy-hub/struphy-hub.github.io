@@ -36,6 +36,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import VlasovAmpereOneSpecies
+from struphy_plots import save_figure
 
 wavenumbers = (0.3, 0.4, 0.5, 0.6)  # the scan; the example itself is the k = 0.5 run
 amplitude = 0.001
@@ -87,27 +88,6 @@ def mode_amplitude(run):
         "em_fields/e_field", eta1=np.linspace(0.0, 1.0, cells + 1), eta2=0.0, eta3=0.0, representation="1"
     ).isel(component=0)
     return e_x.struphy.analysis.project_mode(dim="eta1", number=1)
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -168,7 +148,7 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_xaxes(title_text="wavenumber k λ_D")
     figure.update_yaxes(title_text="ω_r / ω_p", row=1, col=1)
     figure.update_yaxes(title_text="γ / ω_p", row=1, col=2)
-    save(figure, "langmuir-wave-dispersion", width=1200, height=560, show=show)
+    save_figure(figure, "langmuir-wave-dispersion", width=1200, height=560, show=show)
 
     colors = {0.3: "#168aad", 0.4: "#2a9d8f", 0.5: "#f77f00", 0.6: "#d62828"}
     signals = go.Figure()
@@ -188,7 +168,7 @@ def pproc(sim: Simulation, show: bool = False):
         xaxis_title="t [1/ω_p]", yaxis_title="amplitude of the sin(kx) mode of E_x",
         margin={"l": 75, "r": 30, "t": 80, "b": 60},
     )
-    save(signals, "langmuir-wave-dispersion-signals", show=show)
+    save_figure(signals, "langmuir-wave-dispersion-signals", show=show)
 
 
 if __name__ == "__main__":

@@ -27,6 +27,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import ShearAlfven
+from struphy_plots import save_figure
 
 
 def create_simulation() -> Simulation:
@@ -77,27 +78,6 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     domain = sim.domain
 
@@ -128,7 +108,7 @@ def pproc(sim: Simulation, show: bool = False):
         backend="plotly",
     )
 
-    save(figure, "shear-alfven-wave", show=show)
+    save_figure(figure, "shear-alfven-wave", show=show)
 
     # The same field along z, over time: waves travelling in both directions leave diagonal
     # stripes, whose slope is the wave speed.
@@ -147,7 +127,7 @@ def pproc(sim: Simulation, show: bool = False):
         colorbar_label="u₁ (logical component)",
         backend="plotly",
     )
-    save(space_time, "shear-alfven-wave-space-time", show=show)
+    save_figure(space_time, "shear-alfven-wave-space-time", show=show)
 
 
 if __name__ == "__main__":

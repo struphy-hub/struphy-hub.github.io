@@ -28,6 +28,7 @@ from struphy import (
 )
 from struphy.linear_algebra.solver import NonlinearSolverParameters
 from struphy.models import ViscoResistiveMHD
+from struphy_plots import save_figure
 
 period = 2 * np.pi
 box_min, box_max = -np.pi, np.pi
@@ -113,27 +114,6 @@ def create_simulation() -> Simulation:
         derham_opts=derham_opts,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -241,7 +221,7 @@ def pproc(sim: Simulation, show: bool = False):
     # The still shows every layer at the final time, the flux contours included (the frames leave them static).
     still = go.Figure(data=field_traces(len(times) - 1), layout=figure.layout)
     still.layout.sliders[0].active = len(figure.frames) - 1
-    save(figure, "resistive-x-point", width=900, height=850, still=still, show=show)
+    save_figure(figure, "resistive-x-point", width=900, height=850, still=still, show=show)
 
     reconnection = make_subplots(
         rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.16,
@@ -286,8 +266,8 @@ def pproc(sim: Simulation, show: bool = False):
         margin={"l": 80, "r": 35, "t": 90, "b": 75}, legend={"orientation": "h", "y": -0.18},
     )
 
-    save(reconnection, "resistive-x-point-reconnection", show=show)
-    save(conservation, "resistive-x-point-conservation", show=show)
+    save_figure(reconnection, "resistive-x-point-reconnection", show=show)
+    save_figure(conservation, "resistive-x-point-conservation", show=show)
 
 
 if __name__ == "__main__":

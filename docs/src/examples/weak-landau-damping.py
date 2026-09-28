@@ -32,6 +32,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import VlasovAmpereOneSpecies
+from struphy_plots import save_figure
 
 # A single small-amplitude cosine mode perturbs an otherwise uniform Maxwellian.
 perturbation_amplitude = 0.001
@@ -89,25 +90,6 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 def pproc(sim: Simulation, show: bool = False):
     domain = sim.domain
 
@@ -135,7 +117,7 @@ def pproc(sim: Simulation, show: bool = False):
         backend="plotly",
     )
 
-    save(figure, "weak-landau-damping", show=show)
+    save_figure(figure, "weak-landau-damping", show=show)
 
     # The electric field along x, over time.
     output.pproc()
@@ -154,7 +136,7 @@ def pproc(sim: Simulation, show: bool = False):
         colorbar_label="E_x",
         backend="plotly",
     )
-    save(space_time, "weak-landau-damping-space-time", show=show)
+    save_figure(space_time, "weak-landau-damping-space-time", show=show)
 
 
 if __name__ == "__main__":

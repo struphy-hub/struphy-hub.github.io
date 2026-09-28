@@ -20,6 +20,7 @@ import plotly.graph_objects as go
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import LinearMHD
 from struphy_plots.theory.waves import magnetosonic_speeds
+from struphy_plots import save_figure
 
 # The background: B0 = (0, 1, 1), density 0.7 and a plasma beta of 3 (thermal over magnetic pressure).
 B0x, B0y, B0z = 0.0, 1.0, 1.0
@@ -68,27 +69,6 @@ def create_simulation() -> Simulation:
         derham_opts=derham_opts,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -163,7 +143,7 @@ def pproc(sim: Simulation, show: bool = False):
         title="Three MHD wave branches in a magnetized slab", template="plotly_white",
         legend={"orientation": "h", "y": -0.2}, margin={"l": 70, "r": 40, "t": 90, "b": 110},
     )
-    save(figure, "mhd-slab-waves", width=1300, height=650, show=show)
+    save_figure(figure, "mhd-slab-waves", width=1300, height=650, show=show)
 
 
 if __name__ == "__main__":

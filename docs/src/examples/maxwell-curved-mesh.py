@@ -20,6 +20,7 @@ import plotly.graph_objects as go
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, grids
 from struphy.initial.base import GenericPerturbation
 from struphy.models import Maxwell
+from struphy_plots import save_figure
 
 lx, ly = 2.0, 3.0
 distortion = 0.1
@@ -73,27 +74,6 @@ def create_simulation() -> Simulation:
         derham_opts=derham_opts,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -159,7 +139,7 @@ def pproc(sim: Simulation, show: bool = False):
     # The image shows the pulse at a fifth of the run, when the ring has spread; the page keeps the animation.
     still = go.Figure(data=figure.data, layout=figure.layout)
     still.data[0].z = resample(numeric[len(times) // 5])
-    save(figure, "maxwell-curved-mesh", width=750, height=1000, still=still, show=show)
+    save_figure(figure, "maxwell-curved-mesh", width=750, height=1000, still=still, show=show)
 
     diagnostics = make_subplots(rows=2, cols=1, vertical_spacing=0.18,
                                 subplot_titles=("Error of E_z against the exact solution", "Total energy"))
@@ -171,7 +151,7 @@ def pproc(sim: Simulation, show: bool = False):
     diagnostics.update_yaxes(title_text="rms error / initial rms", type="log", row=1, col=1)
     diagnostics.update_yaxes(title_text="relative change", exponentformat="e", row=2, col=1)
     diagnostics.update_xaxes(title_text="t", row=2, col=1)
-    save(diagnostics, "maxwell-curved-mesh-diagnostics", show=show)
+    save_figure(diagnostics, "maxwell-curved-mesh-diagnostics", show=show)
 
 
 if __name__ == "__main__":

@@ -43,6 +43,7 @@ from struphy import (
 from struphy.initial.base import GenericPerturbation
 from struphy.models import DriftKineticElectrostaticAdiabatic
 from struphy.propagators import implicit_diffusion
+from struphy_plots import save_figure
 
 # A magnetized annular column: radius in [a1, a2], periodic in angle and length.
 a1, a2, length = 0.1, 14.5, 1506.759067
@@ -200,27 +201,6 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     from plotly.subplots import make_subplots
 
@@ -240,7 +220,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     figure = perturbation_energy.struphy.plot.timeseries(logy=True, title="ITG drift wave: density perturbation energy", backend="plotly")
 
-    save(figure, "itg-drift-wave", show=show)
+    save_figure(figure, "itg-drift-wave", show=show)
 
     # ---- further figures: the potential and its Fourier modes --------------------------------------------
     # the grid points of the cells and the periodic endpoints, which mode_amplitudes drops
@@ -268,7 +248,7 @@ def pproc(sim: Simulation, show: bool = False):
         colorbar_label="φ [a.u.]",
         backend="plotly",
     )
-    save(movie, "itg-drift-wave-potential", frame=still_index, show=show)
+    save_figure(movie, "itg-drift-wave-potential", frame=still_index, show=show)
 
     # Amplitude of each poloidal mode (radial rms at the seeded axial mode number) and its growth rate.
     amplitude = radial_rms(spectrum.sel(n=mode_toroidal)).sel(m=slice(1, MAX_POLOIDAL_MODE))
@@ -304,7 +284,7 @@ def pproc(sim: Simulation, show: bool = False):
         margin={"l": 80, "r": 30, "t": 90, "b": 60},
         legend={"orientation": "h", "y": -0.22, "x": 0.0, "xanchor": "left"},
     )
-    save(growth_figure, "itg-drift-wave-mode-growth", show=show)
+    save_figure(growth_figure, "itg-drift-wave-mode-growth", show=show)
 
     # The (m, n) spectrum at the first and last saved time.
     both = radial_rms(spectrum.isel(t=[0, -1])).sel(m=slice(0, MAX_POLOIDAL_MODE))
@@ -338,7 +318,7 @@ def pproc(sim: Simulation, show: bool = False):
         spectrum_figure.update_xaxes(title_text="poloidal m", row=1, col=column)
     spectrum_figure.update_yaxes(title_text="axial n", dtick=1, row=1, col=1)
     spectrum_figure.update_layout(title="ITG drift wave: Fourier spectrum of φ", template="plotly_white", margin={"l": 70, "r": 30, "t": 90, "b": 60})
-    save(spectrum_figure, "itg-drift-wave-spectrum", show=show)
+    save_figure(spectrum_figure, "itg-drift-wave-spectrum", show=show)
 
     # Radial structure of the seeded mode.
     interior = slice(1, -1)  # phi = 0 at the Dirichlet boundaries r = a1, a2, which a log axis cannot show
@@ -355,7 +335,7 @@ def pproc(sim: Simulation, show: bool = False):
         template="plotly_white",
         margin={"l": 80, "r": 30, "t": 80, "b": 60},
     )
-    save(radial_figure, "itg-drift-wave-radial-structure", show=show)
+    save_figure(radial_figure, "itg-drift-wave-radial-structure", show=show)
 
     # Where and when does the potential grow?
     rms = np.sqrt((phi**2).mean(("eta2", "eta3"))).isel(eta1=interior)
@@ -373,7 +353,7 @@ def pproc(sim: Simulation, show: bool = False):
             backend="plotly",
         )
     )
-    save(rms_map, "itg-drift-wave-radial-time", show=show)
+    save_figure(rms_map, "itg-drift-wave-radial-time", show=show)
 
     # The flux-surface-averaged (m = n = 0) density change: does the profile flatten?
     density = output.evaluate("diagnostics/rho", **points)
@@ -392,7 +372,7 @@ def pproc(sim: Simulation, show: bool = False):
         colorbar_label="δ⟨ρ⟩ [a.u.]",
         backend="plotly",
     )
-    save(profile_change, "itg-drift-wave-profile-change", show=show)
+    save_figure(profile_change, "itg-drift-wave-profile-change", show=show)
 
 
 if __name__ == "__main__":

@@ -31,6 +31,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import LinearMHD
+from struphy_plots import save_figure
 
 STEM = "toroidal-shear-alfven"
 NUM_ELEMENTS = (8, 48, 4)
@@ -139,7 +140,7 @@ def save_fixed_theta_fft_figures(output, show=False):
             margin={"l": 85, "r": 35, "t": 95, "b": 75},
             legend={"title": {"text": "Poloidal angle"}},
         )
-        save(figure, f"{STEM}-{key}", show=show)
+        save_figure(figure, f"{STEM}-{key}", show=show)
 
 
 def create_simulation() -> Simulation:
@@ -192,27 +193,6 @@ def create_simulation() -> Simulation:
         domain=domain, equil=equil, grid=grid, derham_opts=derham_opts,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -312,7 +292,7 @@ def pproc(sim: Simulation, show: bool = False):
     )
     # A later snapshot also shows the generated toroidal component in the thumbnail.
     still = len(frame_indices) // 2
-    save(figure, STEM, frame=still, show=show)
+    save_figure(figure, STEM, frame=still, show=show)
 
     radial_probe = int(np.abs(velocity.eta1.values - 0.5).argmin())
     probe_radius = domain.params["a1"] + (domain.params["a2"] - domain.params["a1"]) * float(velocity.eta1.values[radial_probe])
@@ -519,7 +499,7 @@ def pproc(sim: Simulation, show: bool = False):
             template="plotly_white", margin={"l": 85, "r": 35, "t": 95, "b": 75},
             legend={"title": {"text": "Poloidal harmonic"}},
         )
-        save(radial_mode_plot, f"{STEM}-{key}", show=show)
+        save_figure(radial_mode_plot, f"{STEM}-{key}", show=show)
 
     energy = go.Figure()
     for key, label in (("en_U", "Kinetic"), ("en_B", "Magnetic"), ("en_thermal", "Compressional")):
@@ -531,16 +511,16 @@ def pproc(sim: Simulation, show: bool = False):
         title="Perturbation energies", xaxis_title="t", yaxis_title="Energy [normalized units]",
         template="plotly_white", margin={"l": 80, "r": 30, "t": 80, "b": 65},
     )
-    save(history, f"{STEM}-velocity-history", show=show)
+    save_figure(history, f"{STEM}-velocity-history", show=show)
     for angle_degrees, radial_profiles in radial_profile_figures:
-        save(radial_profiles, f"{STEM}-radial-profiles-theta-{int(angle_degrees)}", show=show)
-    save(radial_history, f"{STEM}-radial-history", show=show)
-    save(mode_plot, f"{STEM}-poloidal-fft", show=show)
+        save_figure(radial_profiles, f"{STEM}-radial-profiles-theta-{int(angle_degrees)}", show=show)
+    save_figure(radial_history, f"{STEM}-radial-history", show=show)
+    save_figure(mode_plot, f"{STEM}-poloidal-fft", show=show)
     save_fixed_theta_fft_figures(output, show=show)
-    save(frequency_plot, f"{STEM}-time-fft", show=show)
-    save(radius_spectrum, f"{STEM}-radial-time-fft", show=show)
-    save(filtered_probe, f"{STEM}-filtered-velocity", show=show)
-    save(energy, f"{STEM}-energy", show=show)
+    save_figure(frequency_plot, f"{STEM}-time-fft", show=show)
+    save_figure(radius_spectrum, f"{STEM}-radial-time-fft", show=show)
+    save_figure(filtered_probe, f"{STEM}-filtered-velocity", show=show)
+    save_figure(energy, f"{STEM}-energy", show=show)
     dominant = ", ".join(f"{label} {value:.3f}" for label, value in zip(labels, band.spectrum.dominant_frequency.values))
     print(f"Dominant temporal frequencies: {dominant} (resolution {frequency_resolution:.3f})")
 

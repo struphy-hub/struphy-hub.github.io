@@ -40,6 +40,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import ToyDrift
+from struphy_plots import save_figure
 
 # A uniform-density ring between r = 4 and r = 5, seeded with a tiny m = 4 azimuthal mode.
 r_minus, r_plus, mode_number = 4.0, 5.0, 4
@@ -105,27 +106,6 @@ def create_simulation() -> Simulation:
         derham_opts=derham_opts,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -205,7 +185,7 @@ def pproc(sim: Simulation, show: bool = False):
         ],
     )
 
-    save(figure, "diocotron-instability", height=800, show=show)
+    save_figure(figure, "diocotron-instability", height=800, show=show)
 
     mode_figure = go.Figure()
     for m, amplitude in mode_amplitudes.items():
@@ -274,8 +254,8 @@ def pproc(sim: Simulation, show: bool = False):
         sliders=[{"steps": [{"args": [[frame.name], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate"}], "label": frame.name, "method": "animate"} for frame in interface_frames], "active": len(interface_frames) - 1, "x": 0.12, "len": 0.88, "y": -0.18, "currentvalue": {"prefix": "t = "}}],
     )
 
-    save(mode_figure, "diocotron-instability-mode-growth", show=show)
-    save(interface_figure, "diocotron-instability-ring-interfaces", show=show)
+    save_figure(mode_figure, "diocotron-instability-mode-growth", show=show)
+    save_figure(interface_figure, "diocotron-instability-ring-interfaces", show=show)
 
 
 if __name__ == "__main__":

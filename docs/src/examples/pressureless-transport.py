@@ -18,6 +18,7 @@ from struphy import (
     domains, equils, grids, perturbations,
 )
 from struphy.models import VariationalPressurelessFluid
+from struphy_plots import save_figure
 
 stem = "pressureless-transport"
 length, speed, amplitude = 2.0 * np.pi, 0.5, 0.2
@@ -54,27 +55,6 @@ def create_simulation() -> Simulation:
         equil=equils.HomogenSlab(B0z=1.0, n0=1.0),
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -122,12 +102,12 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_yaxes(title_text="absolute relative error", row=2, col=1)
     figure.update_layout(title="Pressureless transport at constant velocity", template="plotly_white",
                          legend={"orientation": "h", "y": -0.18}, margin={"l": 85, "r": 30, "t": 90, "b": 140})
-    save(figure, stem, height=800, show=show)
+    save_figure(figure, stem, height=800, show=show)
     movie = rho.assign_coords(eta1=x).struphy.plot.slice(
         x="eta1", y="t", symmetric=True, cmap="RdBu_r", title="Density transported around a periodic box",
         xlabel="x", ylabel="t [a.u.]", colorbar_label="ρ", backend="plotly",
     )
-    save(movie, f"{stem}-space-time", show=show)
+    save_figure(movie, f"{stem}-space-time", show=show)
 
 
 if __name__ == "__main__":

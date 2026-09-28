@@ -19,6 +19,7 @@ import xarray as xr
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ColdPlasma
+from struphy_plots import save_figure
 
 # Time in units of the inverse cyclotron frequency and alpha = omega_p / omega_c = 1: at n0 = 1 the plasma
 # frequency is 1 (as in the cold-plasma-waves example).
@@ -72,27 +73,6 @@ def oscillation_frequency(times, values):
         values[crossings + 1] - values[crossings]
     )
     return float(np.pi / np.mean(np.diff(roots)))
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -160,7 +140,7 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_yaxes(title_text="E_z", range=[-1.2 * amplitude, 1.2 * amplitude], row=1, col=1)
     figure.update_xaxes(title_text="t", row=2, col=1)
     figure.update_yaxes(title_text="energy / initial energy", row=2, col=1)
-    save(figure, "cold-plasma-oscillation", width=900, height=850, show=show)
+    save_figure(figure, "cold-plasma-oscillation", width=900, height=850, show=show)
 
     # The frequency against the density, on the line omega = omega_p (drawn from n0 = 0).
     n_line = np.linspace(0.0, max(densities) * 1.05, 100)
@@ -170,7 +150,7 @@ def pproc(sim: Simulation, show: bool = False):
         xlabel="density n₀", ylabel="angular frequency ω", title="Oscillation frequency against density",
         backend="plotly",
     )
-    save(scan, "cold-plasma-oscillation-frequency-scan", show=show)
+    save_figure(scan, "cold-plasma-oscillation-frequency-scan", show=show)
 
 
 if __name__ == "__main__":

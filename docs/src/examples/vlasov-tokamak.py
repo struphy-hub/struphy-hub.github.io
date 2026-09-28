@@ -29,6 +29,7 @@ from struphy.fields_background import equils
 from struphy.kinetic_background import maxwellians
 from struphy.models import Vlasov
 from struphy.pic.base import BoundaryParameters, LoadingParameters, SavingParameters
+from struphy_plots import save_figure
 
 # Load a small population; only a handful of markers have their full orbit saved.
 # eta1 is the radial flux coordinate on this domain, so it must reflect at the
@@ -82,27 +83,6 @@ def create_simulation() -> Simulation:
         derham_opts=derham_opts,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -247,7 +227,7 @@ def pproc(sim: Simulation, show: bool = False):
         ],
     )
 
-    save(figure, "vlasov-tokamak", height=850, show=show)
+    save_figure(figure, "vlasov-tokamak", height=850, show=show)
 
     # The same orbits, projected onto each coordinate plane -- a simpler,
     # non-animated companion to the 3D view above, useful for reading off
@@ -281,7 +261,7 @@ def pproc(sim: Simulation, show: bool = False):
         margin={"l": 60, "r": 30, "t": 80, "b": 60},
     )
 
-    save(projection_figure, "vlasov-tokamak-projections", width=1500, height=560, show=show)
+    save_figure(projection_figure, "vlasov-tokamak-projections", width=1500, height=560, show=show)
 
 
 if __name__ == "__main__":

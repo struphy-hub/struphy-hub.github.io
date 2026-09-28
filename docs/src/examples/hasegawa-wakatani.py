@@ -23,6 +23,7 @@ from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains
 from struphy.initial.base import GenericPerturbation
 from struphy.models import HasegawaWakatani
 from struphy.ode.utils import ButcherTableau
+from struphy_plots import save_figure
 
 # A square periodic slab.  The third direction is inactive, making this a
 # genuinely 2D fluid calculation rather than a thin 3D one.
@@ -108,27 +109,6 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     env = sim.env
     time_opts = sim.time_opts
@@ -210,7 +190,7 @@ def pproc(sim: Simulation, show: bool = False):
     for column in (1, 2):
         figure.update_xaxes(title_text="x", range=[0, length], constrain="domain", row=1, col=column)
         figure.update_yaxes(title_text="y", range=[0, length], scaleanchor="x" if column == 1 else "x2", scaleratio=1, row=1, col=column)
-    save(figure, "hasegawa-wakatani", width=1100, height=660, show=show)
+    save_figure(figure, "hasegawa-wakatani", width=1100, height=660, show=show)
 
     # E×B kinetic energy is |grad(phi)|²/2.  Averaging phi over y selects
     # ky = 0; its remaining y-directed velocity is the zonal flow.  Spectral
@@ -243,7 +223,7 @@ def pproc(sim: Simulation, show: bool = False):
         margin={"l": 80, "r": 30, "t": 80, "b": 60},
         legend={"orientation": "h", "y": 1.1},
     )
-    save(energy_figure, "hasegawa-wakatani-zonal-energy", show=show)
+    save_figure(energy_figure, "hasegawa-wakatani-zonal-energy", show=show)
     zonal_fraction = zonal_energy / np.maximum(total_energy, np.finfo(float).tiny)
     print(f"Zonal-flow share of the kinetic energy: {zonal_fraction[-1]:.3f} at the end, {zonal_fraction.max():.3f} at its peak")
 

@@ -20,6 +20,7 @@ import plotly.graph_objects as go
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import LinearExtendedMHDuniform
+from struphy_plots import save_figure
 
 # Background field along z with n0 = B0 = 1, so the Alfvén speed is 1. With epsilon = 1 the ion cyclotron
 # frequency and the ion inertial length are 1 as well, i.e. k is measured in units of 1/d_i.
@@ -72,27 +73,6 @@ def create_simulation() -> Simulation:
         derham_opts=derham_opts,
     )
     return sim
-
-
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
 
 
 def pproc(sim: Simulation, show: bool = False):
@@ -194,7 +174,7 @@ def pproc(sim: Simulation, show: bool = False):
         template="plotly_white", legend={"orientation": "h", "y": -0.2},
         margin={"l": 70, "r": 40, "t": 90, "b": 110},
     )
-    save(figure, "hall-mhd-waves", width=1300, height=650, show=show)
+    save_figure(figure, "hall-mhd-waves", width=1300, height=650, show=show)
 
     # Phase velocities: the ideal-MHD Alfvén wave is not dispersive (omega / k = v_A for every k); the
     # Hall branches are, one speeding up and one slowing down as k d_i grows.
@@ -217,7 +197,7 @@ def pproc(sim: Simulation, show: bool = False):
         margin={"l": 75, "r": 30, "t": 80, "b": 120},
     )
     phase.update_xaxes(range=[0, k_top])
-    save(phase, "hall-mhd-waves-phase-velocity", show=show)
+    save_figure(phase, "hall-mhd-waves-phase-velocity", show=show)
 
 
 if __name__ == "__main__":

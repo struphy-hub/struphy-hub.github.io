@@ -17,6 +17,7 @@ import numpy as np
 
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, equils, grids, perturbations
 from struphy.models import ColdPlasma
+from struphy_plots import save_figure
 
 # Plasma frequency equal to the cyclotron frequency (alpha = 1), and time in units of the inverse
 # cyclotron frequency (epsilon = 1). The R cutoff is then at (1 + sqrt 5)/2 and the L cutoff at (sqrt 5 - 1)/2.
@@ -83,27 +84,6 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     output = sim.output
     output.pproc(physical=True)
@@ -156,7 +136,7 @@ def pproc(sim: Simulation, show: bool = False):
         title="Cold-plasma waves along B₀: power spectrum of E_x",
         backend="plotly",
     )
-    save(figure, "cold-plasma-waves", height=700, show=show)
+    save_figure(figure, "cold-plasma-waves", height=700, show=show)
 
     # Energy channels: the noise starts purely electric, then shares its energy with the magnetic field
     # and the electron current, while the sum stays constant.
@@ -166,7 +146,7 @@ def pproc(sim: Simulation, show: bool = False):
     energy_figure = energies[0].struphy.plot.timeseries(
         *energies[1:], logy=False, title="Energy channels of the cold plasma", backend="plotly"
     )
-    save(energy_figure, "cold-plasma-waves-energy", show=show)
+    save_figure(energy_figure, "cold-plasma-waves-energy", show=show)
 
 
 if __name__ == "__main__":

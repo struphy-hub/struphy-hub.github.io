@@ -25,6 +25,7 @@ import plotly.graph_objects as go
 from struphy import DerhamOptions, EnvironmentOptions, Simulation, Time, domains, grids, perturbations
 from struphy.models import Maxwell
 from struphy.ode.utils import ButcherTableau
+from struphy_plots import save_figure
 
 length = 20.0
 mode_number = 2
@@ -82,27 +83,6 @@ def e_x(run):
     ).isel(component=0)
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     runs = {}
     for label in schemes:
@@ -140,7 +120,7 @@ def pproc(sim: Simulation, show: bool = False):
     figure.update_yaxes(type="log", range=[-16.5, 2.0], exponentformat="power")
     figure.add_annotation(x=0.62, xref="paper", y=1.8, text="Heun 2 leaves the plot: unstable", showarrow=False,
                           font={"color": "#d62828"}, bgcolor="rgba(255,255,255,0.8)")
-    save(figure, "maxwell-structure-preservation", show=show)
+    save_figure(figure, "maxwell-structure-preservation", show=show)
 
     # What the drift does to the solution: the field profile at the end of the run against the exact one.
     stable = [label for label in runs if drifts[label] < 1.0]
@@ -163,7 +143,7 @@ def pproc(sim: Simulation, show: bool = False):
         legend={"orientation": "h", "y": -0.18},
         margin={"l": 80, "r": 30, "t": 80, "b": 100},
     )
-    save(profile, "maxwell-structure-preservation-profile", show=show)
+    save_figure(profile, "maxwell-structure-preservation-profile", show=show)
 
 
 if __name__ == "__main__":

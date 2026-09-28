@@ -31,6 +31,7 @@ from struphy import (
     perturbations,
 )
 from struphy.models import VlasovAmpereOneSpecies
+from struphy_plots import save_figure
 
 # A 90% bulk Maxwellian plus a 10% "bump" population drifting at u1 = -4.5.
 perturbation_amplitude = 0.05
@@ -91,27 +92,6 @@ def create_simulation() -> Simulation:
     return sim
 
 
-def save(figure, name: str, *, show: bool = False, frame: int | None = None, still=None, width=1100, height=650):
-    """Save a Plotly figure as ``<name>.html``, ``<name>.png`` and ``<name>.plotly.json``.
-
-    ``figure`` is a plot of struphy-plots drawn with ``backend="plotly"``, or a
-    ``plotly.graph_objects.Figure``. ``show`` shows it first. For an animation, the PNG shows
-    ``frame`` (default: the first), or the figure ``still`` instead. Under MPI only rank 0 writes.
-    """
-    import struphy_plots
-    from struphy_plots.plotting import PlotResult
-
-    if not struphy_plots.is_plotting_rank():
-        return
-    result = figure if isinstance(figure, PlotResult) else PlotResult(figure, None)
-    if show:
-        result.show()
-    result.save(f"{name}.html")
-    image = PlotResult(still, None) if still is not None else result
-    image.save(f"{name}.png", frame=frame, width=width, height=height, scale=2)
-    result.save(f"{name}.plotly.json")
-
-
 def pproc(sim: Simulation, show: bool = False):
     domain = sim.domain
 
@@ -125,7 +105,7 @@ def pproc(sim: Simulation, show: bool = False):
 
     figure = field_energy.struphy.plot.timeseries(logy=True, title="Bump-on-tail instability: electric field energy", backend="plotly")
 
-    save(figure, "bump-on-tail", show=show)
+    save_figure(figure, "bump-on-tail", show=show)
 
     # Evaluate the saved products on their grids, then look at them in more than one way.
     output.pproc()
@@ -162,8 +142,8 @@ def pproc(sim: Simulation, show: bool = False):
         backend="plotly",
     )
 
-    save(phase_space, "bump-on-tail-phasespace", frame=len(phase_space.fig.frames) // 2, show=show)
-    save(velocity_time, "bump-on-tail-velocity-time", show=show)
+    save_figure(phase_space, "bump-on-tail-phasespace", frame=len(phase_space.fig.frames) // 2, show=show)
+    save_figure(velocity_time, "bump-on-tail-velocity-time", show=show)
 
 
 if __name__ == "__main__":
