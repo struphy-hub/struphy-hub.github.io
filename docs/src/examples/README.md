@@ -17,7 +17,7 @@ scripts exist today — use whichever is closest to your model and diagnostic as
 - `resistive-x-point.py` — nonlinear visco-resistive MHD at a driven magnetic null, with current-density/flux animation, reconnection rate and conservation diagnostics
 - `mhd-slab-waves.py` — the shear Alfvén and the slow and fast magnetosonic waves of `LinearMHD`, from the (k, ω) spectra of the velocity and the pressure, with fitted against exact speeds
 - `toroidal-shear-alfven.py` — a small `LinearMHD` tokamak run with the m=10,11 perturbations, animated physical velocity components on a poloidal slice, ring histories, radial profiles, radius–time RMS maps, poloidal and temporal FFT spectra, frequency–radius maps, dominant-band reconstruction, and perturbation energies. Defaults to 8 × 48 × 4 cells, degree (3,3,2), dt=0.5 and t=20; edit the constants at the top for longer, finer runs. The short default record has only 21 samples and Δω≈0.299; this is an exploratory preview, not a converged TAE frequency measurement. Fourier diagnostics use plasma-plots' `out.analysis.fft`, `out.analysis.time_fft` and `out.analysis.filter_time`.
-- `itpa-tae-linear-mhd.py`, `itpa-tae-shear-alfven.py` — the ITPA toroidal Alfvén eigenmode benchmark (m=10,11, n=−6 in a sixth of a tokamak), with `LinearMHD` and with the reduced `ShearAlfven` model: radial power against the shear-Alfvén continua, the power spectrum against ω_TAE, the eigenfunction of each harmonic, mode amplitudes, a matrix-pencil fit and the poloidal-plane animation, all drawn by plasma-plots. Defaults to 8 × 48 × 4 cells and t=150 (about two TAE periods); the benchmark resolution is noted at the top of each script.
+- `itpa-tae-linear-mhd.py`, `itpa-tae-shear-alfven.py` — the ITPA toroidal Alfvén eigenmode benchmark (m=10,11, n=−6 in a sixth of a tokamak), with `LinearMHD` and with the reduced `ShearAlfven` model: radial power against the shear-Alfvén continua, the power spectrum against ω_TAE, the eigenfunction of each harmonic, mode amplitudes, a matrix-pencil fit and the poloidal-plane animation, all drawn by plasma-plots. They run at the benchmark resolution (24 × 96 × 16 cells, t=500), which takes hours on a cluster, so CI only post-processes their archived runs: see [Precomputed examples](#precomputed-examples).
 - `zeldovich-caustic.py` — pressureless SPH collapse to a caustic and multi-stream flow, with the exact density from the Lagrangian map (animated density and phase space)
 - `diffusion-methods.py` — the random-walk and the deterministic particle methods for the diffusion equation, compared with the exact decay (two simulations in one script)
 - `incompressible-shear-relaxation.py` — incompressible SPH between no-slip walls: the pressure projection removes a compressive wave, and the shear mode decays at the exact viscous rate
@@ -140,6 +140,25 @@ every script from scratch before each site build. A fresh clone therefore has no
 `npm run dev` stops with instructions to generate them: `python cli.py metadata --all` is enough for
 the pages to build (Struphy needed, compiled kernels not), and `python cli.py run <example>` also
 makes that example's figures.
+
+### Precomputed examples
+
+Examples listed in `.github/precomputed-examples.json` are too expensive for a CI runner. `run_example.py`
+(and so `python cli.py run` and CI) downloads their archived run from the listed `url`, checks its `sha256`,
+unpacks it into `docs/public/examples/struphy_gallery_runs/` and only post-processes it. To make or renew an
+archive, submit its simulation as a Slurm job from the repository root on a cluster, in the virtual environment
+with Struphy. The job is generated with slurm-script-generator, as the Pitagora CI jobs are (both use
+`scripts/slurm_jobs.py`), with the ranks and time limit of the registry entry's `job`:
+
+```sh
+python scripts/submit_precomputed_run.py itpa-tae-linear-mhd --account <account> --partition <partition>
+```
+
+It simulates with `run_example.py --simulate` and packs the run with `scripts/pack_precomputed_run.py`, which
+prints the `gh release upload` command and the registry entry to paste at the end of the job's log (`--dry-run`
+only writes the batch script, `--no-wait` only submits it, `--module` replaces Pitagora's module stack). A changed entry
+changes the example's CI cache key, so the figures are rebuilt from the new archive. The simulation must
+use the script's current parameters: `--pproc-only` rebuilds the `Simulation` from the script.
 
 ### Running on several MPI ranks
 

@@ -6,34 +6,17 @@ from __future__ import annotations
 import argparse
 import os
 import shlex
+import sys
 from pathlib import Path
 
-from slurm_script_generator.slurm_script import SlurmScript
-from slurm_script_generator.squeue import SQueue
-
-MODULES = [
-    "gcc/12.3.0",
-    "python/3.11.7",
-    "hdf5/1.14.3--gcc--12.3.0",
-    "cmake/3.27.9",
-    "netcdf-fortran/4.6.1--gcc--12.3.0",
-    "netlib-scalapack/2.2.0--openmpi--4.1.6--gcc--12.3.0-ucx1.20",
-]
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+from slurm_jobs import environment_commands, example_job, submit_and_wait  # noqa: E402
 
 # Orszag--Tang writes 401 field snapshots and post-processing loads them all
 # before evaluating the output grid. It exceeds the debug partition's default
 # memory allocation; the small gallery examples do not need this request.
 MEMORY_BY_EXAMPLE = {"orszag-tang-vortex": "64GB"}
 MPI_RANKS_BY_EXAMPLE = {"orszag-tang-vortex": 4}
-
-
-def tail_log(path: Path, lines: int = 200) -> None:
-    """Print a bounded batch log in a collapsible GitHub Actions group."""
-    if not path.is_file():
-        return
-    print(f"::group::{path.name}")
-    print("\n".join(path.read_text(errors="replace").splitlines()[-lines:]))
-    print("::endgroup::")
 
 
 def main() -> int:
@@ -49,48 +32,21 @@ def main() -> int:
     run_id = os.environ["GITHUB_RUN_ID"]
     run_attempt = os.environ["GITHUB_RUN_ATTEMPT"]
     job_name = f"struphy-{args.example}-{run_id}-{run_attempt}"
-    script_path = runner_temp / f"{job_name}.sbatch"
-    stdout = workspace / f"slurm-{job_name}-%j.out"
-    stderr = workspace / f"slurm-{job_name}-%j.err"
     mpi_ranks = MPI_RANKS_BY_EXAMPLE.get(args.example, 1)
-    commands = [
-        "set -euo pipefail",
-        f"source {shlex.quote(str(virtual_env / 'bin' / 'activate'))}",
-    ]
-    if mpi_ranks == 1:
-        # A one-task Slurm allocation is not an MPI launch.
-        commands.append("export STRUPHY_MPI=0")
-    else:
-        # mpi4py must see the Open MPI environment that `cli.py --mpi` creates.
-        commands.append("unset STRUPHY_MPI")
+    commands = environment_commands(virtual_env, mpi_ranks)
     commands.append(f"python cli.py run {shlex.quote(args.example)} --mpi {mpi_ranks}")
 
-    script = SlurmScript(
+    script = example_job(
         job_name=job_name,
         account=args.account,
         partition=args.partition,
-        nodes=1,
-        ntasks=mpi_ranks,
-        cpus_per_task=1,
-        time="00:30:00",
+        workspace=workspace,
+        log_dir=workspace,
+        commands=commands,
+        mpi_ranks=mpi_ranks,
         mem=MEMORY_BY_EXAMPLE.get(args.example),
-        chdir=str(workspace),
-        output=str(stdout),
-        error=str(stderr),
-        modules=MODULES,
-        custom_commands=commands,
     )
-    job_id = script.submit_job(path=str(script_path), verbose=True)
-    print(f"Submitted {job_name} as Slurm job {job_id}")
-
-    try:
-        state = SQueue().wait_until_done(job_id=job_id, poll_interval=15, check=True)[
-            job_id
-        ]
-        print(f"Slurm job {job_id} finished with state {state or 'unknown'}.")
-    finally:
-        tail_log(workspace / f"slurm-{job_name}-{job_id}.out")
-        tail_log(workspace / f"slurm-{job_name}-{job_id}.err")
+    submit_and_wait(script, job_name, runner_temp / f"{job_name}.sbatch", workspace)
     return 0
 
 

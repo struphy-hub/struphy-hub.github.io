@@ -1,16 +1,18 @@
 """The ITPA toroidal Alfvén eigenmode (TAE) benchmark in ideal LinearMHD.
 
 The setup of Struphy's `examples/LinearMHD/itpa_tae_benchmark`: an m = 10, 11 perturbation of
-the velocity in one sixth of a circular tokamak, whose coupled harmonics ring at the frequency
-of the toroidal Alfvén gap. The frequency is read off the power spectrum, located between the
-shear-Alfvén continua of the two harmonics, and its radial eigenfunction reconstructed.
+the velocity in one sixth of a circular tokamak, meant to excite the toroidal Alfvén eigenmode in the gap
+between the shear-Alfvén continua of the two harmonics. The measured frequencies are drawn against those
+continua and the gap-centre estimate, with the radial eigenfunction of each harmonic.
 
 Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 
-The default is a short, coarse run (t = 150, about two TAE periods, on 8 x 48 x 4 cells). The
-benchmark itself uses NUM_ELEMENTS = (24, 96, 16), DEGREE = (3, 3, 3), END_TIME = 500.
+The parameters are those of the benchmark: 24 x 96 x 16 cells of degree 3 to t = 500, hours on a
+cluster (`python scripts/submit_precomputed_run.py itpa-tae-linear-mhd --account ... --partition ...` from the
+repository root submits it as a Slurm job, profiles it and packs its output). The website does not rerun it: its CI downloads the archived run listed in
+`.github/precomputed-examples.json` and only post-processes it.
 """
 
 import argparse
@@ -28,16 +30,15 @@ from struphy import (
     grids,
     perturbations,
 )
-from struphy.linear_algebra.solver import SolverParameters
 from struphy.models import LinearMHD
 from plasma_plots import save_figure
 from plasma_plots.theory.waves import alfven_continuum, tae_frequency
 
 STEM = "itpa-tae-linear-mhd"
-NUM_ELEMENTS = (8, 48, 4)
-DEGREE = (3, 3, 2)
-END_TIME = 150.0
-DT = 0.2
+NUM_ELEMENTS = (24, 96, 16)
+DEGREE = (3, 3, 3)
+END_TIME = 500.0
+DT = 0.5
 SAVE_STEP = 2
 
 # The torus is one sixth of a full one: the sector mode n = -1 is the full-torus mode n = -6.
@@ -54,11 +55,10 @@ def minor_radius(eta1):
 
 def create_simulation() -> Simulation:
     model = LinearMHD(base_units=BaseUnits())
-    # A relative tolerance of 1e-6 halves the cost of the implicit steps, with no visible change.
-    solver_params = SolverParameters(tol=1e-6)
-    model.propagators.shear_alf.options = model.propagators.shear_alf.Options(solver_params=solver_params)
-    model.propagators.mag_sonic.options = model.propagators.mag_sonic.Options(solver_params=solver_params)
-    for field in (model.em_fields.b_field, model.mhd.density, model.mhd.velocity, model.mhd.pressure):
+    model.propagators.shear_alf.options = model.propagators.shear_alf.Options()
+    model.propagators.mag_sonic.options = model.propagators.mag_sonic.Options()
+    # Only the velocity and the field are saved, to keep the archived run small; the energies are scalars.
+    for field in (model.em_fields.b_field, model.mhd.velocity):
         field.save_data = True
 
     domain = domains.HollowTorus(a1=0.1, a2=1.0, R0=10.0, sfl=False, pol_period=1, tor_period=TOR_PERIOD)
@@ -90,17 +90,18 @@ def create_simulation() -> Simulation:
         description=(
             "The ideal-MHD part of the ITPA toroidal Alfvén eigenmode benchmark: a global Alfvén "
             "wave in the gap that toroidicity opens between the shear-Alfvén continua of two "
-            "neighbouring poloidal harmonics. "
+            "neighbouring poloidal harmonics, set up here for exploration. "
             r"A hollow torus :math:`0.1\le r\le 1`, :math:`R_0=10`, one sixth of the full torus, "
             r"carries the AdhocTorus equilibrium with :math:`B_0=3`, "
             r":math:`q(r)=1.71+0.16\,r^2` and :math:`\beta=0.0018`. "
             r"The continua of :math:`m=10` and :math:`m=11` at :math:`n=-6` cross where "
             r":math:`q=10.5/6=1.75`, at :math:`r=0.5`, near "
             r"$$\omega_\mathrm{TAE}=\frac{v_A}{2qR_0}\approx 0.096,\qquad v_A=\frac{B_0}{\sqrt{n(r)}}.$$ "
-            "The velocity is seeded with these two harmonics, Gaussian in radius around r = 0.55. "
+            "The velocity is seeded with these two harmonics, Gaussian in radius around r = 0.55, "
+            "on 24 × 96 × 16 cells of degree 3, to t = 500 (about eight TAE periods). "
             "LinearMHD evolves the shear-Alfvén and the magnetosonic parts of the linearized MHD "
-            "equations. The default is a short, coarse run of about two TAE periods; "
-            "the benchmark resolution is in the script."
+            "equations. The figures post-process an archived run of this script; "
+            "it takes hours on a cluster."
         ),
         params_path=__file__, env=env, time_opts=Time(dt=DT, Tend=END_TIME),
         domain=domain, equil=equil, grid=grid, derham_opts=derham_opts,
@@ -115,7 +116,7 @@ def pproc(sim: Simulation, show: bool = False):
     R0 = sim.domain.params["R0"]
 
     # The physical velocity, rotated to the radial, poloidal and toroidal directions of the torus.
-    output.pproc(physical=True, celldivide=(2, 2, 2), create_vtk=False)
+    output.pproc(physical=True, celldivide=(1, 1, 1), create_vtk=False)
     velocity = output.evaluate("mhd/velocity_xyz").plasma.analysis.toroidal_components(R0=R0)
     times = velocity.t.values
     if not np.isclose(times[-1], END_TIME):
@@ -127,20 +128,25 @@ def pproc(sim: Simulation, show: bool = False):
 
     # Theory: the shear-Alfvén continua of the seeded harmonics, and the gap frequency.
     n_full = SECTOR_MODE * TOR_PERIOD
-    v_A = lambda r: equil.params["B0"] / np.sqrt(equil.n_r(r))
+
+    def v_A(r):
+        return equil.params["B0"] / np.sqrt(equil.n_r(r))
+
+    def continuum(r, m, n):
+        omega = alfven_continuum(r, m, n, equil.q_r, major_radius=R0, alfven_speed=v_A)
+        return {"shear Alfvén": omega.real}
+
     q_gap = (MODES[0] + 0.5) / abs(n_full)
     r_gap = float(np.sqrt((q_gap - equil.params["q0"]) / (equil.params["q1"] - equil.params["q0"])))
     omega_tae = float(tae_frequency(q_gap, major_radius=R0, alfven_speed=v_A(r_gap)))
-    continuum = lambda r, m, n: {"shear Alfvén": alfven_continuum(r, m, n, equil.q_r, major_radius=R0, alfven_speed=v_A).real}
     print(f"TAE gap: q = {q_gap:.3f} at r = {r_gap:.3f}, omega_TAE = {omega_tae:.4f}")
 
     # The measured frequency: the strongest peak of the radial velocity, refined between bins.
     peaks = u_r.plasma.analysis.spectral_peaks(n_peaks=2, window="hann")
     omega = float(peaks.omega_refined[0])
-    probe = u_r.sel(eta1=0.45, eta2=0.0, eta3=0.0, method="nearest")
-    pencil = probe.plasma.analysis.matrix_pencil(n_modes=1)
-    print(f"Measured frequency: {omega:.4f} (FFT peak), {float(pencil.omega[0]):.4f} (matrix pencil), "
-          f"damping {float(pencil.gamma[0]):.2e}; omega_TAE = {omega_tae:.4f}")
+    measured = ", ".join(f"{w:.4f}" for w in peaks.omega_refined.values)
+    print(f"Strongest frequencies of u_r: {measured} (resolution {2 * np.pi / (times[-1] - times[0]):.4f}); "
+          f"omega_TAE = {omega_tae:.4f}")
 
     # Main figure: where each frequency lives in radius, against the continua.
     radial = u_r.plasma.plot.radial_power(
@@ -160,9 +166,6 @@ def pproc(sim: Simulation, show: bool = False):
 
     amplitudes = u_r.plasma.plot.mode_amplitudes(top=4, backend="plotly")
     save_figure(amplitudes, f"{STEM}-mode-amplitudes", show=show)
-
-    fit = probe.plasma.plot.pencil_fit(n_modes=1, backend="plotly")
-    save_figure(fit, f"{STEM}-pencil", show=show)
 
     movie = u_r.plasma.plot.animation(
         coords="physical", plane="RZ", eta3=0, symmetric=True, cmap="RdBu_r", max_frames=40,

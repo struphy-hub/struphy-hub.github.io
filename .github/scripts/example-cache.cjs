@@ -6,6 +6,7 @@ async function exampleCache(example, prefix, suffix, glob) {
     'catalogue_docs.py',
     'generate_examples.py',
     'run_example.py',
+    '.github/precomputed-examples.json',
     'generate_example_domain.py',
     'generate_domains.py',
     'submodules/plasma-plots/struphy/src/struphy/**/*.py',

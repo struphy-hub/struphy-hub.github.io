@@ -36,3 +36,9 @@ docs/public/examples/struphy.log.*
 .idea/
 .vscode/
 .DS_Store
+
+# Cluster runs of precomputed examples (scripts/submit_precomputed_run.py)
+/struphy-precomputed-*.sbatch
+/slurm-*.out
+/slurm-*.err
+/*-run.tar.gz
