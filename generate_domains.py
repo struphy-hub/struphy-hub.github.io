@@ -174,15 +174,21 @@ def export_grid(domain, name, output_dir, plane, n1=16, n2=65):
 
 
 def domain_classes() -> list[tuple[str, type[Domain]]]:
-    """Return concrete domains defined by Struphy's public domains module."""
+    """Return concrete domains exported by Struphy's public domains module.
+
+    Struphy 3.4 resolves these exports lazily from individual submodules, so
+    inspect.getmembers() must access the names advertised by module.__dir__().
+    """
     return sorted(
         (
             (name, cls)
-            for name, cls in vars(domains).items()
-            if isinstance(cls, type)
-            and issubclass(cls, Domain)
+            for name, cls in inspect.getmembers(domains, inspect.isclass)
+            if issubclass(cls, Domain)
             and cls is not Domain
-            and cls.__module__ == domains.__name__
+            and (
+                cls.__module__ == domains.__name__
+                or cls.__module__.startswith(f"{domains.__name__}.")
+            )
             and not inspect.isabstract(cls)
         ),
         key=lambda item: item[0].lower(),
@@ -193,6 +199,8 @@ def export_domains(output_dir: Path, *, strict: bool = False) -> int:
     """Instantiate domains with their defaults and export their geometry."""
     output_dir.mkdir(parents=True, exist_ok=True)
     classes = domain_classes()
+    if not classes:
+        raise RuntimeError(f"No concrete domains discovered in {domains.__name__}")
     failures: list[tuple[str, BaseException]] = []
     catalogue: dict[str, dict[str, object]] = {}
 

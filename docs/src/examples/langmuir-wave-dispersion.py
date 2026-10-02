@@ -10,9 +10,21 @@ with the plasma dispersion function Z. Four runs with wavenumbers between 0.3 an
 frequency and the damping rate of the electric field, and compare them with this root. The fluid estimate omega^2 = 1 + 3 k^2 (Bohm-Gross) is
 shown for reference: it ignores the kinetic effects and misses the frequency by several per cent already at k = 0.5.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
-directory (`--show` shows them first).
+Install dependencies and compile the kernels (Python 3.10 or newer):
+
+    pip install "struphy[pproc]>=3.4.0"
+    pip install "plasma-plots[plotly]>=0.1.1"
+    struphy compile
+
+PNG exports require Chrome or Chromium. If Chrome is not installed, run:
+
+    kaleido_get_chrome
+
+Save this file and run it from the directory where you want the output:
+
+    python langmuir-wave-dispersion.py
+
+Figures are saved in the current directory; add --show to display them before saving.
 """
 
 import argparse

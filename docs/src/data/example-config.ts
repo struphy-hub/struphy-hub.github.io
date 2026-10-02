@@ -76,6 +76,56 @@ export const exampleConfig: Record<string, ExamplePageConfig> = {
       },
     },
   },
+  'itpa-tae-linear-mhd': {
+    category: 'MHD waves', setupTitle: 'The ITPA TAE benchmark in ideal MHD', plotTitle: 'Radial power of u_r against the shear-Alfvén continua', plotAlt: 'Temporal power of the minor-radial velocity over minor radius and frequency, with the m=10 and m=11 shear-Alfvén continua at n=-6',
+    figures: {
+      'spectrum': {
+        alt: 'Power spectrum of the minor-radial velocity with its two strongest peaks and the TAE gap-centre frequency',
+        caption: 'Power per frequency bin of the physical minor-radial velocity u_r, averaged over the sampled torus sector (Hann window, mean removed). Triangles mark the two strongest peaks, refined between bins; the dotted line is the gap-centre estimate ω_TAE = v_A/(2qR₀) at q = 1.75, r = 0.5. The record to t = 500 resolves Δω = 2π/500 ≈ 0.013.',
+      },
+      'eigenfunction': {
+        alt: 'Radial amplitude and phase of the four strongest poloidal harmonics of u_r at the strongest measured frequency',
+        caption: 'The complex amplitude of u_r at the strongest measured frequency, transformed over poloidal and sector toroidal angle (n = −1 in the sector is n = −6 on the full torus). Top: the amplitude of each harmonic against minor radius; bottom: its phase, drawn where the harmonic has at least 5% of its peak. The coupled harmonics of a global eigenmode have flat, locked phases.',
+      },
+      'mode-amplitudes': {
+        alt: 'Amplitudes of the four strongest poloidal and toroidal harmonics of u_r over time',
+        caption: 'The largest amplitude over radius of each of the four strongest (m, n) harmonics of u_r, n counted in the sector. The seeded harmonics are m = 10 and 11; toroidal coupling drives their neighbours.',
+      },
+      'poloidal': {
+        alt: 'Animated minor-radial velocity on the poloidal plane of the torus',
+        caption: 'Physical minor-radial velocity on the poloidal plane φ = 0, with one symmetric color range for all frames; the slider steps through 40 of the saved times.',
+      },
+      'energy': {
+        alt: 'Kinetic, magnetic and thermal perturbation energies, and the relative change of their sum',
+        caption: 'The perturbation energies of LinearMHD (left) and the relative change of their sum (right), which the implicit propagators conserve up to the linear-solver tolerance.',
+      },
+    },
+  },
+  'itpa-tae-shear-alfven': {
+    category: 'MHD waves', setupTitle: 'The ITPA TAE benchmark without compressional coupling', plotTitle: 'Radial power of u_r against the shear-Alfvén continua', plotAlt: 'Temporal power of the minor-radial velocity over minor radius and frequency in the ShearAlfven model, with the m=10 and m=11 shear-Alfvén continua at n=-6',
+    figures: {
+      'spectrum': {
+        alt: 'Power spectrum of the minor-radial velocity in the ShearAlfven model, with the TAE gap-centre frequency',
+        caption: 'Power per frequency bin of the physical minor-radial velocity u_r, averaged over the sampled torus sector (Hann window, mean removed). Triangles mark the two strongest peaks, refined between bins; the dotted line is the gap-centre estimate ω_TAE = v_A/(2qR₀) at q = 1.75, r = 0.5. Compare with the LinearMHD run of the same setup.',
+      },
+      'eigenfunction': {
+        alt: 'Radial amplitude and phase of the four strongest poloidal harmonics of u_r at the strongest measured frequency',
+        caption: 'The complex amplitude of u_r at the strongest measured frequency, transformed over poloidal and sector toroidal angle (n = −1 in the sector is n = −6 on the full torus): amplitude of each harmonic against minor radius (top) and its phase (bottom, drawn where the harmonic has at least 5% of its peak).',
+      },
+      'mode-amplitudes': {
+        alt: 'Amplitudes of the four strongest poloidal and toroidal harmonics of u_r over time in the ShearAlfven model',
+        caption: 'The largest amplitude over radius of each of the four strongest (m, n) harmonics of u_r, n counted in the sector.',
+      },
+      'poloidal': {
+        alt: 'Animated minor-radial velocity on the poloidal plane of the torus in the ShearAlfven model',
+        caption: 'Physical minor-radial velocity on the poloidal plane φ = 0, with one symmetric color range for all frames; the slider steps through 40 of the saved times.',
+      },
+      'energy': {
+        alt: 'Kinetic and magnetic perturbation energies of the ShearAlfven model, and the relative change of their sum',
+        caption: 'The kinetic and magnetic perturbation energies (left) and the relative change of their sum (right). ShearAlfven has no pressure or density perturbation, so there is no thermal energy.',
+      },
+    },
+  },
   'ordinary-mode-dispersion': {
     category: 'Plasma waves', setupTitle: 'Electromagnetic waves above the plasma cutoff', plotTitle: 'Ordinary-mode frequencies and the plasma cutoff', plotAlt: 'Four measured ordinary-wave frequencies on the cold-plasma dispersion curve, with their electric-field oscillations',
     figures: {

@@ -2,6 +2,7 @@ const fs = require('node:fs/promises');
 const { exampleCache } = require('./example-cache.cjs');
 
 const selectionPath = '.github/pitagora-examples.txt';
+const CI_EXCLUDED = new Set(['itpa-tae-linear-mhd', 'itpa-tae-shear-alfven']);
 
 async function selectedPitagoraExamples() {
   const text = await fs.readFile(selectionPath, 'utf8');
@@ -10,6 +11,10 @@ async function selectedPitagoraExamples() {
     .map(line => line.split('#', 1)[0].trim())
     .filter(Boolean);
   if (!examples.length) throw new Error(`${selectionPath} contains no examples`);
+  const excluded = examples.filter(example => CI_EXCLUDED.has(example));
+  if (excluded.length) {
+    throw new Error(`${selectionPath} includes examples disabled in CI: ${excluded.join(', ')}`);
+  }
   if (new Set(examples).size !== examples.length) {
     throw new Error(`${selectionPath} contains duplicate examples`);
   }

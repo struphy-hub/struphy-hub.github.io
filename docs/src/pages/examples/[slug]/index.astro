@@ -27,6 +27,11 @@ const example = examples.find((entry) => entry.slug === slug);
 const config = exampleConfig[slug as string] ?? { category: 'Struphy example', setupTitle: data.name, plotTitle: data.name, plotAlt: data.name };
 const sourceEntry = Object.entries(sourceModules).find(([key]) => key.endsWith(`/${slug}.py`));
 const source = String(sourceEntry?.[1] ?? '');
+// Read the commands from the standalone script so page and download stay in sync,
+// including optional dependencies such as GVEC's physics extra.
+const installationCommands = source.match(/^ {4}pip install [^\n]+(?:\n {4}[^\n]+)*/m)?.[0].replace(/^ {4}/gm, '');
+if (!installationCommands) throw new Error(`Missing installation commands in ${slug}.py`);
+const highlightedInstallation = await codeToHtml(installationCommands, { lang: 'bash', themes: { light: 'github-light', dark: 'github-dark' }, defaultColor: false });
 const highlightedSource = await codeToHtml(source, { lang: 'python', themes: { light: 'github-light', dark: 'github-dark' }, defaultColor: false });
 const equationsHtml = pdeMarkdownToHtml(data.equationsMarkdown);
 const exampleIndex = examples.findIndex((example) => example.slug === slug);
@@ -35,4 +40,4 @@ const exampleIndex = examples.findIndex((example) => example.slug === slug);
 const nextExample = exampleIndex >= 0 ? examples[(exampleIndex + 1) % examples.length] : undefined;
 ---
 
-<ExamplePage {slug} {data} {config} {highlightedSource} {equationsHtml} {nextExample} exampleDomain={example?.domainViewer} allExamples={examples} />
+<ExamplePage {slug} {data} {config} {highlightedSource} {highlightedInstallation} {equationsHtml} {nextExample} exampleDomain={example?.domainViewer} allExamples={examples} />

@@ -16,7 +16,7 @@ PolyData files for the interactive viewer (``VtkHeroViewer.astro``) into ``docs/
 It also renders ``docs/public/images/stellarator-hero.webp``, the still shown until the viewer has loaded.
 
 All are small and committed, so the site build does not need GVEC. Rerun this script only when the hero
-should change. It needs compiled Struphy kernels and ``pip install "./submodules/plasma-plots/struphy[phys]" pyvista``.
+should change. It needs compiled Struphy kernels and ``pip install "struphy[phys]>=3.4.0" pyvista``.
 
     python scripts/generate_hero_stellarator.py
 """

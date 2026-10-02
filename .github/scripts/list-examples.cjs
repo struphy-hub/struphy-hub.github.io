@@ -1,8 +1,10 @@
 const fs = require('node:fs/promises');
 const { exampleCache } = require('./example-cache.cjs');
 
+const CI_EXCLUDED = ['itpa-tae-linear-mhd', 'itpa-tae-shear-alfven'];
+
 module.exports = async function listExamples({ cache, glob, core, exclude = ['poisson-source'] }) {
-  const excluded = new Set(exclude);
+  const excluded = new Set([...CI_EXCLUDED, ...exclude]);
   const examples = (await fs.readdir('docs/src/examples'))
     .filter(name => name.endsWith('.py') && !name.startsWith('_') && !excluded.has(name.slice(0, -3)))
     .map(name => name.slice(0, -3)).sort();

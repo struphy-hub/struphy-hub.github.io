@@ -6,9 +6,21 @@ resistivity eta lets the field lines slip through the plasma, and the wave ampli
 gamma = eta k^2 / 2. (Viscosity would add nu k^2 / 2; it is left out because Struphy's viscosity propagator does not run in this
 configuration.) A scan over three resistivities compares the decay with the exact rate.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
-directory (`--show` shows them first).
+Install dependencies and compile the kernels (Python 3.10 or newer):
+
+    pip install "struphy[pproc]>=3.4.0"
+    pip install "plasma-plots[plotly]>=0.1.1"
+    struphy compile
+
+PNG exports require Chrome or Chromium. If Chrome is not installed, run:
+
+    kaleido_get_chrome
+
+Save this file and run it from the directory where you want the output:
+
+    python damped-alfven-wave.py
+
+Figures are saved in the current directory; add --show to display them before saving.
 """
 
 import argparse

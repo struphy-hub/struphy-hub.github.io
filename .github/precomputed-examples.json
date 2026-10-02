@@ -1,0 +1,23 @@
+{
+  "_comment": "Examples too expensive to simulate in CI. run_example.py downloads each archived run (a tar.gz of docs/public/examples/struphy_gallery_runs/<sim_folder>, made by scripts/pack_precomputed_run.py), checks its sha256, unpacks it and only post-processes it. Fill in url and sha256 after uploading the archive to a release. Each job is the Slurm allocation scripts/submit_precomputed_run.py requests for the simulation (estimates; adjust after the first run).",
+  "itpa-tae-linear-mhd": {
+    "sim_folder": "itpa_tae_linear_mhd",
+    "url": null,
+    "sha256": null,
+    "job": {
+      "mpi_ranks": 32,
+      "time": "08:00:00",
+      "mem": null
+    }
+  },
+  "itpa-tae-shear-alfven": {
+    "sim_folder": "itpa_tae_shear_alfven",
+    "url": null,
+    "sha256": null,
+    "job": {
+      "mpi_ranks": 32,
+      "time": "24:00:00",
+      "mem": null
+    }
+  }
+}

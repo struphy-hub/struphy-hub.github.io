@@ -80,6 +80,6 @@ test('shared keys retain prefix, suffix, example and source hash', async () => {
   });
   assert.equal(result.key, 'pitagora-example-v1-custom-alpha-hash');
   assert.equal(patterns[0], 'docs/src/examples/alpha.py');
-  assert.ok(patterns.includes('submodules/plasma-plots/struphy/src/struphy/**/*.py'));
-  assert.ok(patterns.includes('submodules/plasma-plots/src/plasma_plots/**/*.py'));
+  assert.ok(patterns.includes('requirements.txt'));
+  assert.ok(patterns.includes('requirements-examples.txt'));
 });
