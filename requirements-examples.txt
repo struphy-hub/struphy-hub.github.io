@@ -1,3 +1,4 @@
-# Gallery rendering and profiling dependencies for running examples.
+# Simulation, gallery rendering and profiling dependencies.
 -r requirements.txt
+struphy[phys,mpi]>=3.4.0
 plasma-plots[gallery]==0.1.1

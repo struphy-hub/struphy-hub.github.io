@@ -8,7 +8,7 @@ result can be compared.
 Adapted from Struphy's tutorial (tutorials/tutorial_gas_expansion_sph.ipynb), reduced to one dimension
 so that an exact solution exists.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

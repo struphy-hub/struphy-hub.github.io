@@ -12,8 +12,8 @@ The grid covers a single field period, which is what lets it resolve the helical
 magnetic wells: markers launched with a small parallel velocity are mirror-trapped
 in them, the faster ones circulate.
 
-Requires Struphy with compiled kernels (`struphy compile`) and its optional physics dependencies
-(`pip install -e ".[phys]"`), and plasma-plots with Plotly (`pip install "plasma-plots[plotly]==0.1.1"`).
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and its optional physics dependencies
+(`pip install "struphy[phys]>=3.4.0"`), and plasma-plots with Plotly (`pip install "plasma-plots[plotly]==0.1.1"`).
 Run as a script, it saves its figures in the current directory (`--show` shows them first).
 """
 

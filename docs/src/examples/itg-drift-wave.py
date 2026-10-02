@@ -11,7 +11,7 @@ Adapted from Struphy's maintained example
 (examples/DriftKineticElectrostaticAdiabatic/itg_cylindre), at reduced
 resolution and run length to keep it a quick gallery run.
 
-Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

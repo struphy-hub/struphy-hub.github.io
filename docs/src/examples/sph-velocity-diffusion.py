@@ -5,7 +5,7 @@ velocity, u(x, 0) = A sin(2 pi x / L), on a periodic interval. Viscosity alone
 then damps that mode at 4 mu k^2 / 3, with k = 2 pi / L. The binned SPH current
 makes a small, fast verification case with an analytic answer.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

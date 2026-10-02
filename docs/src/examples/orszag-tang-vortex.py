@@ -4,7 +4,7 @@ Two periodic velocity and magnetic-field vortices are evolved to t = 1.
 The example shows nonlinear compression and field deformation, with
 energy and discrete magnetic-divergence diagnostics.
 
-Requires Struphy 3.3 with compiled kernels (``struphy compile``) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (``struphy compile``) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

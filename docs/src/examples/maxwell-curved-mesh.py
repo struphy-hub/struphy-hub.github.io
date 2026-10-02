@@ -7,7 +7,7 @@ still the periodic rectangle, the exact solution is known: a Gaussian pulse of E
 each oscillating at omega = c |k|, and it can be compared with the numerical field at every point of the distorted mesh. The
 energy, which the structure-preserving scheme conserves for any mesh, is followed as well.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

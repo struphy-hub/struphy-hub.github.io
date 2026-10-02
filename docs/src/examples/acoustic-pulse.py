@@ -7,7 +7,7 @@ each other after the box has been traversed (the box is periodic), and reunite. 
 d'Alembert's, rho - 1 = (f(x - c t) + f(x + c t)) / 2. Struphy's variational discretization conserves the total energy: the pulse
 starts as pure thermodynamic energy, which the running pulses share with kinetic energy.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

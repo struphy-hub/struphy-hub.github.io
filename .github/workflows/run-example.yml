@@ -29,17 +29,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Trust the checked-out worktree
-        # Actions containers run as root; git refuses to touch a worktree owned by another
-        # UID ("detected dubious ownership") unless told to trust it -- struphy's own
-        # editable install below shells out to git (setuptools-scm) and would hit this.
-        run: git config --global --add safe.directory '*'
 
       # Each run is deterministic (fixed seeds), so cache on this example script's and
-      # Struphy's own source, and skip the expensive rebuild when neither changed. Every
+      # Python requirements, and skip the expensive rebuild when neither changed. Every
       # file an example writes is named after its script stem (the metadata JSON, the
       # figures, their thumbnails); no example's stem is a prefix of another's, and the
       # glob also covers two-stream-instability's extra "-phasespace" pair.
@@ -50,40 +42,26 @@ jobs:
           example: ${{ inputs.example }}
           cache-prefix: struphy-example-serial-v1
 
-      - name: Install Struphy from this repo's pinned submodule commit
-        # Same approach as struphy's own CI
-        # (submodules/struphy/.github/actions/install/struphy_in_container/action.yml):
-        # the image bakes in whatever struphy commit was HEAD when it was last built, so
-        # move /struphy_fortran_'s own checkout to the exact commit our submodule pins
-        # (rather than reinstalling editable from a second copy of the source) and
-        # reinstall there, reusing the image's already-installed venv and already-built
-        # gvec/desc-opt.
-        #
-        # scope-profiler[pproc] and kaleido aren't pulled in by the phys/mpi extras (only by
-        # struphy's own dev/doc extras) but the example scripts need both: scope-profiler's
-        # pproc submodule for the durations/gantt/flame plot-data export, kaleido for
-        # figure.write_image(...)'s static PNG export.
-        #
-        # plasma-plots registers the .plasma accessors that the example scripts use, and its
-        # gallery extra brings plasma_plots.gallery, the helpers that write every example's
-        # figures, profiling and metadata. Install the pinned PyPI release using the
-        # gallery requirements file.
+      - name: Install Python dependencies from PyPI
+        id: install-python
+        # Replace the image's editable Struphy install with a released wheel.
+        # The gallery extra provides Plotly exports and profiling helpers.
         if: steps.cache-example.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          SITE_REQUIREMENTS="$PWD/requirements-examples.txt"
-          STRUPHY_SHA=$(git -C submodules/struphy rev-parse HEAD)
-          cd /struphy_fortran_
-          git fetch origin --tags
-          git checkout "$STRUPHY_SHA"
-          source env_fortran_/bin/activate
-          pip install -U --upgrade-strategy eager -e ".[phys,mpi]"
-          # Struphy pins scope-profiler <=0.5.0 as a hard dependency, but the example
-          # scripts use plot_durations(metrics=(...)), a plural-metrics API that only
-          # exists from 0.6.1 onward -- --upgrade forces past struphy's conservative pin
-          # to the version this was actually developed and tested against.
-          pip install --upgrade "scope-profiler[pproc]>=0.6.1" kaleido
-          pip install -r "$SITE_REQUIREMENTS"
+          source /struphy_fortran_/env_fortran_/bin/activate
+          python -m pip uninstall -y struphy
+          python -m pip install --upgrade -r requirements-examples.txt
+          python - <<'PY'
+          import os
+          import sysconfig
+          from importlib.metadata import distribution, version
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              print(f"struphy-path={distribution('struphy').locate_file('struphy')}", file=output)
+              print(f"struphy-version={version('struphy')}", file=output)
+              print(f"python-abi={sysconfig.get_config_var('SOABI')}", file=output)
+              print(f"pyccel-version={version('pyccel')}", file=output)
+          PY
 
       - name: Rebuild GVEC for this runner's CPU
         # The published gvec wheel is built with -march=native. GitHub-hosted
@@ -97,22 +75,19 @@ jobs:
           lscpu | grep -E 'Model name|Flags'
           python -m pip install --no-binary=gvec --no-cache-dir --no-deps --force-reinstall 'gvec==1.5.0'
 
-      # Compiled kernels depend only on struphy's own source, not on which example this
-      # shard runs -- cache them under their own key (shared across all 10 shards) so that
-      # when only an example script changes, the 1-2 min recompile happens once instead of
-      # once per shard. Keyed independently of cache-example above; checked out to the
-      # right commit by the (fast, still-unconditional) install step regardless of hit/miss.
+      # Cache kernels in the installed package, using the resolved release and
+      # Python/compiler versions so an upgraded wheel gets a fresh compilation.
       - name: Cache compiled Struphy kernels
         id: cache-kernels
         if: steps.cache-example.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: |
-            /struphy_fortran_/src/struphy/**/__pyccel__
-            /struphy_fortran_/src/struphy/**/*.so
-          key: struphy-kernels-${{ hashFiles('submodules/struphy/src/struphy/**/*.py') }}
+            ${{ steps.install-python.outputs.struphy-path }}/**/__pyccel__
+            ${{ steps.install-python.outputs.struphy-path }}/**/*.so
+          key: struphy-kernels-pypi-${{ runner.os }}-${{ runner.arch }}-${{ steps.install-python.outputs.struphy-version }}-${{ steps.install-python.outputs.python-abi }}-${{ steps.install-python.outputs.pyccel-version }}-${{ hashFiles('requirements*.txt') }}
 
-      # Chrome doesn't depend on the struphy commit or example scripts, so cache it under
+      # Chrome doesn't depend on the Struphy release or example scripts, so cache it under
       # its own static key instead of the cache-example key above -- otherwise every
       # cache-miss shard redundantly re-downloads ~150-200MB from Google plus its apt
       # dependencies for no reason.

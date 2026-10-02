@@ -8,7 +8,7 @@ forth, a signature of nonlinear kinetic trapping.
 
 Adapted from Struphy's maintained example (examples/VlasovAmpereOneSpecies/strong_Landau_damping).
 
-Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

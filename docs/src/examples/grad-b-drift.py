@@ -9,7 +9,7 @@ the full-orbit speed is an exact invariant in this benchmark. Run on one rank
 because this example needs the complete trajectories of individually tracked markers.
 
 Reference: https://farside.ph.utexas.edu/teaching/plasma/lectures/node19.html
-Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

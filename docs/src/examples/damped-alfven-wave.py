@@ -6,7 +6,7 @@ resistivity eta lets the field lines slip through the plasma, and the wave ampli
 gamma = eta k^2 / 2. (Viscosity would add nu k^2 / 2; it is left out because Struphy's viscosity propagator does not run in this
 configuration.) A scan over three resistivities compares the decay with the exact rate.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

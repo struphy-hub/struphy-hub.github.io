@@ -8,7 +8,7 @@ excites both, and the sound wave along the field. The (k, omega) power spectra o
 the pressure are compared with the analytic Hall-MHD branches, and the phase velocities read off the
 spectrum with the exact ones.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

@@ -1,2 +1,3 @@
-# Plotting dependency for metadata generation and site data.
+# Python dependencies for metadata generation and site data.
+struphy>=3.4.0
 plasma-plots==0.1.1

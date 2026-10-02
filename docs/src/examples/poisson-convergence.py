@@ -7,7 +7,7 @@ falls at least as fast as h^(p+1) in the root-mean-square norm when the mesh is 
 the curved one. The slopes are measured from the runs and compared with p + 1: on the straight mesh they are close to it, and on the curved mesh,
 whose coarse meshes are not yet in the asymptotic range, they are steeper.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

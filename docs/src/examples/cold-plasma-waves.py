@@ -6,7 +6,7 @@ the left-hand (L) wave. Both are cut off at low frequency, where the plasma refl
 noise in the transverse electric field excites all branches at once; the (k, omega) power spectrum of
 E_x shows them, and is compared with the analytic cold-plasma dispersion relation.
 
-Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

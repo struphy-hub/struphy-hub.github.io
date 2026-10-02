@@ -10,7 +10,7 @@ with the plasma dispersion function Z. Four runs with wavenumbers between 0.3 an
 frequency and the damping rate of the electric field, and compare them with this root. The fluid estimate omega^2 = 1 + 3 k^2 (Bohm-Gross) is
 shown for reference: it ignores the kinetic effects and misses the frequency by several per cent already at k = 0.5.
 
-Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

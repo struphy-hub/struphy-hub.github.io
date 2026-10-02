@@ -7,7 +7,7 @@ magnetosonic propagator and no density or pressure), so this is the same benchma
 compressional coupling; compare with itpa-tae-linear-mhd.py. The measured frequencies are drawn against those
 continua and the gap-centre estimate, with the radial eigenfunction of each harmonic.
 
-Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 

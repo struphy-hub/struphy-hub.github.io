@@ -10,7 +10,7 @@ moves fastest and magnetic a quarter period later when the field lines are bent 
 so each channel oscillates at twice the wave frequency while their sum stays constant. Struphy's
 propagator is a Crank-Nicolson step, which conserves that sum up to the tolerance of the linear solver.
 
-Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

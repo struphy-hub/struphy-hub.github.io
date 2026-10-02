@@ -5,7 +5,7 @@ B = (d_y A_z, -d_x A_z, 0). For positive lambda the null at the origin is an
 X-point. A small incompressible strain drives flux towards it and finite
 resistivity permits reconnection.
 
-Requires Struphy with compiled kernels (``struphy compile``) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (``struphy compile``) and plasma-plots with Plotly
 (``pip install "plasma-plots[plotly]==0.1.1"``). Run as a script, it saves its figures in the current
 directory (``--show`` shows them first).
 """

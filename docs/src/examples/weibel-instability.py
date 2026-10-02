@@ -9,7 +9,7 @@ Adapted from Struphy's maintained example
 (examples/VlasovMaxwellOneSpecies/weibel_instability), at reduced particle
 count and run length to keep it a quick gallery run.
 
-Requires Struphy 3.2 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
+Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
 (`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """

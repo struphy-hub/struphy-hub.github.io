@@ -10,7 +10,6 @@ async function exampleCache(example, prefix, suffix, glob) {
     '.github/precomputed-examples.json',
     'generate_example_domain.py',
     'generate_domains.py',
-    'submodules/struphy/src/struphy/**/*.py',
   ];
   return {
     key: `${prefix}${suffix}-${example}-${await glob.hashFiles(patterns.join('\n'))}`,
