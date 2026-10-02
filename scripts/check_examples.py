@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Check that the generated example files are what the site build expects, before it is built.
 
-The site reads one `<stem>.metadata.json` per example script, and links a download route and, once the
+The site reads one `<stem>.metadata.json` per published example, and links a download route and, once the
 example has been run, its figures. A problem in any of them shows up only late in `npm run build`, or,
 worse, after the examples have been run for half an hour. This script checks them in a second:
 
@@ -26,7 +26,7 @@ ROUTES_DIR = ROOT / "docs" / "src" / "pages" / "examples"
 # What generate_examples.py writes for every example, and the example pages read without a guard.
 REQUIRED = ("name", "description", "model", "equationsMarkdown", "domain", "steps")
 # These scripts remain available in the site source, but their expensive runs are
-# intentionally kept out of CI. Their metadata and download routes are still checked.
+# intentionally kept out of CI. Only their retained download routes are checked.
 CI_EXCLUDED = {"itpa-tae-linear-mhd", "itpa-tae-shear-alfven"}
 
 
@@ -73,7 +73,8 @@ def main() -> int:
     if not stems:
         problems.append(f"no example scripts found in {SCRIPTS_DIR.relative_to(ROOT)}")
     for stem in stems:
-        problems += check_metadata(stem)
+        if stem not in CI_EXCLUDED:
+            problems += check_metadata(stem)
         route = ROUTES_DIR / f"{stem}.py.ts"
         if not route.is_file():
             problems.append(

@@ -138,6 +138,9 @@ jobs:
           cache: npm
           cache-dependency-path: docs/package-lock.json
 
+      - name: Check example build validation
+        run: python -m pytest -q tests/test_example_build.py
+
       - name: Install dependencies
         working-directory: docs
         run: npm ci

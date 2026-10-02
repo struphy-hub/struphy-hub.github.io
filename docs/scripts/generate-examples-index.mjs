@@ -36,7 +36,8 @@ const exists = (path) => access(path).then(() => true, () => false);
 // instruction rather than letting the build fail on a missing import.
 const scripts = (await readdir(scriptsDir))
   .filter((name) => name.endsWith('.py') && !name.startsWith('_'))
-  .map((name) => name.replace(/\.py$/, ''));
+  .map((name) => name.replace(/\.py$/, ''))
+  .filter((slug) => !hiddenSlugs.has(slug));
 const missing = [];
 for (const slug of scripts) {
   if (!(await exists(join(examplesDir, `${slug}.metadata.json`)))) missing.push(slug);
