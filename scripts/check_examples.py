@@ -25,6 +25,9 @@ ROUTES_DIR = ROOT / "docs" / "src" / "pages" / "examples"
 
 # What generate_examples.py writes for every example, and the example pages read without a guard.
 REQUIRED = ("name", "description", "model", "equationsMarkdown", "domain", "steps")
+# These scripts remain available in the site source, but their expensive runs are
+# intentionally kept out of CI. Their metadata and download routes are still checked.
+CI_EXCLUDED = {"itpa-tae-linear-mhd", "itpa-tae-shear-alfven"}
 
 
 def _reject_constant(name: str):
@@ -76,11 +79,11 @@ def main() -> int:
             problems.append(
                 f"{stem}: no download route {route.relative_to(ROOT)} (its 'Download .py' link would be a 404)"
             )
-        if args.require_figures and not (OUTPUT_DIR / f"{stem}.plotly.json").is_file():
+        if args.require_figures and stem not in CI_EXCLUDED and not (OUTPUT_DIR / f"{stem}.plotly.json").is_file():
             problems.append(
                 f"{stem}: no {stem}.plotly.json in {OUTPUT_DIR.relative_to(ROOT)}; the example did not produce its figure"
             )
-        if args.require_figures and not (OUTPUT_DIR / f"{stem}.html").is_file():
+        if args.require_figures and stem not in CI_EXCLUDED and not (OUTPUT_DIR / f"{stem}.html").is_file():
             problems.append(
                 f"{stem}: no {stem}.html in {OUTPUT_DIR.relative_to(ROOT)}; the example did not produce its standalone figure"
             )

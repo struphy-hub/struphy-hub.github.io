@@ -16,6 +16,10 @@ const exampleDomainsDir = join(root, 'public', 'example-domains');
 const scriptsDir = join(root, 'src', 'examples');
 const outFile = join(root, 'src', 'data', 'examples-index.json');
 
+// Keep long-running examples available in the source and generated artifacts,
+// but omit them from the site until their results are ready for regular browsing.
+const hiddenSlugs = new Set(['itpa-tae-linear-mhd', 'itpa-tae-shear-alfven']);
+
 function toSlug(value) {
   return value
     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
@@ -52,6 +56,7 @@ const files = (await readdir(examplesDir)).filter((name) => name.endsWith('.meta
 const examples = [];
 for (const filename of files) {
   const slug = filename.replace(/\.metadata\.json$/, '');
+  if (hiddenSlugs.has(slug)) continue;
   const data = JSON.parse(await readFile(join(examplesDir, filename), 'utf8'));
   const statsPath = join(examplesDir, `${slug}-region-stats.json`);
   const profile = (await exists(statsPath))
