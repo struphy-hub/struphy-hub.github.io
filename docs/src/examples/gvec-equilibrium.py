@@ -12,9 +12,22 @@ The grid covers a single field period, which is what lets it resolve the helical
 magnetic wells: markers launched with a small parallel velocity are mirror-trapped
 in them, the faster ones circulate.
 
-Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and its optional physics dependencies
-(`pip install "struphy[phys]>=3.4.0"`), and plasma-plots with Plotly (`pip install "plasma-plots[plotly]==0.1.1"`).
-Run as a script, it saves its figures in the current directory (`--show` shows them first).
+Install dependencies and compile the kernels (Python 3.10 or newer):
+
+    pip install "struphy[pproc]>=3.4.0"
+    pip install "plasma-plots[plotly]>=0.1.1"
+    pip install "struphy[phys]>=3.4.0"
+    struphy compile
+
+PNG exports require Chrome or Chromium. If Chrome is not installed, run:
+
+    kaleido_get_chrome
+
+Save this file and run it from the directory where you want the output:
+
+    python gvec-equilibrium.py
+
+Figures are saved in the current directory; add --show to display them before saving.
 """
 
 import argparse

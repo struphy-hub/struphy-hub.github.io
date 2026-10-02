@@ -7,9 +7,21 @@ falls at least as fast as h^(p+1) in the root-mean-square norm when the mesh is 
 the curved one. The slopes are measured from the runs and compared with p + 1: on the straight mesh they are close to it, and on the curved mesh,
 whose coarse meshes are not yet in the asymptotic range, they are steeper.
 
-Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
-directory (`--show` shows them first).
+Install dependencies and compile the kernels (Python 3.10 or newer):
+
+    pip install "struphy[pproc]>=3.4.0"
+    pip install "plasma-plots[plotly]>=0.1.1"
+    struphy compile
+
+PNG exports require Chrome or Chromium. If Chrome is not installed, run:
+
+    kaleido_get_chrome
+
+Save this file and run it from the directory where you want the output:
+
+    python poisson-convergence.py
+
+Figures are saved in the current directory; add --show to display them before saving.
 """
 
 import argparse

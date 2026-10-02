@@ -1,11 +1,20 @@
 """A small toroidal LinearMHD run with the m=10,11 shear-Alfvén perturbation.
 
-Run from the repository root with:
-    .venv/bin/python cli.py run toroidal-shear-alfven
+Install dependencies and compile the kernels (Python 3.10 or newer):
 
-Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
-directory (`--show` shows them first).
+    pip install "struphy[pproc]>=3.4.0"
+    pip install "plasma-plots[plotly]>=0.1.1"
+    struphy compile
+
+PNG exports require Chrome or Chromium. If Chrome is not installed, run:
+
+    kaleido_get_chrome
+
+Save this file and run it from the directory where you want the output:
+
+    python toroidal-shear-alfven.py
+
+Figures are saved in the current directory; add --show to display them before saving.
 The default is an exploratory local run, not a converged ITPA TAE benchmark.
 Increase NUM_ELEMENTS to (24, 96, 16), DEGREE to (3, 3, 3), and END_TIME
 to 500.0 to recover the supplied spatial/time resolution. The equilibrium,

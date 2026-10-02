@@ -5,14 +5,24 @@ the velocity in one sixth of a circular tokamak, meant to excite the toroidal Al
 between the shear-Alfvén continua of the two harmonics. The measured frequencies are drawn against those
 continua and the gap-centre estimate, with the radial eigenfunction of each harmonic.
 
-Requires Struphy >=3.4.0 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
-directory (`--show` shows them first).
+Install dependencies and compile the kernels (Python 3.10 or newer):
 
-The parameters are those of the benchmark: 24 x 96 x 16 cells of degree 3 to t = 500, hours on a
-cluster (`python scripts/submit_precomputed_run.py itpa-tae-linear-mhd --account ... --partition ...` from the
-repository root submits it as a Slurm job, profiles it and packs its output). The website does not rerun it: its CI downloads the archived run listed in
-`.github/precomputed-examples.json` and only post-processes it.
+    pip install "struphy[pproc]>=3.4.0"
+    pip install "plasma-plots[plotly]>=0.1.1"
+    struphy compile
+
+PNG exports require Chrome or Chromium. If Chrome is not installed, run:
+
+    kaleido_get_chrome
+
+Save this file and run it from the directory where you want the output:
+
+    python itpa-tae-linear-mhd.py
+
+Figures are saved in the current directory; add --show to display them before saving.
+
+The benchmark uses 24 x 96 x 16 cells of degree 3 and evolves to t = 500.
+This resolution can take hours to run on a cluster.
 """
 
 import argparse
