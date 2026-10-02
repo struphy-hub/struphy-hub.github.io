@@ -6,7 +6,7 @@ between the shear-Alfvén continua of the two harmonics. The measured frequencie
 continua and the gap-centre estimate, with the radial eigenfunction of each harmonic.
 
 Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
+(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 
 The parameters are those of the benchmark: 24 x 96 x 16 cells of degree 3 to t = 500, hours on a

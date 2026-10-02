@@ -7,7 +7,7 @@ Its energy passes back and forth between the electric field and the electron flo
 sin^2(omega_p t). The plasma frequency scales as sqrt(n0), which a short scan over the density confirms.
 
 Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
+(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 

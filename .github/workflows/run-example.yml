@@ -52,7 +52,7 @@ jobs:
 
       - name: Install Struphy from this repo's pinned submodule commit
         # Same approach as struphy's own CI
-        # (submodules/plasma-plots/struphy/.github/actions/install/struphy_in_container/action.yml):
+        # (submodules/struphy/.github/actions/install/struphy_in_container/action.yml):
         # the image bakes in whatever struphy commit was HEAD when it was last built, so
         # move /struphy_fortran_'s own checkout to the exact commit our submodule pins
         # (rather than reinstalling editable from a second copy of the source) and
@@ -66,13 +66,13 @@ jobs:
         #
         # plasma-plots registers the .plasma accessors that the example scripts use, and its
         # gallery extra brings plasma_plots.gallery, the helpers that write every example's
-        # figures, profiling and metadata. It has no compiled parts, so it is installed straight
-        # from our pinned submodule.
+        # figures, profiling and metadata. Install the pinned PyPI release using the
+        # gallery requirements file.
         if: steps.cache-example.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          STRUPHY_PLOTS="$PWD/submodules/plasma-plots"
-          STRUPHY_SHA=$(git -C submodules/plasma-plots/struphy rev-parse HEAD)
+          SITE_REQUIREMENTS="$PWD/requirements-examples.txt"
+          STRUPHY_SHA=$(git -C submodules/struphy rev-parse HEAD)
           cd /struphy_fortran_
           git fetch origin --tags
           git checkout "$STRUPHY_SHA"
@@ -83,7 +83,7 @@ jobs:
           # exists from 0.6.1 onward -- --upgrade forces past struphy's conservative pin
           # to the version this was actually developed and tested against.
           pip install --upgrade "scope-profiler[pproc]>=0.6.1" kaleido
-          pip install "$STRUPHY_PLOTS[gallery]"
+          pip install -r "$SITE_REQUIREMENTS"
 
       - name: Rebuild GVEC for this runner's CPU
         # The published gvec wheel is built with -march=native. GitHub-hosted
@@ -110,7 +110,7 @@ jobs:
           path: |
             /struphy_fortran_/src/struphy/**/__pyccel__
             /struphy_fortran_/src/struphy/**/*.so
-          key: struphy-kernels-${{ hashFiles('submodules/plasma-plots/struphy/src/struphy/**/*.py') }}
+          key: struphy-kernels-${{ hashFiles('submodules/struphy/src/struphy/**/*.py') }}
 
       # Chrome doesn't depend on the struphy commit or example scripts, so cache it under
       # its own static key instead of the cache-example key above -- otherwise every

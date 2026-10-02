@@ -15,8 +15,8 @@ This tool does the same locally for the examples you name, and prints every file
     python cli.py clean --all               # remove everything a run generated
 
 Only the standard library is used, so ``list``, ``show`` and ``clean`` work without Struphy.
-``metadata`` and ``run`` need Struphy (``pip install ./submodules/plasma-plots/struphy``) and ``run`` also
-its compiled kernels (``struphy compile``) and plasma-plots (``pip install './submodules/plasma-plots[gallery]'``).
+``metadata`` and ``run`` need Struphy (``pip install ./submodules/struphy``) and ``run`` also
+its compiled kernels (``struphy compile``) and plasma-plots (``pip install -r requirements-examples.txt``).
 """
 
 from __future__ import annotations
@@ -220,14 +220,14 @@ def python_env_problem(need_kernels: bool) -> str | None:
         return (
             "Struphy is not importable in this Python. From the repository root:\n"
             "  python -m venv .venv && source .venv/bin/activate\n"
-            "  pip install ./submodules/plasma-plots/struphy"
+            "  pip install ./submodules/struphy"
             + ("\n  struphy compile" if need_kernels else "")
         )
     if need_kernels and importlib.util.find_spec("plasma_plots") is None:
         return (
             "plasma-plots is not importable in this Python (the examples use its accessors and\n"
             "plasma_plots.gallery). From the repository root:\n"
-            "  pip install './submodules/plasma-plots[gallery]'"
+            "  pip install -r requirements-examples.txt"
         )
     for module in ("plotly", "kaleido"):
         if need_kernels and importlib.util.find_spec(module) is None:

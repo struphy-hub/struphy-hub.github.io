@@ -8,7 +8,7 @@ each oscillating at omega = c |k|, and it can be compared with the numerical fie
 energy, which the structure-preserving scheme conserves for any mesh, is followed as well.
 
 Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
+(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 

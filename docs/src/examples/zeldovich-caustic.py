@@ -11,7 +11,7 @@ The SPH density estimate is compared with it. This is the classic test of pressu
 first stage of the Zel'dovich approximation for structure formation.
 
 Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
+(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 

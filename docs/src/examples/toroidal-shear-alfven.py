@@ -4,7 +4,7 @@ Run from the repository root with:
     .venv/bin/python cli.py run toroidal-shear-alfven
 
 Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
+(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 The default is an exploratory local run, not a converged ITPA TAE benchmark.
 Increase NUM_ELEMENTS to (24, 96, 16), DEGREE to (3, 3, 3), and END_TIME

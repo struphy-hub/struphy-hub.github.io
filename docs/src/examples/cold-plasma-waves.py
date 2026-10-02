@@ -7,7 +7,7 @@ noise in the transverse electric field excites all branches at once; the (k, ome
 E_x shows them, and is compared with the analytic cold-plasma dispersion relation.
 
 Requires Struphy with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
+(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 

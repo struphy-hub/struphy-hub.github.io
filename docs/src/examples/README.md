@@ -102,7 +102,7 @@ filename.
 
 ## 2. Generate the structural metadata
 
-From the repo root, with Struphy installed (`pip install ./submodules/plasma-plots/struphy` — no
+From the repo root, with Struphy installed (`pip install ./submodules/struphy` — no
 compiled kernels needed for this step):
 
 ```sh
@@ -230,7 +230,7 @@ in its metadata. No list to edit by hand.
 Use the Struphy revision pinned by this repository, including local submodule changes while developing.
 The full Orszag–Tang run needs the fix in `struphy/feec/mass.py` that preserves geometric weights
 between density-weighted matrix assemblies. Commit that fix and its regression test in Struphy,
-then bump the `struphy` pointer in plasma-plots and the website's `submodules/plasma-plots` pointer before publishing. A website-only commit cannot
+then bump the website's `submodules/struphy` pointer before publishing. A website-only commit cannot
 reproduce this example in CI.
 
 The Orszag–Tang script checks for non-finite diagnostics, non-positive density and incomplete

@@ -13,7 +13,7 @@ magnetic wells: markers launched with a small parallel velocity are mirror-trapp
 in them, the faster ones circulate.
 
 Requires Struphy with compiled kernels (`struphy compile`) and its optional physics dependencies
-(`pip install -e ".[phys]"`), and plasma-plots with Plotly (`pip install "plasma-plots[plotly]"`).
+(`pip install -e ".[phys]"`), and plasma-plots with Plotly (`pip install "plasma-plots[plotly]==0.1.1"`).
 Run as a script, it saves its figures in the current directory (`--show` shows them first).
 """
 

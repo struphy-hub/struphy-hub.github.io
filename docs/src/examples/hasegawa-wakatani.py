@@ -10,7 +10,7 @@ it remains a manageable gallery calculation while retaining the turbulent
 eddies and the slow reorganization of their energy.
 
 Requires Struphy with compiled kernels (``struphy compile``) and plasma-plots with Plotly
-(``pip install "plasma-plots[plotly]"``). Run as a script, it saves its figures in the current
+(``pip install "plasma-plots[plotly]==0.1.1"``). Run as a script, it saves its figures in the current
 directory (``--show`` shows them first).
 """
 

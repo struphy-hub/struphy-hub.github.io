@@ -2,14 +2,15 @@
 async function exampleCache(example, prefix, suffix, glob) {
   const patterns = [
     `docs/src/examples/${example}.py`,
-    'submodules/plasma-plots/src/plasma_plots/**/*.py',
+    'requirements.txt',
+    'requirements-examples.txt',
     'catalogue_docs.py',
     'generate_examples.py',
     'run_example.py',
     '.github/precomputed-examples.json',
     'generate_example_domain.py',
     'generate_domains.py',
-    'submodules/plasma-plots/struphy/src/struphy/**/*.py',
+    'submodules/struphy/src/struphy/**/*.py',
   ];
   return {
     key: `${prefix}${suffix}-${example}-${await glob.hashFiles(patterns.join('\n'))}`,

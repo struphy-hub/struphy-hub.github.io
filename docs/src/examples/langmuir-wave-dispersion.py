@@ -11,7 +11,7 @@ frequency and the damping rate of the electric field, and compare them with this
 shown for reference: it ignores the kinetic effects and misses the frequency by several per cent already at k = 0.5.
 
 Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
+(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 

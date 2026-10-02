@@ -1,0 +1,2 @@
+# Plotting dependency for metadata generation and site data.
+plasma-plots==0.1.1

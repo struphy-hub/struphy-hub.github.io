@@ -8,7 +8,7 @@ the curved one. The slopes are measured from the runs and compared with p + 1: o
 whose coarse meshes are not yet in the asymptotic range, they are steeper.
 
 Requires Struphy 3.3 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
+(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 

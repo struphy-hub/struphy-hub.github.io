@@ -1,0 +1,3 @@
+# Gallery rendering and profiling dependencies for running examples.
+-r requirements.txt
+plasma-plots[gallery]==0.1.1

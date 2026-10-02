@@ -10,7 +10,7 @@ toroidal momentum of every particle are conserved, which checks the guiding-cent
 Adapted from Struphy's particle-tracing tutorial (tutorials/tutorial_particle_tracing.ipynb).
 
 Requires Struphy 3.2 with compiled kernels (`struphy compile`) and plasma-plots with Plotly
-(`pip install "plasma-plots[plotly]"`). Run as a script, it saves its figures in the current
+(`pip install "plasma-plots[plotly]==0.1.1"`). Run as a script, it saves its figures in the current
 directory (`--show` shows them first).
 """
 

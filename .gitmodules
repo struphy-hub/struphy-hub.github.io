@@ -1,3 +1,3 @@
-[submodule "submodules/struphy-plots"]
-	path = submodules/plasma-plots
-	url = https://github.com/struphy-hub/plasma-plots.git
+[submodule "struphy"]
+	path = submodules/struphy
+	url = https://github.com/struphy-hub/struphy.git
