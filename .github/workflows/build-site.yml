@@ -95,6 +95,9 @@ jobs:
       - name: Install Struphy
         run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
 
+      - name: Check domain discovery
+        run: python -m pytest -q tests/test_generate_domains.py
+
       - name: Generate equilibrium slices
         run: python generate_equilibrium_slices.py
 
